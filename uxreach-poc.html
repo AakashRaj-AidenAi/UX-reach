@@ -3400,11 +3400,13 @@
         const msgs = document.getElementById('chatMessages');
         msgs.innerHTML = '';
         addBotMessage(
-            'Hello! I can help you send study invites or check status.' +
+            'Hello! I can help you send study invites, schedule future sends, or check status.' +
             '<div class="chat-suggestions" role="group" aria-label="Suggested commands">' +
               '<div class="msg-buttons">' +
-                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567">Send 10 invites for study 1234567</button>' +
-                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Show today&#39;s summary">Show today&#39;s summary</button>' +
+                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567">Send invites now</button>' +
+                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 5 invites for study 2345678 tomorrow at 11 AM">Schedule for later</button>' +
+                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Show today&#39;s summary">Today\'s summary</button>' +
+                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Pending studies">Pending studies</button>' +
               '</div>' +
             '</div>'
         );
@@ -3550,7 +3552,7 @@
         showTyping();
         setTimeout(() => {
             hideTyping();
-            addBotMessage('I\'m not sure what you mean. Try one of these commands:<br>&#x2022; <em>"send X invites for study 1234567"</em><br>&#x2022; <em>"status of study 1234567"</em><br>&#x2022; <em>"today\'s summary"</em><br>&#x2022; <em>"pending studies"</em><br>&#x2022; <em>"what failed"</em>');
+            addBotMessage('I\'m not sure what you mean. Try one of these:<br>&#x2022; <em>"send 10 invites for study 1234567"</em><br>&#x2022; <em>"send 5 invites for study 2345678 tomorrow at 11 AM"</em><br>&#x2022; <em>"status of study 1234567"</em><br>&#x2022; <em>"today\'s summary"</em><br>&#x2022; <em>"pending studies"</em><br>&#x2022; <em>"what failed"</em>');
         }, 1000);
     }
 
