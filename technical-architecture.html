@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UXReach — Technical Architecture Diagrams</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --card-alt: #f8fafc;
+            --card-border: #e2e8f0;
+            --text: #1e293b;
+            --text-dim: #334155;
+            --text-muted: #64748b;
+            --text-faint: #94a3b8;
+            --blue: #2563eb;
+            --purple: #7c3aed;
+            --green: #059669;
+            --amber: #d97706;
+            --rose: #e11d48;
+            --cyan: #0891b2;
+            --sf-blue: #0086bd;
+            --gradient-brand: linear-gradient(135deg, #2563eb, #7c3aed);
+        }
+
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+
+        .header { background: linear-gradient(135deg, #fff 0%, #f0f4ff 100%); border-bottom: 1px solid var(--card-border); padding: 24px 40px; display: flex; align-items: center; justify-content: space-between; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .logo { width: 42px; height: 42px; background: var(--gradient-brand); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #fff; }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+        .badge { background: #f0f4ff; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 20px; font-size: 12px; color: #475569; }
+
+        .canvas { padding: 40px; max-width: 1600px; margin: 0 auto; }
+
+        .section-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin: 40px 0 20px; display: flex; align-items: center; gap: 10px; }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, #cbd5e1, transparent); }
+
+        .diagram { background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 32px; margin-bottom: 32px; overflow-x: auto; }
+
+        /* Layer diagram */
+        .layer-row { display: flex; align-items: stretch; margin-bottom: 3px; }
+        .layer-label { width: 160px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 14px 10px; border-radius: 10px 0 0 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #fff; text-align: center; line-height: 1.3; }
+        .layer-boxes { flex: 1; display: flex; gap: 3px; padding: 6px; background: var(--card); border: 1px solid var(--card-border); border-left: none; border-radius: 0 10px 10px 0; }
+
+        .box { flex: 1; background: var(--card); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; text-align: center; transition: all 0.2s; }
+        .box:hover { border-color: var(--blue); box-shadow: 0 2px 10px rgba(37,99,235,0.08); transform: translateY(-1px); }
+        .box-title { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+        .box-sub { font-size: 9px; color: var(--text-muted); line-height: 1.3; }
+        .box-tech { font-size: 8px; color: var(--cyan); font-weight: 600; margin-top: 3px; }
+
+        .box.hl-blue { border-color: rgba(37,99,235,0.25); background: rgba(37,99,235,0.02); }
+        .box.hl-purple { border-color: rgba(124,58,237,0.25); background: rgba(124,58,237,0.02); }
+        .box.hl-green { border-color: rgba(5,150,105,0.25); background: rgba(5,150,105,0.02); }
+        .box.hl-amber { border-color: rgba(217,119,6,0.25); background: rgba(217,119,6,0.02); }
+        .box.hl-rose { border-color: rgba(225,29,72,0.25); background: rgba(225,29,72,0.02); }
+
+        .lb-blue { background: var(--blue); }
+        .lb-purple { background: var(--purple); }
+        .lb-green { background: var(--green); }
+        .lb-amber { background: var(--amber); }
+        .lb-rose { background: var(--rose); }
+        .lb-cyan { background: var(--cyan); }
+
+        /* Connectors */
+        .conn { display: flex; align-items: center; justify-content: center; padding: 3px 0; padding-left: 160px; }
+        .conn-inner { display: flex; flex-direction: column; align-items: center; }
+        .conn-line { width: 2px; height: 10px; background: linear-gradient(180deg, var(--card-border), var(--blue)); }
+        .conn-label { font-size: 8px; color: var(--text-muted); background: #f0f4ff; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--card-border); }
+        .conn-arrow { color: var(--blue); font-size: 10px; }
+
+        /* Agent split */
+        .agent-box { flex: 1; border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; }
+        .agent-title { font-size: 10px; font-weight: 700; text-align: center; padding: 2px 6px; border-radius: 5px; margin-bottom: 4px; }
+        .agent-title.act { background: rgba(37,99,235,0.08); color: var(--blue); }
+        .agent-title.qry { background: rgba(124,58,237,0.08); color: var(--purple); }
+        .agent-steps { font-size: 8px; color: var(--text-muted); line-height: 1.5; padding: 0 2px; }
+
+        /* Security badges */
+        .sec-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+        .sec { font-size: 8px; padding: 2px 7px; border-radius: 5px; background: rgba(225,29,72,0.05); border: 1px solid rgba(225,29,72,0.15); color: var(--rose); white-space: nowrap; }
+
+        /* Integration row */
+        .int-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; flex: 1; }
+
+        /* Flow diagram */
+        .flow-row { display: flex; align-items: center; gap: 2px; }
+        .flow-box { flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--card-border); }
+        .flow-num { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; margin-bottom: 2px; }
+        .flow-title { font-size: 9px; font-weight: 600; color: var(--text); }
+        .flow-desc { font-size: 8px; color: var(--text-muted); }
+        .flow-h { font-size: 12px; color: var(--blue); flex-shrink: 0; }
+
+        .fn-b .flow-num { background: rgba(37,99,235,0.1); color: var(--blue); border: 1.5px solid rgba(37,99,235,0.3); }
+        .fn-p .flow-num { background: rgba(124,58,237,0.1); color: var(--purple); border: 1.5px solid rgba(124,58,237,0.3); }
+        .fn-g .flow-num { background: rgba(5,150,105,0.1); color: var(--green); border: 1.5px solid rgba(5,150,105,0.3); }
+        .fn-a .flow-num { background: rgba(217,119,6,0.1); color: var(--amber); border: 1.5px solid rgba(217,119,6,0.3); }
+        .fn-r .flow-num { background: rgba(225,29,72,0.1); color: var(--rose); border: 1.5px solid rgba(225,29,72,0.3); }
+        .fn-c .flow-num { background: rgba(8,145,178,0.1); color: var(--cyan); border: 1.5px solid rgba(8,145,178,0.3); }
+
+        /* Decision flow */
+        .decision-cols { display: flex; gap: 16px; align-items: flex-start; }
+        .decision-col { flex: 1; }
+        .decision-col-title { text-align: center; font-size: 11px; font-weight: 700; margin-bottom: 10px; }
+        .decision-step { text-align: center; margin-bottom: 3px; }
+        .decision-arrow { text-align: center; font-size: 12px; margin: 2px 0; }
+        .decision-fork { display: flex; gap: 8px; justify-content: center; margin-top: 3px; }
+        .decision-fork > div { flex: 1; text-align: center; }
+        .decision-fork-label { font-size: 9px; font-weight: 600; margin-bottom: 2px; }
+        .divider { width: 1px; background: var(--card-border); min-height: 200px; flex-shrink: 0; }
+
+        /* Data model */
+        .model-grid { display: flex; gap: 12px; align-items: flex-start; }
+        .model-card { flex: 1; border: 1.5px solid var(--card-border); border-radius: 10px; padding: 14px; }
+        .model-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; display: inline-block; margin-bottom: 6px; }
+        .model-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .model-fields { font-size: 10px; color: var(--text-muted); line-height: 1.7; }
+        .model-relations { display: flex; gap: 10px; margin-top: 12px; padding: 10px; background: rgba(37,99,235,0.03); border-radius: 8px; border: 1px solid rgba(37,99,235,0.1); font-size: 9px; color: var(--text-muted); }
+
+        /* Deploy grid */
+        .deploy-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .deploy-node { border: 1.5px solid var(--card-border); border-radius: 10px; padding: 14px; text-align: center; transition: all 0.2s; }
+        .deploy-node:hover { border-color: var(--blue); box-shadow: 0 2px 10px rgba(37,99,235,0.08); }
+        .deploy-icon { font-size: 24px; margin-bottom: 6px; }
+        .deploy-name { font-size: 12px; font-weight: 700; color: var(--text); }
+        .deploy-tech { font-size: 10px; color: var(--text-muted); }
+        .deploy-detail { font-size: 9px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+
+        /* Legend */
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 16px; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; margin-bottom: 24px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-muted); }
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+        .footer { background: var(--card); border-top: 1px solid var(--card-border); padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; margin-top: 40px; }
+        .footer-text { font-size: 12px; color: var(--text-muted); }
+        .footer-badge { font-size: 11px; color: var(--text-faint); background: var(--card-alt); border: 1px solid var(--card-border); padding: 4px 12px; border-radius: 20px; }
+
+        @media print { body { background: #fff; } .diagram { break-inside: avoid; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <div class="logo">UX</div>
+        <div>
+            <h1>UXReach — Technical Architecture Diagrams</h1>
+            <p>System Components, Data Flow, AI Integration &amp; Deployment</p>
+        </div>
+    </div>
+    <div class="badge">v2.1 &nbsp;|&nbsp; April 14, 2026 &nbsp;|&nbsp; Hybrid Architecture</div>
+</div>
+
+<div class="canvas">
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div> UI / Frontend</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div> AI / Gemini</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div> Backend / Orchestration</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--amber);"></div> Queue / Async</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--rose);"></div> Security</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--cyan);"></div> Integrations</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#334155;"></div> Storage</div>
+        <div class="legend-item" style="margin-left:auto; font-weight:600; color:var(--text);"><span style="border-bottom:1.5px solid var(--text-muted);">──</span>&nbsp;Sync &nbsp; <span style="border-bottom:1.5px dashed var(--text-muted);">- -</span>&nbsp;Async</div>
+    </div>
+
+    <!-- ============ 1. LAYERED ARCHITECTURE ============ -->
+    <div class="section-title">1. Layered System Architecture</div>
+    <div class="diagram">
+        <!-- Layer 1 -->
+        <div class="layer-row">
+            <div class="layer-label lb-blue">Layer 1<br>UI</div>
+            <div class="layer-boxes">
+                <div class="box hl-blue"><div class="box-title">Chatbot UI</div><div class="box-sub">Typed commands<br>Rich cards</div><div class="box-tech">React + Material UI</div></div>
+                <div class="box hl-blue"><div class="box-title">Study ID Input</div><div class="box-sub">SF validation<br>Invite count</div><div class="box-tech">React Form</div></div>
+                <div class="box hl-blue"><div class="box-title">Settings</div><div class="box-sub">Delegation<br>Scheduler</div><div class="box-tech">React</div></div>
+                <div class="box hl-blue"><div class="box-title">Status Dashboard</div><div class="box-sub">Progress + SLA<br>Per-email rows</div><div class="box-tech">React + WebSocket</div></div>
+                <div class="box hl-blue"><div class="box-title">Audit Trail</div><div class="box-sub">Run history<br>Sortable</div><div class="box-tech">React Table</div></div>
+            </div>
+        </div>
+        <div class="conn"><div class="conn-inner"><div class="conn-line"></div><div class="conn-label">REST API + WebSocket (HTTPS / TLS 1.2+)</div><div class="conn-arrow">&#x25BC;</div></div></div>
+
+        <!-- Layer 2 -->
+        <div class="layer-row">
+            <div class="layer-label lb-purple">Layer 2<br>Router</div>
+            <div class="layer-boxes">
+                <div class="box hl-purple"><div class="box-title">Chat Interface</div><div class="box-sub">WebSocket<br>Typing indicators</div><div class="box-tech">FastAPI</div></div>
+                <div class="box hl-purple"><div class="box-title">Intent Classifier</div><div class="box-sub">SEND &#x2192; Agent 1<br>STATUS &#x2192; Agent 2</div><div class="box-tech">Gemini Flash</div></div>
+                <div class="box hl-purple"><div class="box-title">Auth Middleware</div><div class="box-sub">Google OAuth 2.0<br>Authenticated RC</div><div class="box-tech">SSO + LDAP</div></div>
+                <div class="box hl-purple"><div class="box-title">Rate Limiter</div><div class="box-sub">Candidate locks<br>Multi-RC support</div><div class="box-tech">Redis</div></div>
+            </div>
+        </div>
+        <div class="conn"><div class="conn-inner"><div class="conn-line"></div><div class="conn-label">Intent &#x2192; Master Agent Orchestrator</div><div class="conn-arrow">&#x25BC;</div></div></div>
+
+        <!-- Layer 3: Master + Sub-Agents -->
+        <div class="layer-row">
+            <div class="layer-label lb-green">Layer 3<br>Multi-Agent</div>
+            <div class="layer-boxes" style="flex-direction:column; gap:4px;">
+                <div class="box hl-green">
+                    <div class="box-title">&#x1f9e0; Master Agent (Orchestrator)</div>
+                    <div class="box-sub">Shared context &bull; SLA timer &bull; Circuit breakers &bull; Audit logging &bull; Agent coordination</div>
+                    <div class="box-tech">Gemini 3.1 Pro | State Machine | Single Entry Point</div>
+                </div>
+                <div style="display:flex; gap:3px;">
+                    <div class="agent-box">
+                        <div class="agent-title act">Sub-Agent 1 — Invite Agent (ACTION)</div>
+                        <div class="agent-steps">1. Validate Study &#x2192; 2. Fetch candidates &#x2192; 3. Filter P0s (RC count) &#x2192; 4. Read Sheets &#x2192; 5. Read Drive &#x2192; 6. Generate emails (Gemini) &#x2192; 7. Preview &#x2192; 8. Batch send (SF) &#x2192; 9. Update child cases &#x2192; 10. ICF links &#x2192; 11. Bulk update &#x2192; 12. Parent notes &#x2192; 13. Report to Master</div>
+                    </div>
+                    <div class="agent-box">
+                        <div class="agent-title qry">Sub-Agent 2 — Status Agent (QUERY)</div>
+                        <div class="agent-steps">1. Study status &#x2192; 2. Email tracking &#x2192; 3. Pending studies &#x2192; 4. Daily summary &#x2192; 5. Failure reports &#x2192; 6. Weekly metrics &#x2192; 7. Bounce rates &#x2192; 8. SLA checks &#x2192; 9. Report to Master</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="conn"><div class="conn-inner"><div class="conn-line"></div><div class="conn-label">Sub-Agents &#x2194; Backend Services | Master owns audit trail</div><div class="conn-arrow">&#x25BC;</div></div></div>
+
+        <!-- Layer 4 -->
+        <div class="layer-row">
+            <div class="layer-label lb-amber">Layer 4<br>Backend</div>
+            <div class="layer-boxes">
+                <div class="box hl-amber"><div class="box-title">Workflow Engine</div><div class="box-sub">State machine<br>Idempotency<br>SLA timer</div><div class="box-tech">Python FastAPI</div></div>
+                <div class="box hl-amber"><div class="box-title">Email Builder</div><div class="box-sub">Template + AI<br>Validation<br>ICF repo</div><div class="box-tech">Gemini 3.1 Pro</div></div>
+                <div class="box hl-amber"><div class="box-title">Dispatch Queue</div><div class="box-sub">Async send<br>Batch of 5<br>DLQ</div><div class="box-tech">Cloud Pub/Sub</div></div>
+                <div class="box hl-amber"><div class="box-title">Notification Svc</div><div class="box-sub">RC alerts<br>SLA breach<br>Daily digest</div><div class="box-tech">Email / Chat</div></div>
+            </div>
+        </div>
+        <div class="conn"><div class="conn-inner"><div class="conn-line"></div><div class="conn-label">API Calls to External Systems</div><div class="conn-arrow">&#x25BC;</div></div></div>
+
+        <!-- Layer 5 -->
+        <div class="layer-row">
+            <div class="layer-label lb-cyan">Layer 5<br>Integrations</div>
+            <div class="layer-boxes">
+                <div class="int-grid">
+                    <div class="box"><div class="box-title">&#x2601; Salesforce</div><div class="box-sub">SoR + Email<br>Cases</div><div class="box-tech">REST + SOQL</div></div>
+                    <div class="box"><div class="box-title">&#x2728; Vertex AI</div><div class="box-sub">Gemini 3.1 Pro<br>Gen + Intent</div><div class="box-tech">Vertex API</div></div>
+                    <div class="box"><div class="box-title">&#x1f4e6; Shortlisting</div><div class="box-sub">P0/P1/Reject<br>Candidates</div><div class="box-tech">API</div></div>
+                    <div class="box"><div class="box-title">&#x1f5c4; Cloud SQL</div><div class="box-sub">State<br>No PII</div><div class="box-tech">PostgreSQL</div></div>
+                    <div class="box"><div class="box-title">&#x1f4ca; Sheets</div><div class="box-sub">RC trackers</div><div class="box-tech">Sheets API v4</div></div>
+                    <div class="box"><div class="box-title">&#x1f4c2; Drive</div><div class="box-sub">Folder read</div><div class="box-tech">Drive API v3</div></div>
+                    <div class="box"><div class="box-title">&#x1f4e6; Pub/Sub</div><div class="box-sub">Async + DLQ</div><div class="box-tech">Cloud Pub/Sub</div></div>
+                    <div class="box"><div class="box-title">&#x1f4c8; Looker</div><div class="box-sub">KPI reports</div><div class="box-tech">Looker Studio</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="conn"><div class="conn-inner"><div class="conn-line" style="background:linear-gradient(180deg,var(--card-border),var(--rose));"></div><div class="conn-arrow" style="color:var(--rose);">&#x25BC;</div></div></div>
+
+        <!-- Security -->
+        <div class="layer-row">
+            <div class="layer-label lb-rose">Security</div>
+            <div class="layer-boxes">
+                <div class="sec-row">
+                    <div class="sec">HTTPS / TLS 1.2+</div>
+                    <div class="sec">Zero PII in Logs</div>
+                    <div class="sec">Google SSO</div>
+                    <div class="sec">Authenticated Access (SSO)</div>
+                    <div class="sec">SF-Only PII</div>
+                    <div class="sec">Read+Write Only</div>
+                    <div class="sec">Anonymized Audit</div>
+                    <div class="sec">GDPR Compliant</div>
+                    <div class="sec">Gemini DPA</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 2. DATA FLOW ============ -->
+    <div class="section-title">2. End-to-End Data Flow (Invite Workflow)</div>
+    <div class="diagram">
+        <div class="flow-row">
+            <div class="flow-box fn-b"><div class="flow-num">1</div><div class="flow-title">RC Triggers</div><div class="flow-desc">Types command</div></div>
+            <div class="flow-h">&#x2192;</div>
+            <div class="flow-box fn-r"><div class="flow-num">2</div><div class="flow-title">Health Check</div><div class="flow-desc">Ping SF+Gemini+App</div></div>
+            <div class="flow-h">&#x2192;</div>
+            <div class="flow-box fn-p"><div class="flow-num">3</div><div class="flow-title">Validate</div><div class="flow-desc">Study ID in SF</div></div>
+            <div class="flow-h">&#x2192;</div>
+            <div class="flow-box fn-c"><div class="flow-num">4</div><div class="flow-title">Fetch &amp; Filter</div><div class="flow-desc">Case ID join, P0s</div></div>
+            <div class="flow-h">&#x2192;</div>
+            <div class="flow-box fn-g"><div class="flow-num">5</div><div class="flow-title">Generate</div><div class="flow-desc">Gemini emails</div></div>
+            <div class="flow-h">&#x2192;</div>
+            <div class="flow-box fn-b"><div class="flow-num">6</div><div class="flow-title">Send</div><div class="flow-desc">SF API, batch 5</div></div>
+            <div class="flow-h">&#x2192;</div>
+            <div class="flow-box fn-p"><div class="flow-num">7</div><div class="flow-title">Update &amp; Log</div><div class="flow-desc">Cases + Audit</div></div>
+        </div>
+    </div>
+
+    <!-- ============ 3. AI DECISION FLOW ============ -->
+    <div class="section-title">3. AI Decision Flow (Gemini Integration)</div>
+    <div class="diagram">
+        <div class="decision-cols">
+            <!-- Email Gen -->
+            <div class="decision-col">
+                <div class="decision-col-title" style="color:var(--purple);">Email Content Generation</div>
+                <div class="decision-step"><div class="box hl-green"><div class="box-title">Study Context Loaded</div><div class="box-sub">Study name, researcher, participant details</div></div></div>
+                <div class="decision-arrow" style="color:var(--green);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-purple"><div class="box-title">Gemini 3.1 Pro</div><div class="box-sub">Template-constrained prompt &#x2192; Personalized email</div></div></div>
+                <div class="decision-arrow" style="color:var(--purple);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-purple"><div class="box-title">Content Validation</div><div class="box-sub">Structure &bull; Variables &bull; Tone &bull; Brand</div></div></div>
+                <div class="decision-fork">
+                    <div><div class="decision-fork-label" style="color:var(--green);">&#x2705; Pass</div><div class="decision-arrow" style="color:var(--green);">&#x25BC;</div><div class="box hl-green" style="padding:6px;"><div class="box-title">RC Preview</div></div></div>
+                    <div><div class="decision-fork-label" style="color:var(--rose);">&#x274c; Fail</div><div class="decision-arrow" style="color:var(--rose);">&#x25BC;</div><div class="box hl-rose" style="padding:6px;"><div class="box-title">Static Fallback</div></div></div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Intent Classification -->
+            <div class="decision-col">
+                <div class="decision-col-title" style="color:var(--purple);">Intent Classification</div>
+                <div class="decision-step"><div class="box hl-blue"><div class="box-title">RC Types Command</div><div class="box-sub">"send 10 invites for case 1234567"</div></div></div>
+                <div class="decision-arrow" style="color:var(--blue);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-purple"><div class="box-title">Gemini Flash</div><div class="box-sub">Classify: SEND / STATUS / UNCLEAR</div></div></div>
+                <div class="decision-fork">
+                    <div><div class="decision-fork-label" style="color:var(--blue);">SEND</div><div class="decision-arrow" style="color:var(--blue);">&#x25BC;</div><div class="box hl-blue" style="padding:6px;"><div class="box-title">Invite Agent</div><div class="box-sub">13 steps</div></div></div>
+                    <div><div class="decision-fork-label" style="color:var(--purple);">STATUS</div><div class="decision-arrow" style="color:var(--purple);">&#x25BC;</div><div class="box hl-purple" style="padding:6px;"><div class="box-title">Status Agent</div><div class="box-sub">9 queries</div></div></div>
+                    <div><div class="decision-fork-label" style="color:var(--amber);">UNCLEAR</div><div class="decision-arrow" style="color:var(--amber);">&#x25BC;</div><div class="box hl-amber" style="padding:6px;"><div class="box-title">Clarify</div></div></div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Circuit Breaker -->
+            <div class="decision-col">
+                <div class="decision-col-title" style="color:var(--rose);">Circuit Breaker (Gemini Down)</div>
+                <div class="decision-step"><div class="box hl-rose"><div class="box-title">Gemini Unreachable</div><div class="box-sub">Timeout or 5xx</div></div></div>
+                <div class="decision-arrow" style="color:var(--rose);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-amber"><div class="box-title">Circuit Breaker Opens</div><div class="box-sub">Master Agent detects failure</div></div></div>
+                <div class="decision-arrow" style="color:var(--amber);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-amber"><div class="box-title">RC Prompted</div><div class="box-sub">"Proceed with standard template?"</div></div></div>
+                <div class="decision-fork">
+                    <div><div class="decision-fork-label" style="color:var(--green);">Yes</div><div class="decision-arrow" style="color:var(--green);">&#x25BC;</div><div class="box hl-green" style="padding:6px;"><div class="box-title">Static Send</div></div></div>
+                    <div><div class="decision-fork-label" style="color:var(--rose);">No</div><div class="decision-arrow" style="color:var(--rose);">&#x25BC;</div><div class="box hl-rose" style="padding:6px;"><div class="box-title">Abort</div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 4. ERROR HANDLING ============ -->
+    <div class="section-title">4. Error Handling &amp; Retry Architecture</div>
+    <div class="diagram">
+        <div class="decision-cols">
+            <!-- Retry flow -->
+            <div class="decision-col">
+                <div class="decision-col-title" style="color:var(--amber);">Per-Email Retry Flow</div>
+                <div class="decision-step"><div class="box"><div class="box-title">Dispatch Email via SF API</div></div></div>
+                <div class="decision-fork">
+                    <div>
+                        <div class="decision-fork-label" style="color:var(--green);">&#x2705; 200 OK</div>
+                        <div class="decision-arrow" style="color:var(--green);">&#x25BC;</div>
+                        <div class="box hl-green" style="padding:6px;"><div class="box-title">Mark Sent</div><div class="box-sub">Update case, log</div></div>
+                    </div>
+                    <div>
+                        <div class="decision-fork-label" style="color:var(--rose);">&#x274c; Error</div>
+                        <div class="decision-arrow" style="color:var(--rose);">&#x25BC;</div>
+                        <div class="box hl-amber" style="padding:6px;"><div class="box-title">Retry 3x</div><div class="box-sub">1s &#x2192; 2s &#x2192; 4s</div></div>
+                        <div class="decision-arrow" style="color:var(--amber);">&#x25BC;</div>
+                        <div class="decision-fork" style="margin-top:2px;">
+                            <div><div class="box hl-green" style="padding:4px;"><div class="box-sub" style="color:var(--green);">Sent</div></div></div>
+                            <div><div class="box hl-rose" style="padding:4px;"><div class="box-sub" style="color:var(--rose);">DLQ &#x2192; RC Notified</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SLA -->
+            <div class="decision-col">
+                <div class="decision-col-title" style="color:var(--rose);">SLA Escalation Timeline</div>
+                <div class="decision-step"><div class="box hl-green"><div class="box-title" style="color:var(--green);">0:00 — Run Started</div><div class="box-sub">15-min countdown begins</div></div></div>
+                <div class="decision-arrow" style="color:var(--green);">&#x25BC;</div>
+                <div class="decision-step"><div class="box"><div class="box-title">Normal Processing</div><div class="box-sub">Batch of 5 emails</div></div></div>
+                <div class="decision-arrow" style="color:var(--amber);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-amber"><div class="box-title" style="color:var(--amber);">10:00 — Amber Warning</div><div class="box-sub">RC toast + dashboard amber</div></div></div>
+                <div class="decision-arrow" style="color:var(--rose);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-rose"><div class="box-title" style="color:var(--rose);">15:00 — SLA Breach</div><div class="box-sub">Incident logged, RC alerted</div></div></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Health gate -->
+            <div class="decision-col">
+                <div class="decision-col-title" style="color:var(--green);">Dependency Health Gate</div>
+                <div class="decision-step"><div class="box"><div class="box-title">RC Triggers Send</div></div></div>
+                <div class="decision-arrow" style="color:var(--text-muted);">&#x25BC;</div>
+                <div class="decision-step"><div class="box hl-green"><div class="box-title">Health Check (Parallel)</div><div class="box-sub">Ping SF + Gemini + Shortlisting</div></div></div>
+                <div class="decision-fork">
+                    <div><div class="decision-fork-label" style="color:var(--green);">All &#x1f7e2;</div><div class="decision-arrow" style="color:var(--green);">&#x25BC;</div><div class="box hl-green" style="padding:6px;"><div class="box-title">Proceed</div></div></div>
+                    <div><div class="decision-fork-label" style="color:var(--amber);">Gemini &#x1f534;</div><div class="decision-arrow" style="color:var(--amber);">&#x25BC;</div><div class="box hl-amber" style="padding:6px;"><div class="box-title">Fallback</div></div></div>
+                    <div><div class="decision-fork-label" style="color:var(--rose);">SF &#x1f534;</div><div class="decision-arrow" style="color:var(--rose);">&#x25BC;</div><div class="box hl-rose" style="padding:6px;"><div class="box-title">Abort</div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 5. DATA MODEL ============ -->
+    <div class="section-title">5. Salesforce Data Model &amp; Cross-System Linkage</div>
+    <div class="diagram">
+        <div class="model-grid">
+            <div class="model-card" style="border-color:var(--sf-blue);">
+                <div class="model-badge" style="background:rgba(0,134,189,0.08); color:var(--sf-blue);">Custom Object</div>
+                <div class="model-name">Study</div>
+                <div class="model-fields">&#x2022; Study_ID__c<br>&#x2022; Study_Name__c<br>&#x2022; UXR_Name__c<br>&#x2022; Study_Type__c</div>
+            </div>
+            <div class="model-card" style="border-color:var(--blue);">
+                <div class="model-badge" style="background:rgba(37,99,235,0.08); color:var(--blue);">Parent Case</div>
+                <div class="model-name">Case (Parent)</div>
+                <div class="model-fields">&#x2022; CaseNumber (7-digit)<br>&#x2022; <strong>Id (prefix '500')</strong> &#x2190; Key<br>&#x2022; Study_ID__c (lookup)<br>&#x2022; <strong>Owner_RC__c</strong> (lookup)<br>&#x2022; Status<br>&#x2022; Case_Notes__c</div>
+            </div>
+            <div class="model-card" style="border-color:var(--green);">
+                <div class="model-badge" style="background:rgba(5,150,105,0.08); color:var(--green);">Auto-Created by SF</div>
+                <div class="model-name">Case (Child)</div>
+                <div class="model-fields">&#x2022; ParentId (lookup)<br>&#x2022; Participant_Status__c<br>&nbsp;&nbsp;(P0/P1/Rej/<strong>Scheduling In Progress</strong>)<br>&#x2022; Contact__c (lookup)<br>&#x2022; <strong>ICF_Link__c</strong><br>&#x2022; <strong>Preferred_Language__c</strong><br>&#x2022; <strong>Incentive_Type__c</strong><br>&#x2022; <strong>Incentive_Amount__c</strong><br>&#x2022; Case_Notes__c</div>
+            </div>
+            <div class="model-card">
+                <div class="model-badge" style="background:rgba(100,116,139,0.08); color:var(--text-muted);">Standard Object</div>
+                <div class="model-name">Contact</div>
+                <div class="model-fields">&#x2022; Name<br>&#x2022; Email<br>&#x2022; [PII — SF only]</div>
+            </div>
+            <div class="model-card" style="border-color:var(--amber);">
+                <div class="model-badge" style="background:rgba(217,119,6,0.08); color:var(--amber);">Cross-System Key</div>
+                <div class="model-name">Case ID Linkage</div>
+                <div class="model-fields">
+                    <strong>Salesforce</strong><br>
+                    CaseNumber: <code style="background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:9px;">1234567</code><br>
+                    Id: <code style="background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:9px;">500Abc123XyZ</code><br><br>
+                    &#x2195; <span style="font-size:8px; color:var(--amber); font-weight:600;">COMMON KEY</span><br><br>
+                    <strong>Shortlisting App</strong><br>
+                    URL: <code style="background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:9px;">/case/500Abc...</code>
+                </div>
+            </div>
+        </div>
+        <div class="model-relations">
+            <div style="flex:1;"><strong>Study</strong> &#x2190; lookup &#x2192; <strong>Parent Case</strong> (Study_ID__c)</div>
+            <div style="flex:1;"><strong>Parent</strong> &#x2190; 1:many &#x2192; <strong>Child Cases</strong> (ParentId)</div>
+            <div style="flex:1;"><strong>Child Case</strong> &#x2190; lookup &#x2192; <strong>Contact</strong> (PII)</div>
+            <div style="flex:1;"><strong>Case Id (500)</strong> = key to <strong>Shortlisting App</strong></div>
+        </div>
+    </div>
+
+    <!-- ============ 6. COMPONENT MAP ============ -->
+    <div class="section-title">6. Component Interaction Map</div>
+    <div class="diagram">
+        <div style="display:grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap:10px; align-items:center; text-align:center;">
+            <div class="deploy-node"><div class="deploy-icon">&#x1f464;</div><div class="deploy-name">Recruiter (RC)</div><div class="deploy-tech">Browser</div></div>
+            <div style="color:var(--blue); font-size:18px;">&#x2194;</div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f5a5;</div><div class="deploy-name">React Frontend</div><div class="deploy-tech">Cloud Run (Static)</div><div class="deploy-detail">Chat + Dashboard + Preview + Audit</div></div>
+            <div style="color:var(--blue); font-size:18px;">&#x2194;</div>
+            <div class="deploy-node"><div class="deploy-icon">&#x2699;</div><div class="deploy-name">FastAPI Backend</div><div class="deploy-tech">Cloud Run (Serverless)</div><div class="deploy-detail">Master Agent + Workflow + API</div></div>
+        </div>
+        <div style="text-align:center; margin:10px 0; color:var(--green); font-size:18px;">&#x2195;</div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
+            <div class="deploy-node"><div class="deploy-icon">&#x2601;</div><div class="deploy-name">Salesforce</div><div class="deploy-detail">SoR + Email API + Cases</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x2728;</div><div class="deploy-name">Vertex AI</div><div class="deploy-detail">Gemini 3.1 Pro</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f4e6;</div><div class="deploy-name">Shortlisting App</div><div class="deploy-detail">Candidates via Case ID</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f5c4;</div><div class="deploy-name">Cloud SQL</div><div class="deploy-detail">State + Audit (No PII)</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f4e6;</div><div class="deploy-name">Cloud Pub/Sub</div><div class="deploy-detail">Async + Retry + DLQ</div></div>
+        </div>
+        <div style="text-align:center; margin-top:12px; font-size:9px; color:var(--text-muted);">All connections HTTPS/TLS 1.2+ &bull; Salesforce is System of Record (Read+Write only, no Delete)</div>
+    </div>
+
+    <!-- ============ 7. DEPLOYMENT ============ -->
+    <div class="section-title">7. Deployment Architecture (Google Cloud Platform)</div>
+    <div class="diagram">
+        <div class="deploy-grid">
+            <div class="deploy-node"><div class="deploy-icon">&#x1f310;</div><div class="deploy-name">Cloud Run</div><div class="deploy-tech">Frontend</div><div class="deploy-detail">React app &bull; Static hosting &bull; Auto-scaling</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x2699;</div><div class="deploy-name">Cloud Run</div><div class="deploy-tech">Backend API</div><div class="deploy-detail">FastAPI &bull; Master Agent &bull; Serverless</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f5c4;</div><div class="deploy-name">Cloud SQL</div><div class="deploy-tech">PostgreSQL</div><div class="deploy-detail">Workflow state &bull; Audit &bull; No PII</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f4e6;</div><div class="deploy-name">Cloud Pub/Sub</div><div class="deploy-tech">Queue</div><div class="deploy-detail">Email dispatch &bull; Notifications &bull; DLQ</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f512;</div><div class="deploy-name">Cloud IAM</div><div class="deploy-tech">Identity</div><div class="deploy-detail">OAuth &bull; Service accounts &bull; Least privilege</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f4ca;</div><div class="deploy-name">Cloud Monitoring</div><div class="deploy-tech">Observability</div><div class="deploy-detail">Logging &bull; Errors &bull; SLA dashboards</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x2728;</div><div class="deploy-name">Vertex AI</div><div class="deploy-tech">Gemini 3.1 Pro</div><div class="deploy-detail">Gen &bull; Intent &bull; Validation</div></div>
+            <div class="deploy-node"><div class="deploy-icon">&#x1f6e0;</div><div class="deploy-name">Cloud Build</div><div class="deploy-tech">CI/CD</div><div class="deploy-detail">GitHub Actions &bull; Auto deploy</div></div>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">
+    <div class="footer-text">UXReach — Invite Email Agent &nbsp;|&nbsp; Technical Architecture v2.1 &nbsp;|&nbsp; Confidential — Google UX Ads</div>
+    <div style="display:flex; gap:12px; align-items:center;">
+        <span class="footer-badge">April 14, 2026</span>
+        <span class="footer-badge">CTS POD — Google UX Ads</span>
+    </div>
+</div>
+
+</body>
+</html>

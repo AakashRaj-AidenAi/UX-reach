@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UX Reach — QBR Delivery Update</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0e1a;
+            --card: #111827;
+            --card-border: #1e2a4a;
+            --text: #e0e6f0;
+            --text-dim: #7a8bb5;
+            --text-muted: #4a5f8a;
+            --blue: #4f8cff;
+            --purple: #a855f7;
+            --green: #34d399;
+            --amber: #fbbf24;
+            --rose: #fb7185;
+            --cyan: #22d3ee;
+            --sf-blue: #00a1e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Slide System */
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            padding: 48px 64px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Navigation */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            background: rgba(13, 18, 37, 0.95);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn {
+            background: rgba(79, 140, 255, 0.12);
+            border: 1px solid rgba(79, 140, 255, 0.25);
+            color: var(--blue);
+            padding: 6px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(79, 140, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .slide-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .slide-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--card-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .slide-dot.active {
+            background: var(--blue);
+            box-shadow: 0 0 8px rgba(79, 140, 255, 0.4);
+        }
+
+        /* Common Slide Elements */
+        .slide-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 36px;
+            flex-shrink: 0;
+        }
+
+        .slide-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .slide-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .slide-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f0f4ff;
+            line-height: 1.2;
+        }
+
+        .slide-subtitle {
+            font-size: 14px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .slide-badge {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+        }
+
+        .slide-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Section Label */
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--card-border), transparent);
+        }
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: #2a3f7a;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .card-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .card-list li {
+            font-size: 13px;
+            color: var(--text-dim);
+            padding: 4px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .card-list li::before {
+            content: '>';
+            color: var(--blue);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Status Tags */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .tag-green { background: rgba(52, 211, 153, 0.12); color: var(--green); border: 1px solid rgba(52, 211, 153, 0.2); }
+        .tag-amber { background: rgba(251, 191, 36, 0.12); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.2); }
+        .tag-blue { background: rgba(79, 140, 255, 0.12); color: var(--blue); border: 1px solid rgba(79, 140, 255, 0.2); }
+        .tag-purple { background: rgba(168, 85, 247, 0.12); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.2); }
+        .tag-rose { background: rgba(251, 113, 133, 0.12); color: var(--rose); border: 1px solid rgba(251, 113, 133, 0.2); }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            background: rgba(15, 22, 41, 0.8);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            font-size: 13px;
+            color: var(--text-dim);
+            border-bottom: 1px solid rgba(30, 42, 74, 0.4);
+        }
+
+        .data-table tr:hover td {
+            background: rgba(79, 140, 255, 0.03);
+        }
+
+        /* Metric Strip */
+        .metric-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+
+        .metric-box {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-val {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .metric-lbl {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            padding: 10px 0;
+        }
+
+        .timeline-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            padding: 0 8px;
+        }
+
+        .timeline-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            margin: 0 auto 10px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: 55%;
+            right: -45%;
+            height: 2px;
+            background: linear-gradient(90deg, #2a3f7a, #1a2a5a);
+            z-index: 1;
+        }
+
+        .timeline-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .timeline-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        /* Arch Diagram Styles */
+        .arch-layer {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .arch-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .arch-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .arch-tech {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .arch-tags {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+
+        .arch-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(79, 140, 255, 0.08);
+            border: 1px solid rgba(79, 140, 255, 0.15);
+            color: var(--blue);
+        }
+
+        .arch-connector {
+            text-align: center;
+            padding: 4px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Big Title Slide */
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide .big-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 auto 32px;
+            box-shadow: 0 8px 40px rgba(79, 140, 255, 0.25);
+        }
+
+        .title-slide h1 {
+            font-size: 48px;
+            font-weight: 800;
+            color: #f0f4ff;
+            margin-bottom: 12px;
+        }
+
+        .title-slide h2 {
+            font-size: 22px;
+            font-weight: 400;
+            color: var(--text-dim);
+            margin-bottom: 40px;
+        }
+
+        .title-meta {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-meta-item {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .title-meta-item strong {
+            color: var(--text-dim);
+        }
+
+        .divider-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--card-border);
+        }
+
+        /* Two Column */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            flex: 1;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(79, 140, 255, 0.08), rgba(168, 85, 247, 0.05));
+            border: 1px solid rgba(79, 140, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .highlight-box h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--blue);
+            margin-bottom: 8px;
+        }
+
+        .highlight-box p {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        /* Progress bars */
+        .progress-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .progress-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            width: 140px;
+            flex-shrink: 0;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 8px;
+            background: #151d35;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .progress-pct {
+            font-size: 12px;
+            font-weight: 700;
+            width: 40px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Key emphasis */
+        .key-number {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        /* Print styles */
+        @media print {
+            .nav-bar { display: none; }
+            .slide { page-break-after: always; position: relative; display: flex !important; }
+            body { overflow: visible; }
+            .slide-container { overflow: visible; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="slide-container" id="slides">
+
+    <!-- ==================== SLIDE 1: TITLE ==================== -->
+    <div class="slide title-slide active" data-slide="1">
+        <div class="big-logo">UX</div>
+        <h1>UX Reach — Delivery Update</h1>
+        <h2>Email Agent | Resource Allocation | QBR Status</h2>
+        <div class="title-meta">
+            <div class="title-meta-item"><strong>CTS POD</strong> &mdash; Google UX Ads</div>
+            <div class="divider-dot"></div>
+            <div class="title-meta-item"><strong>Period</strong> &mdash; Feb 15, 2025 &ndash; Jun 30, 2026</div>
+            <div class="divider-dot"></div>
+            <div class="title-meta-item"><strong>Status</strong> &mdash; Onboarding Complete</div>
+            <div class="divider-dot"></div>
+            <div class="title-meta-item"><strong>Date</strong> &mdash; April 2025</div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 2: EXECUTIVE SUMMARY ==================== -->
+    <div class="slide" data-slide="2">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Executive Summary</div>
+                    <div class="slide-subtitle">UX Reach — Google POD-3 Overview</div>
+                </div>
+            </div>
+            <div class="slide-badge">SOW Approved | PO Pending</div>
+        </div>
+        <div class="slide-body">
+            <div class="metric-strip" style="margin-bottom: 28px;">
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--blue);">600+</div>
+                    <div class="metric-lbl">Studies / Year</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--rose);">7.5h</div>
+                    <div class="metric-lbl">Current AHT / Study</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--green);">3.0h</div>
+                    <div class="metric-lbl">Target AHT / Study</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--purple);">2.9x</div>
+                    <div class="metric-lbl">Estimated ROI</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--amber);">60%</div>
+                    <div class="metric-lbl">Effort Reduction</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="col">
+                    <div class="section-label">Project Scope</div>
+                    <div class="card" style="flex:1;">
+                        <ul class="card-list">
+                            <li>AI-powered Email Agent to automate candidate invitation workflow (Step 07)</li>
+                            <li>Automated Salesforce case creation, email dispatch, and status updates</li>
+                            <li>Chatbot interface for Recruiter Coordinators with typed command interaction</li>
+                            <li>Integration with Shortlisting App, Google Sheets trackers, and Salesforce</li>
+                            <li>Looker Studio dashboards for KPI tracking and client-facing reporting</li>
+                            <li>Future scope: Daily Update Agent (may be bundled)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="section-label">Engagement Details</div>
+                    <div class="card" style="flex:1;">
+                        <table class="data-table">
+                            <tr><td style="color:var(--text-muted);width:140px;">Engagement</td><td style="font-weight:600;">Feb 15, 2025 &ndash; Jun 30, 2026</td></tr>
+                            <tr><td style="color:var(--text-muted);">SOW Status</td><td><span class="tag tag-green">Approved</span></td></tr>
+                            <tr><td style="color:var(--text-muted);">PO Status</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                            <tr><td style="color:var(--text-muted);">Onboarding</td><td><span class="tag tag-green">Complete</span></td></tr>
+                            <tr><td style="color:var(--text-muted);">POC Phase</td><td><span class="tag tag-blue">In Progress</span></td></tr>
+                            <tr><td style="color:var(--text-muted);">Core Dev</td><td><span class="tag tag-amber">Awaiting Access</span></td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 3: RESOURCE ALLOCATION ==================== -->
+    <div class="slide" data-slide="3">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Resource Allocation</div>
+                    <div class="slide-subtitle">Dedicated team — 100% allocated to UX Reach</div>
+                </div>
+            </div>
+            <div class="slide-badge">3 Resources | All Onboarded</div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-3" style="margin-bottom: 24px;">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x1f468;&#x200d;&#x1f4bb;</div>
+                    <div class="card-title">Aakash R</div>
+                    <div class="card-desc">Development Lead &nbsp;|&nbsp; <span class="tag tag-green">100% Allocated</span></div>
+                    <ul class="card-list">
+                        <li>Full-stack developer with ML foundations</li>
+                        <li>Python, Java, React, Angular</li>
+                        <li>Backend architecture &amp; AI integration</li>
+                        <li>UX tools: Figma, Adobe Illustrator</li>
+                        <li>Team leadership &amp; technical decisions</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(168, 85, 247, 0.12); color: var(--purple);">&#x1f468;&#x200d;&#x1f4bb;</div>
+                    <div class="card-title">Vinothkumar D</div>
+                    <div class="card-desc">Developer &nbsp;|&nbsp; <span class="tag tag-green">100% Allocated</span></div>
+                    <ul class="card-list">
+                        <li>Python backend development</li>
+                        <li>Salesforce connector development</li>
+                        <li>API integration specialist</li>
+                        <li>UI development support</li>
+                        <li>Testing &amp; quality assurance</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.12); color: var(--green);">&#x1f468;&#x200d;&#x1f4bb;</div>
+                    <div class="card-title">Shubham Kapadia</div>
+                    <div class="card-desc">Developer &nbsp;|&nbsp; <span class="tag tag-green">100% Allocated</span></div>
+                    <ul class="card-list">
+                        <li>UI / Frontend development</li>
+                        <li>Chatbot interface build</li>
+                        <li>Dashboard &amp; reporting views</li>
+                        <li>React / Angular implementation</li>
+                        <li>User experience &amp; accessibility</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-label">Key Stakeholders</div>
+            <div class="card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Responsibility</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td style="font-weight:600;">Brandy Fowler / Savannah Boyer</td><td>Google Sponsor(s)</td><td>Executive oversight &amp; sign-off</td></tr>
+                        <tr><td style="font-weight:600;">Ankush Jagia (xWF)</td><td>Project Manager</td><td>Timeline, delivery &amp; stakeholder management</td></tr>
+                        <tr><td style="font-weight:600;">Michelle De Jesus (xWF)</td><td>Operations Manager</td><td>Process alignment &amp; UAT coordination</td></tr>
+                        <tr><td style="font-weight:600;">Barakath Ahmed S. (xWF)</td><td>Process Excellence</td><td>BRD ownership, requirements &amp; access coordination</td></tr>
+                        <tr><td style="font-weight:600;">Pilla Kumar (xWF)</td><td>Team Lead</td><td>Access coordination &amp; team onboarding</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 4: TECH STACK ==================== -->
+    <div class="slide" data-slide="4">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Technology Stack</div>
+                    <div class="slide-subtitle">100% Google ecosystem — confirmed in Dev Sync (Apr 8)</div>
+                </div>
+            </div>
+            <div class="slide-badge">Gemini 3.1 Pro | GCP | Salesforce</div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-4" style="margin-bottom: 24px;">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(168, 85, 247, 0.12); color: var(--purple);">&#x2728;</div>
+                    <div class="card-title">AI / LLM</div>
+                    <div class="card-desc">Vertex AI</div>
+                    <ul class="card-list">
+                        <li>Gemini 3.1 Pro</li>
+                        <li>Email content generation</li>
+                        <li>Intent classification</li>
+                        <li>Template-constrained output</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x2601;</div>
+                    <div class="card-title">Cloud</div>
+                    <div class="card-desc">Google Cloud Platform</div>
+                    <ul class="card-list">
+                        <li>Cloud Run (serverless)</li>
+                        <li>Cloud SQL (PostgreSQL)</li>
+                        <li>Cloud Pub/Sub (async)</li>
+                        <li>Cloud Logging &amp; Monitoring</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.12); color: var(--green);">&#x1f5a5;</div>
+                    <div class="card-title">Frontend</div>
+                    <div class="card-desc">Chatbot Interface</div>
+                    <ul class="card-list">
+                        <li>React or Angular (TBD)</li>
+                        <li>Material UI components</li>
+                        <li>Typed command interaction</li>
+                        <li>No speech recognition</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(251, 191, 36, 0.12); color: var(--amber);">&#x1f4e7;</div>
+                    <div class="card-title">Backend</div>
+                    <div class="card-desc">Python FastAPI</div>
+                    <ul class="card-list">
+                        <li>REST API orchestration</li>
+                        <li>Salesforce connector</li>
+                        <li>Workflow state machine</li>
+                        <li>Error handling &amp; retries</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-label">Integrations &amp; Data Sources</div>
+            <div class="grid-4">
+                <div class="card" style="padding: 16px; text-align:center;">
+                    <div style="font-size:28px; margin-bottom:8px;">&#x2601;</div>
+                    <div style="font-size:14px; font-weight:700; color:var(--sf-blue);">Salesforce</div>
+                    <div style="font-size:11px; color:var(--text-muted);">System of Record</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Read + Write (No Delete)</div>
+                </div>
+                <div class="card" style="padding: 16px; text-align:center;">
+                    <div style="font-size:28px; margin-bottom:8px;">&#x1f4cb;</div>
+                    <div style="font-size:14px; font-weight:700; color:var(--green);">Shortlisting App</div>
+                    <div style="font-size:11px; color:var(--text-muted);">Candidate Source</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">P0/P1/Reject Status</div>
+                </div>
+                <div class="card" style="padding: 16px; text-align:center;">
+                    <div style="font-size:28px; margin-bottom:8px;">&#x1f4ca;</div>
+                    <div style="font-size:14px; font-weight:700; color:var(--blue);">Google Sheets</div>
+                    <div style="font-size:11px; color:var(--text-muted);">Manual Trackers</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Sheets API v4</div>
+                </div>
+                <div class="card" style="padding: 16px; text-align:center;">
+                    <div style="font-size:28px; margin-bottom:8px;">&#x1f4c8;</div>
+                    <div style="font-size:14px; font-weight:700; color:var(--amber);">Looker Studio</div>
+                    <div style="font-size:11px; color:var(--text-muted);">KPI Dashboards</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Metrics &amp; Reporting</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 5: ARCHITECTURE ==================== -->
+    <div class="slide" data-slide="5">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">System Architecture</div>
+                    <div class="slide-subtitle">Hybrid architecture — Dual agent system with Salesforce as system of record</div>
+                </div>
+            </div>
+            <div class="slide-badge">5-Layer Design</div>
+        </div>
+        <div class="slide-body" style="justify-content: center;">
+            <div class="arch-layer" style="border-left: 3px solid var(--blue);">
+                <div class="arch-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x1f5a5;</div>
+                <div>
+                    <div class="arch-label">Layer 1 — Recruiter Interface</div>
+                    <div class="arch-tech">Study ID Input | Send Invites CTA | Status Dashboard</div>
+                </div>
+                <div class="arch-tags">
+                    <span class="arch-tag">React / Angular</span>
+                    <span class="arch-tag">Material UI</span>
+                    <span class="arch-tag">Typed Commands</span>
+                </div>
+            </div>
+            <div class="arch-connector">&#x25BC;</div>
+
+            <div class="arch-layer" style="border-left: 3px solid var(--purple);">
+                <div class="arch-icon" style="background: rgba(168, 85, 247, 0.12); color: var(--purple);">&#x1f916;</div>
+                <div>
+                    <div class="arch-label">Layer 2 — Chatbot &amp; Intent Router</div>
+                    <div class="arch-tech">Intent Classification | Auth (Google SSO/LDAP) | Rate Limiting</div>
+                </div>
+                <div class="arch-tags">
+                    <span class="arch-tag">Gemini 3.1 Pro</span>
+                    <span class="arch-tag">FastAPI WebSocket</span>
+                </div>
+            </div>
+            <div class="arch-connector">&#x25BC;</div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="arch-layer" style="border-left: 3px solid var(--blue); margin:0;">
+                    <div class="arch-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x26a1;</div>
+                    <div>
+                        <div class="arch-label">Agent 1 — Invite Agent</div>
+                        <div class="arch-tech">Fetch P0 | Generate Email | Send | Create Cases</div>
+                    </div>
+                </div>
+                <div class="arch-layer" style="border-left: 3px solid var(--purple); margin:0;">
+                    <div class="arch-icon" style="background: rgba(168, 85, 247, 0.12); color: var(--purple);">&#x1f4ca;</div>
+                    <div>
+                        <div class="arch-label">Agent 2 — Status Agent</div>
+                        <div class="arch-tech">Track Delivery | Reports | Error Alerts | Metrics</div>
+                    </div>
+                </div>
+            </div>
+            <div class="arch-connector">&#x25BC;</div>
+
+            <div class="arch-layer" style="border-left: 3px solid var(--green);">
+                <div class="arch-icon" style="background: rgba(52, 211, 153, 0.12); color: var(--green);">&#x2699;</div>
+                <div>
+                    <div class="arch-label">Layer 4 — Backend Services</div>
+                    <div class="arch-tech">Workflow Engine | Email Builder | Dispatch Queue | Notifications</div>
+                </div>
+                <div class="arch-tags">
+                    <span class="arch-tag">Python FastAPI</span>
+                    <span class="arch-tag">Cloud Run</span>
+                    <span class="arch-tag">Pub/Sub</span>
+                </div>
+            </div>
+            <div class="arch-connector">&#x25BC;</div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
+                <div class="arch-layer" style="border-left: 3px solid var(--sf-blue); margin:0; flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                    <div style="font-size:13px; font-weight:700; color:var(--sf-blue);">Salesforce</div>
+                    <div style="font-size:10px; color:var(--text-muted);">CRM + Email API</div>
+                </div>
+                <div class="arch-layer" style="border-left: 3px solid var(--purple); margin:0; flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                    <div style="font-size:13px; font-weight:700; color:var(--purple);">Vertex AI</div>
+                    <div style="font-size:10px; color:var(--text-muted);">Gemini 3.1 Pro</div>
+                </div>
+                <div class="arch-layer" style="border-left: 3px solid var(--green); margin:0; flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                    <div style="font-size:13px; font-weight:700; color:var(--green);">Google Sheets</div>
+                    <div style="font-size:10px; color:var(--text-muted);">Manual Trackers</div>
+                </div>
+                <div class="arch-layer" style="border-left: 3px solid var(--amber); margin:0; flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                    <div style="font-size:13px; font-weight:700; color:var(--amber);">Looker Studio</div>
+                    <div style="font-size:10px; color:var(--text-muted);">Dashboards</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 6: EMAIL AGENT WORKFLOW ==================== -->
+    <div class="slide" data-slide="6">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Email Agent Workflow</div>
+                    <div class="slide-subtitle">End-to-end automated invite process — from trigger to completion</div>
+                </div>
+            </div>
+            <div class="slide-badge">Target: &lt;15 min per study</div>
+        </div>
+        <div class="slide-body">
+            <div class="section-label">Agent Workflow Steps</div>
+            <div class="timeline" style="margin-bottom: 32px;">
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(79,140,255,0.2); color:var(--blue); border: 2px solid rgba(79,140,255,0.4);">1</div>
+                    <div class="timeline-title">RC Triggers</div>
+                    <div class="timeline-desc">Types Study ID in chatbot</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(168,85,247,0.2); color:var(--purple); border: 2px solid rgba(168,85,247,0.4);">2</div>
+                    <div class="timeline-title">Validate</div>
+                    <div class="timeline-desc">Study ID verified in Salesforce</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(34,211,238,0.2); color:var(--cyan); border: 2px solid rgba(34,211,238,0.4);">3</div>
+                    <div class="timeline-title">Fetch &amp; Filter</div>
+                    <div class="timeline-desc">First 20 P0 from Shortlisting App</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(52,211,153,0.2); color:var(--green); border: 2px solid rgba(52,211,153,0.4);">4</div>
+                    <div class="timeline-title">Generate</div>
+                    <div class="timeline-desc">Gemini 3.1 Pro creates emails</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(251,191,36,0.2); color:var(--amber); border: 2px solid rgba(251,191,36,0.4);">5</div>
+                    <div class="timeline-title">Send</div>
+                    <div class="timeline-desc">Batch dispatch via Salesforce API</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(251,113,133,0.2); color:var(--rose); border: 2px solid rgba(251,113,133,0.4);">6</div>
+                    <div class="timeline-title">Update &amp; Log</div>
+                    <div class="timeline-desc">Create child cases, update parent</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="col">
+                    <div class="section-label">What the Agent Does</div>
+                    <div class="card" style="flex:1;">
+                        <ul class="card-list">
+                            <li>Fetches candidates from Shortlisting App (first 20 P0, new since last run)</li>
+                            <li>Reads Google Sheets manual trackers for additional context</li>
+                            <li>Reads specified folder for study materials</li>
+                            <li>Generates personalized invite emails via Gemini 3.1 Pro</li>
+                            <li>Sends invitation emails through Salesforce Email API</li>
+                            <li>Creates child cases in Salesforce for each participant</li>
+                            <li>Updates parent case notes with summary</li>
+                            <li>Reports results back to RC via chatbot</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="section-label">Key Business Rules</div>
+                    <div class="card" style="flex:1;">
+                        <ul class="card-list">
+                            <li><strong>P0 Only:</strong> Initial outreach targets P0 candidates only</li>
+                            <li><strong>Incremental:</strong> Only newly shortlisted since last email run</li>
+                            <li><strong>RC-Controlled:</strong> Up to the number requested by RC</li>
+                            <li><strong>No Delete:</strong> Agent has read + write access only</li>
+                            <li><strong>SLA:</strong> All emails sent within 15 minutes of trigger</li>
+                            <li><strong>Audit:</strong> Full trail logged, no PII stored outside Salesforce</li>
+                            <li><strong>Fallback:</strong> Notify RC + Pod Lead on any dependency failure</li>
+                            <li><strong>GDPR:</strong> Zero PII persistence in agent systems</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 7: DELIVERY PROGRESS ==================== -->
+    <div class="slide" data-slide="7">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Delivery Progress</div>
+                    <div class="slide-subtitle">Current status and completion tracking</div>
+                </div>
+            </div>
+            <div class="slide-badge">Phase: Pre-Development</div>
+        </div>
+        <div class="slide-body">
+            <div class="two-col" style="margin-bottom: 24px;">
+                <div class="col">
+                    <div class="section-label">Completed</div>
+                    <div class="card" style="flex:1;">
+                        <ul class="card-list">
+                            <li style="color:var(--green);">Team onboarding — all 3 resources allocated &amp; active</li>
+                            <li style="color:var(--green);">SOW approved by client</li>
+                            <li style="color:var(--green);">BRD v1.0 submitted and reviewed</li>
+                            <li style="color:var(--green);">Technology stack finalized (Gemini 3.1 Pro, GCP, Salesforce)</li>
+                            <li style="color:var(--green);">Architecture design completed (dual-agent hybrid)</li>
+                            <li style="color:var(--green);">Dev Sync #1 completed — requirements aligned</li>
+                            <li style="color:var(--green);">POC research initiated on personal laptops</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="section-label">In Progress / Pending</div>
+                    <div class="card" style="flex:1;">
+                        <ul class="card-list">
+                            <li style="color:var(--amber);">PO approval — pending</li>
+                            <li style="color:var(--amber);">LDAP / JFG access requests — submitted</li>
+                            <li style="color:var(--amber);">Salesforce API access — confirmation pending</li>
+                            <li style="color:var(--amber);">Shortlisting App API access — TBD</li>
+                            <li style="color:var(--amber);">GCP Project &amp; Vertex AI access — not started</li>
+                            <li style="color:var(--amber);">BRD v1.1 update — folder reading, Sheets integration</li>
+                            <li style="color:var(--amber);">Shadow session — scheduled for Apr 11-14</li>
+                            <li style="color:var(--amber);">Timeline estimation — post shadow session</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-label">Progress by Workstream</div>
+            <div class="card">
+                <div class="progress-row">
+                    <div class="progress-label">Onboarding</div>
+                    <div class="progress-track"><div class="progress-fill" style="width:100%; background: var(--green);"></div></div>
+                    <div class="progress-pct" style="color:var(--green);">100%</div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">Requirements</div>
+                    <div class="progress-track"><div class="progress-fill" style="width:80%; background: var(--blue);"></div></div>
+                    <div class="progress-pct" style="color:var(--blue);">80%</div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">Architecture</div>
+                    <div class="progress-track"><div class="progress-fill" style="width:90%; background: var(--purple);"></div></div>
+                    <div class="progress-pct" style="color:var(--purple);">90%</div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">Access / Infra</div>
+                    <div class="progress-track"><div class="progress-fill" style="width:20%; background: var(--amber);"></div></div>
+                    <div class="progress-pct" style="color:var(--amber);">20%</div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">Development</div>
+                    <div class="progress-track"><div class="progress-fill" style="width:5%; background: var(--rose);"></div></div>
+                    <div class="progress-pct" style="color:var(--rose);">5%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 8: SUCCESS METRICS ==================== -->
+    <div class="slide" data-slide="8">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Success Metrics &amp; KPIs</div>
+                    <div class="slide-subtitle">Post go-live targets — to be achieved within 2 months of launch</div>
+                </div>
+            </div>
+            <div class="slide-badge">Measured via Looker Studio</div>
+        </div>
+        <div class="slide-body">
+            <div class="metric-strip" style="margin-bottom: 32px;">
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--blue);">95%</div>
+                    <div class="metric-lbl">Study Adoption</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--green);">98%</div>
+                    <div class="metric-lbl">Email Coverage</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--purple);">99%</div>
+                    <div class="metric-lbl">Agent Uptime</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--amber);">98%</div>
+                    <div class="metric-lbl">Email Accuracy</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-val" style="color: var(--rose);">&lt;15m</div>
+                    <div class="metric-lbl">Send SLA</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="col">
+                    <div class="section-label">Impact Projection</div>
+                    <div class="card" style="flex:1;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Metric</th><th>Before</th><th>After</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>AHT per Study</td><td style="color:var(--rose);">7.5 hours</td><td style="color:var(--green); font-weight:700;">3.0 hours</td></tr>
+                                <tr><td>Manual Effort / Participant</td><td style="color:var(--rose);">15 min x 2</td><td style="color:var(--green); font-weight:700;">Automated</td></tr>
+                                <tr><td>Annual Hours Saved</td><td style="color:var(--text-muted);">—</td><td style="color:var(--green); font-weight:700;">~2,700 hrs</td></tr>
+                                <tr><td>Email Consistency</td><td style="color:var(--rose);">Variable</td><td style="color:var(--green); font-weight:700;">98% accurate</td></tr>
+                                <tr><td>ROI</td><td style="color:var(--text-muted);">—</td><td style="color:var(--green); font-weight:700;">2.9x</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="section-label">Measurement Approach</div>
+                    <div class="card" style="flex:1;">
+                        <ul class="card-list">
+                            <li><strong>Adoption:</strong> (studies_using_agent / total_studies) per quarter</li>
+                            <li><strong>Coverage:</strong> (agent_emails / total_invite_emails) per quarter</li>
+                            <li><strong>Uptime:</strong> Health check monitoring, excluding dependency outages</li>
+                            <li><strong>Accuracy:</strong> Sample audits comparing AI email to expected content</li>
+                            <li><strong>SLA:</strong> Timestamp delta: RC trigger to last email sent</li>
+                        </ul>
+                        <div class="highlight-box" style="margin-top: 12px;">
+                            <h4>Reporting via Looker Studio</h4>
+                            <p>All KPIs will be tracked in real-time Looker Studio dashboards, providing both internal team visibility and client-facing quarterly reporting.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 9: SECURITY ==================== -->
+    <div class="slide" data-slide="9">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Security &amp; Compliance</div>
+                    <div class="slide-subtitle">Zero PII storage | GDPR compliant | Stateless agent design</div>
+                </div>
+            </div>
+            <div class="slide-badge">GDPR | Zero PII | SSO</div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-3" style="margin-bottom: 24px;">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(251, 113, 133, 0.12); color: var(--rose);">&#x1f6e1;</div>
+                    <div class="card-title">Data Privacy</div>
+                    <div class="card-desc">Zero PII outside Salesforce</div>
+                    <ul class="card-list">
+                        <li>Agent is completely stateless</li>
+                        <li>PII fetched, used, immediately discarded</li>
+                        <li>No participant data in logs or database</li>
+                        <li>Anonymized IDs only in audit trails</li>
+                        <li>GDPR right to erasure: nothing to delete</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x1f512;</div>
+                    <div class="card-title">Access Control</div>
+                    <div class="card-desc">SSO + LDAP + RBAC</div>
+                    <ul class="card-list">
+                        <li>Google SSO via corporate LDAP/JFG mapping</li>
+                        <li>Role-based access: RC vs Pod Lead</li>
+                        <li>Salesforce Connected App (OAuth 2.0)</li>
+                        <li>Agent has read + write only — NO delete</li>
+                        <li>IP whitelisting on Cloud Run</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.12); color: var(--green);">&#x2705;</div>
+                    <div class="card-title">Infrastructure</div>
+                    <div class="card-desc">Google Cloud secured</div>
+                    <ul class="card-list">
+                        <li>HTTPS / TLS 1.2+ on all connections</li>
+                        <li>GCP IAM for service-level access</li>
+                        <li>Cloud SQL encryption at rest</li>
+                        <li>Pub/Sub message encryption</li>
+                        <li>Gemini data processing agreement in place</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-label">Salesforce Access Model</div>
+            <div class="card">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Operation</th><th>Access Level</th><th>Purpose</th><th>PII Exposure</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Read Studies &amp; Cases</td><td><span class="tag tag-green">Allowed</span></td><td>Validate Study ID, fetch case data</td><td>Minimal — Study metadata only</td></tr>
+                        <tr><td>Read Contacts</td><td><span class="tag tag-green">Allowed</span></td><td>Fetch participant name &amp; email for invite</td><td>In-memory only, never persisted</td></tr>
+                        <tr><td>Send Emails</td><td><span class="tag tag-green">Allowed</span></td><td>Dispatch invitations via SingleEmailMessage</td><td>Processed by Salesforce natively</td></tr>
+                        <tr><td>Create Child Cases</td><td><span class="tag tag-green">Allowed</span></td><td>Create participant case records</td><td>None — case metadata only</td></tr>
+                        <tr><td>Update Case Notes</td><td><span class="tag tag-green">Allowed</span></td><td>Log activity on parent + child cases</td><td>None — status text only</td></tr>
+                        <tr><td style="color:var(--rose);">Delete Anything</td><td><span class="tag tag-rose">NOT ALLOWED</span></td><td>Not required for any workflow</td><td>N/A</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 10: TIMELINE ==================== -->
+    <div class="slide" data-slide="10">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Development Timeline</div>
+                    <div class="slide-subtitle">Estimated 10-week build — timeline to be finalized after shadow session</div>
+                </div>
+            </div>
+            <div class="slide-badge">~10 Weeks | 4 Phases</div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-4" style="margin-bottom: 24px;">
+                <div class="card" style="border-left: 3px solid var(--blue);">
+                    <div class="card-title" style="color: var(--blue);">Phase 1</div>
+                    <div class="card-desc">Weeks 1–3 | Foundation</div>
+                    <ul class="card-list">
+                        <li>GCP &amp; Vertex AI setup</li>
+                        <li>Salesforce connected app</li>
+                        <li>API scaffold (FastAPI)</li>
+                        <li>Participant retrieval queries</li>
+                        <li>Email template definitions</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--purple);">
+                    <div class="card-title" style="color: var(--purple);">Phase 2</div>
+                    <div class="card-desc">Weeks 4–6 | Core Logic</div>
+                    <ul class="card-list">
+                        <li>Gemini 3.1 Pro integration</li>
+                        <li>Email dispatch pipeline</li>
+                        <li>Case creation &amp; updates</li>
+                        <li>SLA monitoring &amp; alerts</li>
+                        <li>Integration testing</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--green);">
+                    <div class="card-title" style="color: var(--green);">Phase 3</div>
+                    <div class="card-desc">Weeks 7–8 | UI &amp; Observability</div>
+                    <ul class="card-list">
+                        <li>Chatbot UI build</li>
+                        <li>Status dashboard</li>
+                        <li>Looker Studio setup</li>
+                        <li>Error handling &amp; circuit breakers</li>
+                        <li>End-to-end smoke tests</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--amber);">
+                    <div class="card-title" style="color: var(--amber);">Phase 4</div>
+                    <div class="card-desc">Weeks 9–10 | Test &amp; Launch</div>
+                    <ul class="card-list">
+                        <li>UAT with dummy test cases</li>
+                        <li>Security &amp; GDPR audit</li>
+                        <li>Soft go-live (1 recipient)</li>
+                        <li>5 studies x 5 recipients</li>
+                        <li>Go/No-Go decision</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-label">Go-Live Ramp Plan</div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(251,191,36,0.2); color:var(--amber); border: 2px solid rgba(251,191,36,0.4);">1</div>
+                    <div class="timeline-title">UAT</div>
+                    <div class="timeline-desc">Dummy cases, screenshots, client review</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(79,140,255,0.2); color:var(--blue); border: 2px solid rgba(79,140,255,0.4);">2</div>
+                    <div class="timeline-title">Soft Go-Live</div>
+                    <div class="timeline-desc">1 recipient/study, manual verification</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(168,85,247,0.2); color:var(--purple); border: 2px solid rgba(168,85,247,0.4);">3</div>
+                    <div class="timeline-title">25% Studies</div>
+                    <div class="timeline-desc">Controlled expansion with monitoring</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(52,211,153,0.2); color:var(--green); border: 2px solid rgba(52,211,153,0.4);">4</div>
+                    <div class="timeline-title">50% Studies</div>
+                    <div class="timeline-desc">Broader rollout, weekly audits</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: rgba(34,211,238,0.2); color:var(--cyan); border: 2px solid rgba(34,211,238,0.4);">5</div>
+                    <div class="timeline-title">100% Live</div>
+                    <div class="timeline-desc">Full production, auto-send mode</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 11: RISKS & DEPENDENCIES ==================== -->
+    <div class="slide" data-slide="11">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Risks &amp; Dependencies</div>
+                    <div class="slide-subtitle">Key blockers and mitigation strategies</div>
+                </div>
+            </div>
+            <div class="slide-badge">3 Critical | 3 Medium</div>
+        </div>
+        <div class="slide-body">
+            <div class="section-label">Critical Dependencies (Blocking Development)</div>
+            <div class="grid-3" style="margin-bottom: 24px;">
+                <div class="card" style="border-left: 3px solid var(--rose);">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span class="tag tag-rose">CRITICAL</span>
+                    </div>
+                    <div class="card-title">Salesforce API Access</div>
+                    <div class="card-desc">No API = No Project</div>
+                    <ul class="card-list">
+                        <li>API access level unconfirmed</li>
+                        <li>License type &amp; rate limits unknown</li>
+                        <li>Connected App not yet created</li>
+                    </ul>
+                    <div class="highlight-box" style="margin-top:12px;">
+                        <h4>Mitigation</h4>
+                        <p>Barakath confirming with SF admin. Parallel POC development on personal laptops.</p>
+                    </div>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--rose);">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span class="tag tag-rose">CRITICAL</span>
+                    </div>
+                    <div class="card-title">GCP / Vertex AI Access</div>
+                    <div class="card-desc">Project ID &amp; quotas needed</div>
+                    <ul class="card-list">
+                        <li>GCP Project not provisioned</li>
+                        <li>Vertex AI quota not requested</li>
+                        <li>Security approval pending</li>
+                    </ul>
+                    <div class="highlight-box" style="margin-top:12px;">
+                        <h4>Mitigation</h4>
+                        <p>Request to be raised immediately. POC using personal GCP accounts in parallel.</p>
+                    </div>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--rose);">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span class="tag tag-rose">CRITICAL</span>
+                    </div>
+                    <div class="card-title">PO Approval</div>
+                    <div class="card-desc">SOW approved, PO pending</div>
+                    <ul class="card-list">
+                        <li>Invoicing cannot begin</li>
+                        <li>Formal engagement gate</li>
+                        <li>External dependency on Google finance</li>
+                    </ul>
+                    <div class="highlight-box" style="margin-top:12px;">
+                        <h4>Mitigation</h4>
+                        <p>PM following up. Team continues POC work in parallel to avoid delays.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-label">Medium Risks</div>
+            <div class="grid-3">
+                <div class="card" style="border-left: 3px solid var(--amber);">
+                    <div class="card-title" style="font-size:14px;">Shortlisting App API</div>
+                    <div class="card-desc">Access type unknown</div>
+                    <ul class="card-list">
+                        <li>Need to determine connectivity method</li>
+                        <li>Barakath investigating</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--amber);">
+                    <div class="card-title" style="font-size:14px;">SF Integration Precedent</div>
+                    <div class="card-desc">First team to integrate</div>
+                    <ul class="card-list">
+                        <li>No prior Salesforce integration by any AI team</li>
+                        <li>Researching how others handle SF connectivity</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--amber);">
+                    <div class="card-title" style="font-size:14px;">Timeline Flexibility</div>
+                    <div class="card-desc">Dependent on access approvals</div>
+                    <ul class="card-list">
+                        <li>10-week estimate subject to access delays</li>
+                        <li>Client flexible if justified</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 12: NEXT STEPS ==================== -->
+    <div class="slide" data-slide="12">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Immediate Next Steps</div>
+                    <div class="slide-subtitle">Action items from Dev Sync (April 8, 2025)</div>
+                </div>
+            </div>
+            <div class="slide-badge">12 Action Items</div>
+        </div>
+        <div class="slide-body">
+            <div class="section-label">Immediate Actions (This Week)</div>
+            <div class="card" style="margin-bottom: 20px;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>#</th><th>Action</th><th>Owner</th><th>Target</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>Send LDAP IDs to internal Cognizant team</td><td>Barakath</td><td>Apr 8</td><td><span class="tag tag-blue">Today</span></td></tr>
+                        <tr><td>2</td><td>Confirm UX Ads access request decision</td><td>Pilla Kumar</td><td>Apr 9</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                        <tr><td>3</td><td>Update BRD: folder-reading + Sheets requirements</td><td>Barakath</td><td>Apr 10</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                        <tr><td>4</td><td>Check SF API access &amp; Shortlisting App connectivity</td><td>Barakath</td><td>Apr 10</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                        <tr><td>5</td><td>Share UX Ads process doc with dev team</td><td>Barakath</td><td>Apr 10</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                        <tr><td>6</td><td>Research SF integration precedent (PEX team)</td><td>Barakath</td><td>Apr 10</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-label">Next Week Actions</div>
+            <div class="card" style="margin-bottom: 20px;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>#</th><th>Action</th><th>Owner</th><th>Target</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>7</td><td>Shadow session — live/recorded manual email demo</td><td>Barakath</td><td>Apr 11-14</td><td><span class="tag tag-purple">Scheduled</span></td></tr>
+                        <tr><td>8</td><td>Research SF connectivity (other AI teams)</td><td>Dev Team</td><td>Apr 14</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                        <tr><td>9</td><td>Confirm Salesforce sandbox availability</td><td>Barakath</td><td>Apr 14</td><td><span class="tag tag-amber">Pending</span></td></tr>
+                        <tr><td>10</td><td>Internal discussion &amp; timeline estimation</td><td>Dev Team</td><td>Apr 14-18</td><td><span class="tag tag-amber">Post Shadow</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="highlight-box">
+                <h4>Key Ask from Client</h4>
+                <p>We need confirmation on <strong>Salesforce API access level</strong>, <strong>Connected App creation</strong>, and <strong>GCP Project provisioning</strong> to unblock core development. The team is actively working on POC and architecture in parallel, but these are hard blockers for the production build.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 13: UI ELEMENTS ==================== -->
+    <div class="slide" data-slide="13">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">UI Elements & Screens</div>
+                    <div class="slide-subtitle">Invite Email Agent — Recruiter-facing interface components</div>
+                </div>
+            </div>
+            <div class="slide-badge">9 Screens | RC + Pod Lead Views</div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-3" style="margin-bottom: 20px;">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x1f4ac;</div>
+                    <div class="card-title">1. Chatbot Interface</div>
+                    <div class="card-desc">Primary interaction screen for RCs</div>
+                    <ul class="card-list">
+                        <li>Scrollable conversation history</li>
+                        <li>Typed command input + send button</li>
+                        <li>Agent response bubbles with timestamps</li>
+                        <li>Typing/loading indicator</li>
+                        <li>Session info bar (RC name, date/time)</li>
+                        <li>Dependency health strip</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(168, 85, 247, 0.12); color: var(--purple);">&#x1f50d;</div>
+                    <div class="card-title">2. Study ID Input</div>
+                    <div class="card-desc">Validation + trigger panel</div>
+                    <ul class="card-list">
+                        <li>Study ID field with SF validation</li>
+                        <li>"Send Invites" CTA button</li>
+                        <li>P0 count input (max 20 cap)</li>
+                        <li>Inline error for invalid IDs</li>
+                        <li>Confirmation prompt before send</li>
+                        <li>Cancel button</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.12); color: var(--green);">&#x1f4e7;</div>
+                    <div class="card-title">3. Email Preview</div>
+                    <div class="card-desc">Soft go-live review panel</div>
+                    <ul class="card-list">
+                        <li>Email card: recipient, subject, body</li>
+                        <li>Approve / Reject per email</li>
+                        <li>"Approve All" bulk action</li>
+                        <li>Inline edit option for RC tweaks</li>
+                        <li>Preview counter (3 of 15)</li>
+                        <li>Fallback template indicator</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="grid-3" style="margin-bottom: 20px;">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(251, 191, 36, 0.12); color: var(--amber);">&#x1f4ca;</div>
+                    <div class="card-title">4. Status Dashboard</div>
+                    <div class="card-desc">Real-time send tracking</div>
+                    <ul class="card-list">
+                        <li>Progress bar (sent vs total)</li>
+                        <li>15-min SLA timer with warnings</li>
+                        <li>Per-email status rows</li>
+                        <li>Run summary card</li>
+                        <li>Cancel/Stop button (mid-send)</li>
+                        <li>Retry button for failed emails</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(251, 113, 133, 0.12); color: var(--rose);">&#x1f514;</div>
+                    <div class="card-title">5. Notifications</div>
+                    <div class="card-desc">Alerts &amp; dependency health</div>
+                    <ul class="card-list">
+                        <li>Toast pop-ups (success/warn/error)</li>
+                        <li>In-chat alert messages</li>
+                        <li>Dependency health indicators</li>
+                        <li>SLA breach banner (amber/red)</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(34, 211, 238, 0.12); color: var(--cyan);">&#x1f4dc;</div>
+                    <div class="card-title">6. Audit Trail</div>
+                    <div class="card-desc">Activity log &amp; history</div>
+                    <ul class="card-list">
+                        <li>Past runs table (Study ID, date, RC)</li>
+                        <li>Email count &amp; status per run</li>
+                        <li>Time taken per run</li>
+                        <li>Anonymized — no participant PII</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(79, 140, 255, 0.12); color: var(--blue);">&#x2699;</div>
+                    <div class="card-title">7. Settings Panel</div>
+                    <div class="card-desc">Pod Lead / Admin only</div>
+                    <ul class="card-list">
+                        <li>Notification preferences</li>
+                        <li>Default P0 count &amp; lock timeout</li>
+                        <li>Email template viewer (read-only)</li>
+                        <li>Fallback template toggle</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(168, 85, 247, 0.12); color: var(--purple);">&#x1f512;</div>
+                    <div class="card-title">8. Login / Auth</div>
+                    <div class="card-desc">Google SSO via LDAP/JFG</div>
+                    <ul class="card-list">
+                        <li>"Sign in with Google" button</li>
+                        <li>Role display (RC / Pod Lead)</li>
+                        <li>Session timeout warning</li>
+                        <li>Unauthorized access screen</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.12); color: var(--green);">&#x1f4c8;</div>
+                    <div class="card-title">9. Looker Dashboard</div>
+                    <div class="card-desc">KPI reporting (linked, not embedded)</div>
+                    <ul class="card-list">
+                        <li>Daily summary &amp; quarterly KPIs</li>
+                        <li>AHT &amp; volume trend charts</li>
+                        <li>SLA compliance rate graph</li>
+                        <li>Recent activity feed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 14: RULES & ERROR SCENARIOS ==================== -->
+    <div class="slide" data-slide="14">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Rules & Error Scenarios</div>
+                    <div class="slide-subtitle">Agent behavior rules, edge cases, and graceful degradation</div>
+                </div>
+            </div>
+            <div class="slide-badge">14 Scenarios | Circuit Breaker Pattern</div>
+        </div>
+        <div class="slide-body">
+            <div class="section-label">Input & Validation Scenarios</div>
+            <div class="card" style="margin-bottom: 16px;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th style="width:50px;">#</th><th style="width:220px;">Scenario</th><th>Agent Response</th><th style="width:100px;">Severity</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1.2</td><td>Invalid / non-existent Study ID</td><td>Block workflow. Inline error: "Study ID [XXXX] not found in Salesforce. Verify and retry." Log failed attempt.</td><td><span class="tag tag-rose">Blocker</span></td></tr>
+                        <tr><td>1.3</td><td>Concurrent RC triggers same Study</td><td>Session lock (20-min auto-expire). Return 409: "Study [ID] is being processed by [RC]. Please wait."</td><td><span class="tag tag-amber">Warning</span></td></tr>
+                        <tr><td>1.4</td><td>Repeat trigger (invites already sent)</td><td>Warn RC with last run details. Offer: send to newly shortlisted P0s only, or review previous run.</td><td><span class="tag tag-amber">Warning</span></td></tr>
+                        <tr><td>2.4</td><td>P0 already invited in prior run</td><td>Auto-exclude. Show: "3 P0s excluded — already invited on [Date]." Only new P0s proceed.</td><td><span class="tag tag-blue">Info</span></td></tr>
+                        <tr><td>2.5</td><td>P1 invite request</td><td>Out of scope. "P1 invitations not supported. Handle manually or wait for future version."</td><td><span class="tag tag-blue">Info</span></td></tr>
+                        <tr><td>2.6</td><td>No new P0 candidates found</td><td>Abort gracefully: "No new P0 candidates for Study [ID] since last run on [Date]."</td><td><span class="tag tag-amber">Warning</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-label">System & Dependency Failures</div>
+            <div class="card" style="margin-bottom: 16px;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th style="width:50px;">#</th><th style="width:220px;">Scenario</th><th>Agent Response</th><th style="width:100px;">Severity</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>3.2</td><td>Gemini generates bad content</td><td>Content validation catches errors. Hold email, fallback to static template. RC notified per email.</td><td><span class="tag tag-amber">Warning</span></td></tr>
+                        <tr><td>3.3</td><td>Gemini API completely down</td><td>Circuit breaker triggers. Switch to approved static fallback. RC confirms: "Proceed without AI?" Pod Lead notified.</td><td><span class="tag tag-rose">Critical</span></td></tr>
+                        <tr><td>3.4</td><td>Partial email send failure</td><td>Per-email tracking. Auto-retry 3x (exponential backoff). "12/15 sent. 3 failed — [names]. Resend manually."</td><td><span class="tag tag-rose">Critical</span></td></tr>
+                        <tr><td>3.6</td><td>RC cancels mid-send</td><td>Stop remaining. Already-sent emails NOT recalled. Summary: "8/15 sent. 7 not sent. Cases updated for sent only."</td><td><span class="tag tag-amber">Warning</span></td></tr>
+                        <tr><td>4.3</td><td>Parent case update fails</td><td>Retry 3x. If all fail: "Child cases created. Parent [Case No.] update failed — update manually." No rollback.</td><td><span class="tag tag-amber">Warning</span></td></tr>
+                        <tr><td>5.1</td><td>SLA breach (&gt;15 min)</td><td>Warning toast at 10 min. Escalation at 15 min. Pod Lead notified. Incident logged in audit trail.</td><td><span class="tag tag-rose">Critical</span></td></tr>
+                        <tr><td>6.2</td><td>Shortlisting App down</td><td>Hard blocker. "Shortlisting App unavailable. Cannot retrieve candidates. Try later." Workflow aborted.</td><td><span class="tag tag-rose">Blocker</span></td></tr>
+                        <tr><td>6.4</td><td>Google Sheets unreadable</td><td>Soft dependency. "Could not read Sheets for Study [ID]. Proceeding with SF + Shortlisting data only."</td><td><span class="tag tag-blue">Info</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="highlight-box">
+                <h4>Added: Session Timeout / Interrupted Run</h4>
+                <p>If RC session drops mid-send (browser close, timeout), agent detects interrupted session via state machine and offers <strong>Partial Resume</strong> — picks up from where it left off. Already-sent emails preserved. RC sees: "Previous run for Study [ID] was interrupted. 8/15 sent. Resume remaining 7?"</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 15: AGENT CAPABILITIES ==================== -->
+    <div class="slide" data-slide="15">
+        <div class="slide-header">
+            <div class="slide-header-left">
+                <div class="slide-logo">UX</div>
+                <div>
+                    <div class="slide-title">Agent Capability Matrix</div>
+                    <div class="slide-subtitle">Full capability list — validated against architecture &amp; BRD</div>
+                </div>
+            </div>
+            <div class="slide-badge">23 Capabilities | 5 Added from Review</div>
+        </div>
+        <div class="slide-body">
+            <div class="two-col">
+                <div class="col">
+                    <div class="section-label">Core Workflow Capabilities</div>
+                    <div class="card" style="flex:1;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Capability</th><th>Details</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td style="font-weight:600; color:var(--text);">Study Fetch</td><td>Pull study details + participants from SF by Study ID</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">P0 Filtering</td><td>First 20 P0 candidates, newly shortlisted since last run</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Duplicate Guard</td><td>Audit log check — never emails same person twice per study</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Gemini Email Gen</td><td>Personalized emails via Gemini 3.1 Pro with study context</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Content Validation</td><td>Post-generation check: template structure, variable substitution</td><td><span class="tag tag-blue">Added</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Fallback Templates</td><td>Pre-approved static template when Gemini is unavailable</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Email Preview</td><td>RC reviews each email before batch send (soft go-live)</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Batch Send</td><td>Sequential dispatch via SF API, batches of 5, per-email tracking</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Case Updates</td><td>Child case (per participant) + parent case (study level) post-send</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Sheets Read</td><td>Read recruiter tracking spreadsheets via Sheets API v4</td><td><span class="tag tag-blue">Added</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Folder / Drive Read</td><td>Read specific folder contents (Drive API v3, details TBD)</td><td><span class="tag tag-blue">Added</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="section-label">System & Safety Capabilities</div>
+                    <div class="card" style="flex:1;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Capability</th><th>Details</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td style="font-weight:600; color:var(--text);">Intent Classification</td><td>Route commands: SEND &rarr; Agent 1, STATUS &rarr; Agent 2</td><td><span class="tag tag-blue">Added</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Session Locking</td><td>Atomic lock on study, auto-expires after 20 min</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Conflict Detection</td><td>Detect concurrent RC sessions, return 409 with context</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Partial Resume</td><td>Detect interrupted sessions, resume from last checkpoint</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Rate Limiting</td><td>Per-user throttle, cooldown between requests</td><td><span class="tag tag-blue">Added</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Retry Logic</td><td>Per-email retry up to 3x with exponential backoff</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">SLA Monitor</td><td>15-min countdown, warning at 10, escalation at 15</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Dep. Health Check</td><td>Ping SF + Shortlisting + Gemini before starting; fail fast</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Audit Trail</td><td>Immutable log: who, when, which candidates, outcomes</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">PII Protection</td><td>No PII in logs/memory — only IDs. SF-only PII storage</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">Notification Push</td><td>Toasts/alerts: completion, failure, SLA breach, lock release</td><td><span class="tag tag-green">Confirmed</span></td></tr>
+                                <tr><td style="font-weight:600; color:var(--text);">P1 Escalation</td><td>Separate P1 flow if P0 acceptance low</td><td><span class="tag tag-purple">Future Scope</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="highlight-box">
+                <h4>Review Summary: 5 Capabilities Added, 1 Reclassified</h4>
+                <p><strong>Added:</strong> Content Validation, Google Sheets Read, Folder/Drive Read, Intent Classification, Rate Limiting — all present in architecture but missing from original list. <strong>Reclassified:</strong> P1 Escalation moved to <em>Future Scope</em> per BRD (P1 wave is a separate open question).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 16: THANK YOU ==================== -->
+    <div class="slide title-slide" data-slide="16">
+        <div class="big-logo">UX</div>
+        <h1>Thank You</h1>
+        <h2>UX Reach — Email Agent | QBR Delivery Update</h2>
+        <div class="title-meta" style="margin-bottom: 40px;">
+            <div class="title-meta-item"><strong>Team</strong> &mdash; Aakash R, Vinothkumar D, Shubham Kapadia</div>
+            <div class="divider-dot"></div>
+            <div class="title-meta-item"><strong>Lead</strong> &mdash; Aakash R (Dev Lead)</div>
+            <div class="divider-dot"></div>
+            <div class="title-meta-item"><strong>POC</strong> &mdash; Barakath Ahmed S.</div>
+        </div>
+        <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+            <span class="tag tag-blue" style="font-size:13px; padding: 6px 16px;">Gemini 3.1 Pro</span>
+            <span class="tag tag-green" style="font-size:13px; padding: 6px 16px;">GCP Cloud Run</span>
+            <span class="tag tag-purple" style="font-size:13px; padding: 6px 16px;">Salesforce API</span>
+            <span class="tag tag-amber" style="font-size:13px; padding: 6px 16px;">Looker Studio</span>
+            <span class="tag tag-rose" style="font-size:13px; padding: 6px 16px;">Zero PII Storage</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- Navigation Bar -->
+<div class="nav-bar">
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#x2190; Previous</button>
+    <div style="display:flex; align-items:center; gap:20px;">
+        <div class="slide-dots" id="slideDots"></div>
+        <div class="slide-counter" id="slideCounter">1 / 13</div>
+    </div>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Next &#x2192;</button>
+</div>
+
+<script>
+    let currentSlide = 1;
+    const totalSlides = document.querySelectorAll('.slide').length;
+
+    // Initialize dots
+    const dotsContainer = document.getElementById('slideDots');
+    for (let i = 1; i <= totalSlides; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'slide-dot' + (i === 1 ? ' active' : '');
+        dot.onclick = () => goToSlide(i);
+        dotsContainer.appendChild(dot);
+    }
+
+    function navigate(direction) {
+        const next = currentSlide + direction;
+        if (next >= 1 && next <= totalSlides) {
+            goToSlide(next);
+        }
+    }
+
+    function goToSlide(n) {
+        document.querySelector('.slide.active').classList.remove('active');
+        document.querySelectorAll('.slide')[n - 1].classList.add('active');
+        currentSlide = n;
+
+        document.getElementById('slideCounter').textContent = n + ' / ' + totalSlides;
+        document.getElementById('prevBtn').disabled = n === 1;
+        document.getElementById('nextBtn').disabled = n === totalSlides;
+
+        document.querySelectorAll('.slide-dot').forEach((dot, i) => {
+            dot.classList.toggle('active', i === n - 1);
+        });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+        if (e.key === 'Home') { e.preventDefault(); goToSlide(1); }
+        if (e.key === 'End') { e.preventDefault(); goToSlide(totalSlides); }
+    });
+
+    // Initialize
+    goToSlide(1);
+</script>
+
+</body>
+</html>
