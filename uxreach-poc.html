@@ -1450,6 +1450,159 @@
         .sla-check { color: var(--green); font-weight: 700; }
         .sla-x { color: var(--rose); font-weight: 700; }
 
+        /* ====== DASHBOARD STAT CARDS ====== */
+        .dash-stat-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .dash-stat-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px 22px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .dash-stat-card:hover {
+            border-color: var(--card-border-hover);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .dash-stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .dash-stat-icon.amber { background: rgba(217,119,6,0.1); }
+        .dash-stat-icon.blue  { background: rgba(37,99,235,0.1); }
+        .dash-stat-icon.green { background: rgba(5,150,105,0.1); }
+
+        .dash-stat-body { flex: 1; min-width: 0; }
+
+        .dash-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .dash-stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .dash-stat-sub {
+            font-size: 12px;
+            color: var(--text-faint);
+        }
+
+        /* ====== PENDING INVITES TABLE ====== */
+        .dash-section-heading {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dash-section-heading .dash-count-pill {
+            background: rgba(217,119,6,0.1);
+            color: var(--amber);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .dash-pending-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            margin-bottom: 28px;
+        }
+
+        .dash-pending-table th {
+            background: var(--card-alt);
+            padding: 11px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .dash-pending-table td {
+            padding: 13px 16px;
+            font-size: 13px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--card-border);
+            vertical-align: middle;
+        }
+
+        .dash-pending-table tr:last-child td { border-bottom: none; }
+        .dash-pending-table tr:hover td { background: rgba(37,99,235,0.02); }
+
+        .dash-pending-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            color: var(--amber);
+            background: rgba(217,119,6,0.08);
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .dash-send-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: none;
+            background: var(--blue);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .dash-send-btn:hover { opacity: 0.85; }
+
+        .dash-empty-state {
+            padding: 32px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            margin-bottom: 28px;
+        }
+
         /* ====== AUDIT TRAIL SCREEN ====== */
         #screen-audit {
             overflow-y: auto;
@@ -1621,8 +1774,8 @@
                 </div>
 
                 <div class="nav-item" data-screen="settings" onclick="navigateTo('settings')">
-                    <span class="nav-icon">&#x2699;</span>
-                    <span>Settings</span>
+                    <span class="nav-icon">&#x1f4c5;</span>
+                    <span>Scheduled Invites</span>
                 </div>
 
                 <div class="nav-section-label">Reference</div>
@@ -1675,7 +1828,7 @@
             <!-- ====== SCREEN: DASHBOARD ====== -->
             <div class="screen" id="screen-dashboard">
                 <div class="dash-title">My Studies</div>
-                <div class="dash-subtitle">Active studies you're working with</div>
+                <div class="dash-subtitle">Overview of your active studies — updated as of today</div>
 
                 <!-- Live progress panel (hidden by default) -->
                 <div class="dash-live-panel" id="dashLivePanel" style="display:none;">
@@ -1693,7 +1846,17 @@
                     </div>
                 </div>
 
-                <div id="dashStudyCards">
+                <!-- Stat summary row -->
+                <div class="dash-stat-row" id="dashStatRow">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Pending invites section -->
+                <div class="dash-section-heading">
+                    Invite sending pending
+                    <span class="dash-count-pill" id="dashPendingPill">0</span>
+                </div>
+                <div id="dashPendingSection">
                     <!-- Populated by JS -->
                 </div>
             </div>
@@ -1726,55 +1889,11 @@
 
             <!-- ====== SCREEN: SETTINGS ====== -->
             <div class="screen" id="screen-settings" style="overflow-y:auto;padding:24px;">
-                <div class="dash-title">Settings</div>
-                <div class="dash-subtitle">Manage case delegations, scheduled invites, and preferences</div>
-
-                <!-- Cross-RC Sending Toggle -->
-                <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:24px;margin-bottom:24px;">
-                    <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;">Preferences</h3>
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="allowCrossRcSend" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span style="font-size:14px;color:var(--text-dim);">Allow sending invites for studies owned by other RCs</span>
-                    </div>
-                </div>
-
-                <!-- Case Delegation Section -->
-                <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:24px;margin-bottom:24px;">
-                    <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;">Case Delegation</h3>
-                    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end;">
-                        <div style="flex:1;">
-                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Study #</label>
-                            <input type="text" id="delegateCaseInput" placeholder="e.g. 1234567" style="width:100%;padding:10px 14px;border:1px solid var(--card-border);border-radius:10px;font-size:13px;color:var(--text);outline:none;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Delegate To (RC Name)</label>
-                            <input type="text" id="delegateToInput" placeholder="e.g. Mike Johnson" style="width:100%;padding:10px 14px;border:1px solid var(--card-border);border-radius:10px;font-size:13px;color:var(--text);outline:none;">
-                        </div>
-                        <button onclick="delegateCase()" style="padding:10px 20px;background:var(--gradient-brand);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Delegate</button>
-                    </div>
-                    <table class="dash-table" id="delegationTable">
-                        <thead>
-                            <tr>
-                                <th>Study #</th>
-                                <th>Study Name</th>
-                                <th>Delegated To</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="delegationTableBody">
-                            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:13px;">No delegations yet</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <div class="dash-title">Scheduled Invites</div>
+                <div class="dash-subtitle">View and manage your upcoming scheduled invite jobs</div>
 
                 <!-- Scheduled Invites Section -->
                 <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:24px;">
-                    <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;">Scheduled Invites</h3>
                     <table class="dash-table" id="scheduledTable">
                         <thead>
                             <tr>
@@ -3233,19 +3352,19 @@
        MOCK DATA
        ==================================================================== */
     const STUDIES = {
-        '1234567': { name: 'Global Ads Experience Survey', researcher: 'Sarah Johnson', ownerRC: 'Sarah Chen', totalRequired: 45, alreadySent: 15, lastRun: 'Apr 12' },
-        '2345678': { name: 'YouTube Premium UX Research', researcher: 'David Kim', ownerRC: 'Sarah Chen', totalRequired: 30, alreadySent: 0, lastRun: null },
-        '3456789': { name: 'Google Maps Navigation Study', researcher: 'Maria Garcia', ownerRC: 'Mike Johnson', totalRequired: 50, alreadySent: 20, lastRun: 'Apr 10' },
-        '4567890': { name: 'Chrome Browser Accessibility', researcher: 'James Wilson', ownerRC: 'Sarah Chen', totalRequired: 35, alreadySent: 8, lastRun: 'Apr 12' },
-        '5678901': { name: 'Cloud Console UX Evaluation', researcher: 'Lisa Chen', ownerRC: 'Mike Johnson', totalRequired: 25, alreadySent: 0, lastRun: null },
-        '6789012': { name: 'Assistant Voice Interface Study', researcher: 'Robert Taylor', ownerRC: 'Sarah Chen', totalRequired: 40, alreadySent: 5, lastRun: 'Apr 8' }
+        '1234567': { name: 'Global Ads Experience Survey',      researcher: 'Sarah Johnson', ownerRC: 'Sarah Chen', totalRequired: 45, alreadySent: 15, lastRun: 'Apr 12', newResponses: 4,  p0Ready: 2 },
+        '2345678': { name: 'YouTube Premium UX Research',       researcher: 'David Kim',     ownerRC: 'Sarah Chen', totalRequired: 30, alreadySent: 0,  lastRun: null,      newResponses: 0,  p0Ready: 5 },
+        '3456789': { name: 'Google Maps Navigation Study',      researcher: 'Maria Garcia',  ownerRC: 'Sarah Chen', totalRequired: 50, alreadySent: 20, lastRun: 'Apr 10',  newResponses: 7,  p0Ready: 0 },
+        '4567890': { name: 'Chrome Browser Accessibility',      researcher: 'James Wilson',  ownerRC: 'Sarah Chen', totalRequired: 35, alreadySent: 8,  lastRun: 'Apr 12',  newResponses: 1,  p0Ready: 1 },
+        '5678901': { name: 'Cloud Console UX Evaluation',       researcher: 'Lisa Chen',     ownerRC: 'Sarah Chen', totalRequired: 25, alreadySent: 0,  lastRun: null,      newResponses: 0,  p0Ready: 3 },
+        '6789012': { name: 'Assistant Voice Interface Study',   researcher: 'Robert Taylor', ownerRC: 'Sarah Chen', totalRequired: 40, alreadySent: 5,  lastRun: 'Apr 8',   newResponses: 2,  p0Ready: 0 }
     };
 
     const AUDIT_RUNS = [
         { id: 'RUN-0412-001', studyId: '1234567', studyName: 'Global Ads Experience Survey', date: '2026-04-12', rc: 'Sarah Chen', sent: 10, failed: 0, status: 'completed', duration: '4m 12s', sla: true },
         { id: 'RUN-0412-002', studyId: '4567890', studyName: 'Chrome Browser Accessibility', date: '2026-04-12', rc: 'Sarah Chen', sent: 8, failed: 0, status: 'completed', duration: '3m 50s', sla: true },
-        { id: 'RUN-0410-001', studyId: '3456789', studyName: 'Google Maps Navigation Study', date: '2026-04-10', rc: 'Mike Johnson', sent: 10, failed: 0, status: 'completed', duration: '3m 15s', sla: true },
-        { id: 'RUN-0410-002', studyId: '3456789', studyName: 'Google Maps Navigation Study', date: '2026-04-10', rc: 'Mike Johnson', sent: 10, failed: 0, status: 'completed', duration: '2m 30s', sla: true },
+        { id: 'RUN-0410-001', studyId: '3456789', studyName: 'Google Maps Navigation Study', date: '2026-04-10', rc: 'Sarah Chen', sent: 10, failed: 0, status: 'completed', duration: '3m 15s', sla: true },
+        { id: 'RUN-0410-002', studyId: '3456789', studyName: 'Google Maps Navigation Study', date: '2026-04-10', rc: 'Sarah Chen', sent: 10, failed: 0, status: 'completed', duration: '2m 30s', sla: true },
         { id: 'RUN-0408-001', studyId: '6789012', studyName: 'Assistant Voice Interface Study', date: '2026-04-08', rc: 'Sarah Chen', sent: 5, failed: 0, status: 'completed', duration: '2m 10s', sla: true },
         { id: 'RUN-0405-001', studyId: '1234567', studyName: 'Global Ads Experience Survey', date: '2026-04-05', rc: 'Sarah Chen', sent: 5, failed: 0, status: 'completed', duration: '1m 20s', sla: true }
     ];
@@ -3400,11 +3519,11 @@
         const msgs = document.getElementById('chatMessages');
         msgs.innerHTML = '';
         addBotMessage(
-            'Hello! I can help you send study invites, schedule future sends, or check status.' +
+            'Hello! I can help you send study invites or check status.' +
             '<div class="chat-suggestions" role="group" aria-label="Suggested commands">' +
               '<div class="msg-buttons">' +
                 '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567">Send invites now</button>' +
-                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 5 invites for study 2345678 tomorrow at 11 AM">Schedule for later</button>' +
+                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567 tomorrow at 9am">Schedule for later</button>' +
                 '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Show today&#39;s summary">Today\'s summary</button>' +
                 '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Pending studies">Pending studies</button>' +
               '</div>' +
@@ -3496,21 +3615,13 @@
             return;
         }
 
-        /* Scheduler flow — detect time keywords anywhere in the message */
-        var hasTimeKeyword = /\b(tomorrow|today|tonight|morning|evening|at\s+\d{1,2})/i.test(lower);
-        var hasSendIntent = /send\s+(\d+)\s+invite/i.test(lower);
-        var hasStudyId = lower.match(/(?:case|study)\s*(\d{7})/);
-        var countMatch = lower.match(/send\s+(\d+)/);
-
-        if (hasTimeKeyword && hasSendIntent && hasStudyId && countMatch) {
-            var schedCount = parseInt(countMatch[1]);
-            var schedStudyId = hasStudyId[1];
-            /* Extract the scheduling part — everything that's not "send X invites for case YYYYYYY" */
-            var dateTimeStr = text.replace(/send\s+\d+\s+invites?\s+(?:for\s+)?(?:case|study)?\s*\d{7}/i, '').trim();
-            /* Clean up leading/trailing connectors */
-            dateTimeStr = dateTimeStr.replace(/^[\s,]+|[\s,]+$/g, '').replace(/^\s*(and|then|also)\s+/i, '');
-            if (!dateTimeStr) dateTimeStr = 'tomorrow';
-            handleScheduleFlow(schedStudyId, schedCount, dateTimeStr);
+        /* Scheduler flow — detect before regular invite */
+        const scheduleMatch = lower.match(/send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+(?:tomorrow|today|on\s+.+?)\s+(?:at\s+)?(\d{1,2}[:\.]?\d{0,2}\s*(?:AM|PM|am|pm)?)/i);
+        if (scheduleMatch) {
+            const count = parseInt(scheduleMatch[1]);
+            const studyId = scheduleMatch[2];
+            const dateTimeStr = text.substring(text.toLowerCase().indexOf(studyId) + studyId.length).trim();
+            handleScheduleFlow(studyId, count, dateTimeStr);
             return;
         }
 
@@ -3552,7 +3663,7 @@
         showTyping();
         setTimeout(() => {
             hideTyping();
-            addBotMessage('I\'m not sure what you mean. Try one of these:<br>&#x2022; <em>"send 10 invites for study 1234567"</em><br>&#x2022; <em>"send 5 invites for study 2345678 tomorrow at 11 AM"</em><br>&#x2022; <em>"status of study 1234567"</em><br>&#x2022; <em>"today\'s summary"</em><br>&#x2022; <em>"pending studies"</em><br>&#x2022; <em>"what failed"</em>');
+            addBotMessage('I\'m not sure what you mean. Try one of these commands:<br>&#x2022; <em>"send X invites for study 1234567"</em><br>&#x2022; <em>"status of study 1234567"</em><br>&#x2022; <em>"today\'s summary"</em><br>&#x2022; <em>"pending studies"</em><br>&#x2022; <em>"what failed"</em>');
         }, 1000);
     }
 
@@ -3808,20 +3919,20 @@
        SCHEDULER
        ==================================================================== */
     function handleScheduleFlow(studyId, count, dateTimeStr) {
-        var study = STUDIES[studyId];
+        const study = STUDIES[studyId];
         if (!study) {
             showTyping();
-            setTimeout(function() {
+            setTimeout(() => {
                 hideTyping();
-                handleInvalidStudy(studyId);
+                addBotMessage('<span style="color:var(--rose);">Study ' + studyId + ' not found.</span> Please verify the ID and try again.');
             }, 1200);
             return;
         }
 
         showTyping();
-        setTimeout(function() {
+        setTimeout(() => {
             hideTyping();
-            var job = {
+            const job = {
                 studyId: studyId,
                 studyName: study.name,
                 count: count,
@@ -3830,19 +3941,17 @@
                 status: 'scheduled'
             };
             appState.scheduledJobs.push(job);
-            var jobIndex = appState.scheduledJobs.length - 1;
 
-            var html = '<strong>Study ' + studyId + ' - ' + study.name + '</strong><br>';
-            html += 'Researcher: ' + study.researcher + '<br><br>';
-            html += '&#x1f4c5; <strong>Scheduled:</strong> ' + count + ' invites — ' + dateTimeStr + '<br>';
-            html += '<span class="msg-hint">I\'ll check the shortlisting tool at the scheduled time, pick ' + count + ' P0 candidates, and send the invites automatically. You\'ll be notified when done.</span>';
-            html += '<div class="msg-buttons" style="margin-top:12px;">';
-            html += '<button class="msg-btn danger" onclick="cancelScheduledJob(' + jobIndex + '); this.parentElement.parentElement.innerHTML=\'&#x274c; Schedule cancelled.\';">Cancel Schedule</button>';
-            html += '<button class="msg-btn primary" onclick="showToast(\'success\',\'Schedule confirmed — ' + dateTimeStr + '\'); this.disabled=true; this.textContent=\'Confirmed \\u2705\';">Confirm</button>';
+            const jobIndex = appState.scheduledJobs.length - 1;
+            const btnGroupId = 'sched-btns-' + jobIndex;
+            let html = '&#x2705; <strong>Scheduled:</strong> ' + count + ' invites for Study ' + studyId + ' - ' + study.name + ' on ' + dateTimeStr + '.<br>';
+            html += '<span class="msg-hint">I\'ll notify you when it\'s done.</span>';
+            html += '<div class="msg-buttons" style="margin-top:12px;" id="' + btnGroupId + '">';
+            html += '<button class="msg-btn danger" onclick="cancelScheduledJob(' + jobIndex + '); document.getElementById(\'' + btnGroupId + '\').querySelectorAll(\'button\').forEach(b=>b.disabled=true); this.textContent=\'Cancelled\';">Cancel</button>';
+            html += '<button class="msg-btn primary" onclick="this.disabled=true; this.innerHTML=\'&#x2705; Confirmed\'; this.previousElementSibling.disabled=true; showToast(\'success\',\'Schedule confirmed!\')">Confirm</button>';
             html += '</div>';
 
             addBotMessage(html);
-            showToast('info', 'Scheduled: ' + count + ' invites for study ' + studyId + ' — ' + dateTimeStr);
         }, 1500);
     }
 
@@ -3948,37 +4057,97 @@
        DASHBOARD
        ==================================================================== */
     function populateDashboard() {
-        const container = document.getElementById('dashStudyCards');
-        if (!container) return;
-        container.innerHTML = '';
+        const statRow     = document.getElementById('dashStatRow');
+        const pendingSection = document.getElementById('dashPendingSection');
+        const pendingPill = document.getElementById('dashPendingPill');
+        if (!statRow || !pendingSection) return;
+
+        /* Aggregate stats across all RC's studies */
+        let totalPendingInvites = 0;
+        let totalNewResponses   = 0;
+        let totalP0Ready        = 0;
+        const pendingStudies    = []; /* studies that still need invites sent */
 
         Object.keys(STUDIES).forEach(id => {
             const s = STUDIES[id];
-            /* Show if alreadySent > 0 or ownerRC matches logged-in user */
-            if (s.alreadySent > 0 || s.ownerRC === appState.user.name) {
-                const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
-                const card = document.createElement('div');
-                card.className = 'dash-study-card';
+            if (s.ownerRC !== appState.user.name) return;
 
-                /* Check if this study has a live send in progress */
-                const isLive = appState.chatState === 'sending' && appState.currentStudyId === id;
+            const remaining = Math.max(0, s.totalRequired - s.alreadySent);
+            totalNewResponses += (s.newResponses || 0);
+            totalP0Ready      += (s.p0Ready      || 0);
 
-                let failedHtml = '';
-                /* Check audit runs for failures */
-                const failedRuns = AUDIT_RUNS.filter(r => r.studyId === id && r.failed > 0);
-                if (failedRuns.length > 0) {
-                    const totalFailed = failedRuns.reduce((sum, r) => sum + r.failed, 0);
-                    failedHtml = ' <span style="color:var(--rose);font-weight:600;">' + totalFailed + ' failed</span>';
-                }
-
-                card.innerHTML = '<div class="dash-study-card-title">Study ' + id + ' - ' + s.name + '</div>' +
-                    '<div class="dash-study-card-info">' + s.alreadySent + ' sent out of ' + s.totalRequired + ' required' + failedHtml + '</div>' +
-                    '<div class="dash-study-card-info">Last run: ' + (s.lastRun || 'Never') + '</div>' +
-                    '<div class="dash-study-progress-bar"><div class="dash-study-progress-fill" style="width:' + pct + '%"></div></div>';
-
-                container.appendChild(card);
+            if (remaining > 0) {
+                totalPendingInvites += remaining;
+                pendingStudies.push({ id, s, remaining });
             }
         });
+
+        /* ---- Stat cards ---- */
+        statRow.innerHTML =
+            '<div class="dash-stat-card">' +
+                '<div class="dash-stat-icon amber">&#x2709;</div>' +
+                '<div class="dash-stat-body">' +
+                    '<div class="dash-stat-label">Pending Invites</div>' +
+                    '<div class="dash-stat-value">' + totalPendingInvites + '</div>' +
+                    '<div class="dash-stat-sub">across ' + pendingStudies.length + ' ' + (pendingStudies.length === 1 ? 'study' : 'studies') + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="dash-stat-card">' +
+                '<div class="dash-stat-icon blue">&#x1f4ca;</div>' +
+                '<div class="dash-stat-body">' +
+                    '<div class="dash-stat-label">New Responses</div>' +
+                    '<div class="dash-stat-value">' + totalNewResponses + '</div>' +
+                    '<div class="dash-stat-sub">since last check</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="dash-stat-card">' +
+                '<div class="dash-stat-icon green">&#x2705;</div>' +
+                '<div class="dash-stat-body">' +
+                    '<div class="dash-stat-label">P0s Ready to Schedule</div>' +
+                    '<div class="dash-stat-value">' + totalP0Ready + '</div>' +
+                    '<div class="dash-stat-sub">newly marked by UXR</div>' +
+                '</div>' +
+            '</div>';
+
+        /* ---- Pending invites table ---- */
+        pendingPill.textContent = pendingStudies.length;
+
+        if (pendingStudies.length === 0) {
+            pendingSection.innerHTML = '<div class="dash-empty-state">All studies are fully invited — nothing pending.</div>';
+            return;
+        }
+
+        let rows = '';
+        pendingStudies.forEach(({ id, s, remaining }) => {
+            const failedRuns = AUDIT_RUNS.filter(r => r.studyId === id && r.failed > 0);
+            const totalFailed = failedRuns.reduce((sum, r) => sum + r.failed, 0);
+            const failedBadge = totalFailed > 0
+                ? '<span style="color:var(--rose);font-size:12px;font-weight:600;margin-left:6px;">&#x26A0; ' + totalFailed + ' failed</span>'
+                : '';
+
+            rows +=
+                '<tr>' +
+                    '<td><strong>' + s.name + '</strong><br><span style="font-size:11px;color:var(--text-faint);">#' + id + ' &#183; ' + s.researcher + '</span></td>' +
+                    '<td><span class="dash-pending-count">&#x2709; ' + remaining + ' to send</span>' + failedBadge + '</td>' +
+                    '<td>' + (s.lastRun ? 'Last: ' + s.lastRun : '<span style="color:var(--text-faint)">Never sent</span>') + '</td>' +
+                    '<td>' +
+                        '<button class="dash-send-btn" onclick="navigateTo(\'chat\'); showToast(\'info\', \'Study ' + id + ' loaded in chat\');">' +
+                            'Send invites' +
+                        '</button>' +
+                    '</td>' +
+                '</tr>';
+        });
+
+        pendingSection.innerHTML =
+            '<table class="dash-pending-table">' +
+                '<thead><tr>' +
+                    '<th>Study</th>' +
+                    '<th>Invites needed</th>' +
+                    '<th>Last run</th>' +
+                    '<th></th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+            '</table>';
     }
 
     /* ====================================================================
