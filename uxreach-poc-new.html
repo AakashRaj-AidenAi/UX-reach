@@ -1578,6 +1578,13 @@
             font-size: 13px;
         }
 
+        .dash-action-btns {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+
         .dash-send-btn {
             padding: 6px 14px;
             border-radius: 8px;
@@ -1588,9 +1595,28 @@
             font-weight: 600;
             cursor: pointer;
             transition: opacity 0.2s;
+            white-space: nowrap;
         }
 
         .dash-send-btn:hover { opacity: 0.85; }
+
+        .dash-schedule-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1.5px solid var(--card-border-hover);
+            background: var(--card);
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+
+        .dash-schedule-btn:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
 
         .dash-empty-state {
             padding: 32px;
@@ -1601,6 +1627,97 @@
             border: 1px solid var(--card-border);
             border-radius: 12px;
             margin-bottom: 28px;
+        }
+
+        .dash-expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 1.5px solid var(--card-border);
+            background: var(--card-alt);
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s, color 0.2s, transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .dash-expand-btn:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .dash-expand-btn.open {
+            transform: rotate(180deg);
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .dash-expand-row {
+            display: none;
+            background: var(--card-alt);
+        }
+
+        .dash-expand-row.open {
+            display: table-row;
+        }
+
+        .dash-expand-row td {
+            border-top: 1px dashed var(--card-border) !important;
+            padding: 14px 20px !important;
+        }
+
+        .dash-detail-chips {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .dash-detail-chip {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 10px 16px;
+        }
+
+        .dash-detail-chip-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dash-detail-chip-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .dash-detail-chip-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .dash-new-badge {
+            display: inline-block;
+            background: rgba(217,119,6,0.12);
+            color: var(--amber);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
         }
 
         /* ====== AUDIT TRAIL SCREEN ====== */
@@ -1724,6 +1841,205 @@
         .toggle-switch input:checked + .toggle-slider:before {
             transform: translateX(20px);
         }
+
+        /* ====== STUDY PICKER CARD ====== */
+        .study-picker-item {
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            overflow: hidden;
+        }
+
+        .study-picker-item.selected {
+            border-color: var(--blue);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .study-picker-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            width: 100%;
+            margin: 0;
+        }
+
+        .study-picker-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--blue);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .study-picker-info { flex: 1; min-width: 0; }
+        .study-picker-name { font-size: 13px; font-weight: 600; color: var(--text); }
+        .study-picker-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        .study-picker-count-wrap {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .study-picker-item.selected .study-picker-count-wrap {
+            display: flex;
+        }
+
+        .study-picker-count-input {
+            width: 68px;
+            padding: 6px 8px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            background: var(--card);
+            text-align: center;
+            outline: none;
+        }
+
+        .study-picker-count-input:focus { border-color: var(--blue); }
+        .study-picker-count-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+        .study-picker-progress-strip {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .study-picker-progress-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--card-border);
+            border-radius: 2px;
+            overflow: hidden;
+            max-width: 80px;
+        }
+
+        .study-picker-progress-fill {
+            height: 100%;
+            background: var(--gradient-brand);
+            border-radius: 2px;
+        }
+
+        /* ====== STUDY PICKER DROPDOWN ====== */
+        .study-picker-dropdown {
+            position: fixed;
+            z-index: 5000;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 18px 18px 14px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.06);
+            width: 420px;
+            max-height: 540px;
+            overflow-y: auto;
+        }
+
+        .study-picker-dropdown.animate-in {
+            animation: pickerSlideIn 0.15s ease;
+        }
+
+        @keyframes pickerSlideIn {
+            from { opacity: 0; transform: translateY(6px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .study-picker-dropdown-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .study-picker-dropdown-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+
+        .study-picker-dropdown-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .study-picker-close-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            background: var(--card-alt);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .study-picker-close-btn:hover { background: rgba(225,29,72,0.08); color: var(--rose); }
+
+        .study-picker-footer {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid var(--card-border);
+            margin-top: 12px;
+        }
+
+        /* ====== SCHEDULE PICKER DATE/TIME ROW ====== */
+        .sched-datetime-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            padding: 12px 0 8px;
+            border-top: 1px solid var(--card-border);
+            margin-top: 10px;
+        }
+
+        .sched-datetime-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .sched-datetime-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .sched-date-input, .sched-time-input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+            box-sizing: border-box;
+        }
+
+        .sched-date-input:focus, .sched-time-input:focus {
+            border-color: var(--blue);
+        }
     </style>
 </head>
 <body>
@@ -1827,7 +2143,7 @@
 
             <!-- ====== SCREEN: DASHBOARD ====== -->
             <div class="screen" id="screen-dashboard">
-                <div class="dash-title">My Studies</div>
+                <div class="dash-title">Dashboard</div>
                 <div class="dash-subtitle">Overview of your active studies — updated as of today</div>
 
                 <!-- Live progress panel (hidden by default) -->
@@ -1853,7 +2169,7 @@
 
                 <!-- Pending invites section -->
                 <div class="dash-section-heading">
-                    Invite sending pending
+                    Pending invites
                     <span class="dash-count-pill" id="dashPendingPill">0</span>
                 </div>
                 <div id="dashPendingSection">
@@ -2776,8 +3092,8 @@
                                 <div class="msg-bubble">
                                     <strong>Today — Apr 14, 2026</strong><br>
                                     &#x2022; Study 1234567: 10 sent, 0 failed<br>
-                                    &#x2022; Study 3456789: 8 sent, 0 failed<br>
-                                    Total: 18 sent today
+                                    &#x2022; Study 6789012: 5 sent, 0 failed<br>
+                                    Total: 15 sent today
                                 </div>
                             </div>
 
@@ -2806,11 +3122,9 @@
                                 <div class="msg-avatar bot query-avatar">Q</div>
                                 <div class="msg-bubble">
                                     <strong>Studies needing invites:</strong><br>
-                                    &#x2022; Study 2345678 - YouTube Premium UX Research (0/30 sent)<br>
-                                    &#x2022; Study 5678901 - Cloud Console UX Evaluation (0/25 sent)
+                                    &#x2022; Study 2345678 - YouTube Premium UX Research (0/30 sent)
                                     <div class="msg-buttons" style="margin-top:12px;">
                                         <button class="msg-btn primary">Send for 2345678</button>
-                                        <button class="msg-btn primary">Send for 5678901</button>
                                     </div>
                                 </div>
                             </div>
@@ -3352,19 +3666,13 @@
        MOCK DATA
        ==================================================================== */
     const STUDIES = {
-        '1234567': { name: 'Global Ads Experience Survey',      researcher: 'Sarah Johnson', ownerRC: 'Sarah Chen', totalRequired: 45, alreadySent: 15, lastRun: 'Apr 12', newResponses: 4,  p0Ready: 2 },
-        '2345678': { name: 'YouTube Premium UX Research',       researcher: 'David Kim',     ownerRC: 'Sarah Chen', totalRequired: 30, alreadySent: 0,  lastRun: null,      newResponses: 0,  p0Ready: 5 },
-        '3456789': { name: 'Google Maps Navigation Study',      researcher: 'Maria Garcia',  ownerRC: 'Sarah Chen', totalRequired: 50, alreadySent: 20, lastRun: 'Apr 10',  newResponses: 7,  p0Ready: 0 },
-        '4567890': { name: 'Chrome Browser Accessibility',      researcher: 'James Wilson',  ownerRC: 'Sarah Chen', totalRequired: 35, alreadySent: 8,  lastRun: 'Apr 12',  newResponses: 1,  p0Ready: 1 },
-        '5678901': { name: 'Cloud Console UX Evaluation',       researcher: 'Lisa Chen',     ownerRC: 'Sarah Chen', totalRequired: 25, alreadySent: 0,  lastRun: null,      newResponses: 0,  p0Ready: 3 },
-        '6789012': { name: 'Assistant Voice Interface Study',   researcher: 'Robert Taylor', ownerRC: 'Sarah Chen', totalRequired: 40, alreadySent: 5,  lastRun: 'Apr 8',   newResponses: 2,  p0Ready: 0 }
+        '1234567': { name: 'Global Ads Experience Survey',      researcher: 'Sarah Johnson', ownerRC: 'Sarah Chen', totalRequired: 45, alreadySent: 15, lastRun: 'Apr 12', newResponses: 4,  p0Ready: 12, p0NewlyMarked: 2  },
+        '2345678': { name: 'YouTube Premium UX Research',       researcher: 'David Kim',     ownerRC: 'Sarah Chen', totalRequired: 30, alreadySent: 0,  lastRun: null,      newResponses: 0,  p0Ready: 5,  p0NewlyMarked: 5  },
+        '6789012': { name: 'Assistant Voice Interface Study',   researcher: 'Robert Taylor', ownerRC: 'Sarah Chen', totalRequired: 40, alreadySent: 5,  lastRun: 'Apr 8',   newResponses: 2,  p0Ready: 5,  p0NewlyMarked: 0  }
     };
 
     const AUDIT_RUNS = [
         { id: 'RUN-0412-001', studyId: '1234567', studyName: 'Global Ads Experience Survey', date: '2026-04-12', rc: 'Sarah Chen', sent: 10, failed: 0, status: 'completed', duration: '4m 12s', sla: true },
-        { id: 'RUN-0412-002', studyId: '4567890', studyName: 'Chrome Browser Accessibility', date: '2026-04-12', rc: 'Sarah Chen', sent: 8, failed: 0, status: 'completed', duration: '3m 50s', sla: true },
-        { id: 'RUN-0410-001', studyId: '3456789', studyName: 'Google Maps Navigation Study', date: '2026-04-10', rc: 'Sarah Chen', sent: 10, failed: 0, status: 'completed', duration: '3m 15s', sla: true },
-        { id: 'RUN-0410-002', studyId: '3456789', studyName: 'Google Maps Navigation Study', date: '2026-04-10', rc: 'Sarah Chen', sent: 10, failed: 0, status: 'completed', duration: '2m 30s', sla: true },
         { id: 'RUN-0408-001', studyId: '6789012', studyName: 'Assistant Voice Interface Study', date: '2026-04-08', rc: 'Sarah Chen', sent: 5, failed: 0, status: 'completed', duration: '2m 10s', sla: true },
         { id: 'RUN-0405-001', studyId: '1234567', studyName: 'Global Ads Experience Survey', date: '2026-04-05', rc: 'Sarah Chen', sent: 5, failed: 0, status: 'completed', duration: '1m 20s', sla: true }
     ];
@@ -3376,6 +3684,73 @@
         { first: 'Quinn', last: 'Martinez' }, { first: 'Avery', last: 'Davis' },
         { first: 'Parker', last: 'Lee' }, { first: 'Cameron', last: 'Brown' }
     ];
+
+    /* ====================================================================
+       FILTER CONSTANTS & SHORTLISTING POOL (mock Shortlisting App data)
+       ==================================================================== */
+    const COUNTRY_ALIASES = {
+        'us': 'US', 'usa': 'US', 'united states': 'US', 'america': 'US',
+        'japan': 'Japan',
+        'india': 'India',
+        'spain': 'Spain',
+        'germany': 'Germany',
+        'france': 'France',
+        'uk': 'UK', 'united kingdom': 'UK', 'britain': 'UK', 'great britain': 'UK',
+        'brazil': 'Brazil',
+        'australia': 'Australia',
+        'canada': 'Canada',
+        'singapore': 'Singapore',
+        'south korea': 'South Korea', 'korea': 'South Korea',
+        'netherlands': 'Netherlands', 'holland': 'Netherlands',
+        'mexico': 'Mexico',
+        'italy': 'Italy'
+    };
+
+    const CUSTOMER_TYPE_ALIASES = {
+        'media agency': 'Media Agency', 'agency': 'Media Agency', 'agencies': 'Media Agency',
+        'large enterprise': 'Large Enterprise', 'enterprise': 'Large Enterprise', 'large enterprises': 'Large Enterprise',
+        'smb': 'SMB', 'small business': 'SMB', 'small businesses': 'SMB', 'medium business': 'SMB', 'sme': 'SMB',
+        'startup': 'Startup', 'start-up': 'Startup', 'start up': 'Startup', 'startups': 'Startup',
+        'government': 'Government', 'govt': 'Government', 'public sector': 'Government',
+        'non-profit': 'Non-profit', 'nonprofit': 'Non-profit', 'ngo': 'Non-profit'
+    };
+
+    /* Candidate pool per study — simulates what comes back from Shortlisting App */
+    const SHORTLISTING_POOLS = (function () {
+        function makePool(studyId, dist) {
+            var pool = [], idx = 0;
+            dist.forEach(function (d) {
+                for (var i = 0; i < d[2]; i++) {
+                    pool.push({ id: studyId + '-C' + String(++idx).padStart(3, '0'), country: d[0], customerType: d[1] });
+                }
+            });
+            return pool;
+        }
+        return {
+            '1234567': makePool('1234567', [
+                ['US','Large Enterprise',4],['US','Media Agency',2],['US','SMB',2],
+                ['Japan','Media Agency',3],['Japan','Large Enterprise',2],
+                ['India','Large Enterprise',3],['India','SMB',2],['India','Startup',1],
+                ['Germany','Large Enterprise',2],['Germany','SMB',2],
+                ['UK','Media Agency',3],['UK','Large Enterprise',1],
+                ['Spain','SMB',2],['Spain','Startup',1]
+            ]),
+            '2345678': makePool('2345678', [
+                ['US','Startup',3],['US','SMB',2],['US','Large Enterprise',2],
+                ['India','Startup',3],['India','SMB',2],
+                ['Brazil','SMB',3],['Brazil','Startup',2],
+                ['Australia','Large Enterprise',2],['Australia','SMB',2],
+                ['Canada','Large Enterprise',2],['Canada','SMB',2]
+            ]),
+            '6789012': makePool('6789012', [
+                ['US','Startup',3],['US','SMB',2],['US','Large Enterprise',2],
+                ['India','Startup',3],['India','SMB',2],
+                ['Japan','Media Agency',3],['Japan','Large Enterprise',2],
+                ['Spain','SMB',2],['Spain','Startup',2],
+                ['Brazil','SMB',2],['Brazil','Startup',2]
+            ])
+        };
+    })();
 
     /* ====================================================================
        APP STATE
@@ -3395,7 +3770,10 @@
         delegations: [],
         auditSortKey: 'date',
         auditSortAsc: false,
-        allowCrossRcSend: true
+        allowCrossRcSend: true,
+        currentFilters: null,
+        sendQueue: [],
+        sendQueueIndex: 0
     };
 
     /* ====================================================================
@@ -3482,6 +3860,33 @@
         if (screen === 'settings') renderSettings();
     }
 
+    function goToChatWithStudy(studyId, count) {
+        navigateTo('chat');
+        var input = document.getElementById('chatInput');
+        if (input) {
+            input.value = 'send ' + count + ' invites for study ' + studyId;
+            input.focus();
+        }
+    }
+
+    function goToChatScheduleStudy(studyId, count) {
+        navigateTo('chat');
+        var input = document.getElementById('chatInput');
+        if (input) {
+            input.value = 'send ' + count + ' invites for study ' + studyId + ' tomorrow at 9am';
+            input.focus();
+        }
+    }
+
+    function toggleDashExpand(id) {
+        var expandRow = document.getElementById('dash-expand-row-' + id);
+        var expandBtn = document.getElementById('dash-expand-btn-' + id);
+        if (!expandRow || !expandBtn) return;
+        var isOpen = expandRow.classList.contains('open');
+        expandRow.classList.toggle('open', !isOpen);
+        expandBtn.classList.toggle('open', !isOpen);
+    }
+
     // Fallback: attach click handlers via event delegation on sidebar
     document.addEventListener('click', function(e) {
         var navItem = e.target.closest('.nav-item');
@@ -3490,13 +3895,37 @@
         }
     });
 
-    // Chat suggestion chips: click to fill input + focus
+    // Chat suggestion chips: click to fill input OR trigger a direct action
+    var pickerJustOpened = false;
+
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('.chat-suggestion-btn');
         if (!btn) return;
+        const action = btn.getAttribute('data-action');
+        if (action === 'showStudyPicker') { showStudyPicker(btn); return; }
+        if (action === 'showSchedulePicker') { showSchedulePicker(btn); return; }
         const suggestion = btn.getAttribute('data-suggest');
         if (!suggestion) return;
         fillAndFocusChatInput(suggestion);
+    });
+
+    // Close study picker when clicking outside it
+    document.addEventListener('click', function(e) {
+        if (pickerJustOpened) return;
+        const dropdown = document.getElementById('study-picker-dropdown');
+        if (!dropdown || dropdown.style.display === 'none') return;
+        if (dropdown.contains(e.target)) return;
+        closeStudyPickerDropdown();
+    });
+
+    // Close schedule picker when clicking outside it
+    var schedPickerJustOpened = false;
+    document.addEventListener('click', function(e) {
+        if (schedPickerJustOpened) return;
+        const dropdown = document.getElementById('sched-picker-dropdown');
+        if (!dropdown || dropdown.style.display === 'none') return;
+        if (dropdown.contains(e.target)) return;
+        closeSchedPickerDropdown();
     });
 
     /* ====================================================================
@@ -3519,13 +3948,15 @@
         const msgs = document.getElementById('chatMessages');
         msgs.innerHTML = '';
         addBotMessage(
-            'Hello! I can help you send study invites or check status.' +
+            'Hello! I can help you send invites, filter by region or customer type, check what\'s remaining, and more.' +
             '<div class="chat-suggestions" role="group" aria-label="Suggested commands">' +
               '<div class="msg-buttons">' +
-                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567">Send invites now</button>' +
-                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567 tomorrow at 9am">Schedule for later</button>' +
+                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-action="showStudyPicker">&#x1f4e4; Send invites now</button>' +
+                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-action="showSchedulePicker">&#x1f4c5; Schedule invites</button>' +
+                '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 5 invites for study 1234567 from Japan">&#x1f30d; Filter by region</button>' +
+                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="How many invites are left?">Invites remaining</button>' +
                 '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Show today&#39;s summary">Today\'s summary</button>' +
-                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Pending studies">Pending studies</button>' +
+                '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="My studies">My studies</button>' +
               '</div>' +
             '</div>'
         );
@@ -3601,22 +4032,39 @@
     function processCommand(text) {
         const lower = text.toLowerCase();
 
+        /* Study picker trigger */
+        if (lower.match(/^send invites?$|^choose studies?$|^select studies?$|^pick studies?$/)) {
+            showStudyPicker();
+            return;
+        }
+
+        /* Cancel study picker via typed command */
+        if (appState.chatState === 'study_picker_open' && lower === 'cancel') {
+            cancelStudyPicker();
+            return;
+        }
+
         /* Handle "send" or "yes, proceed" during awaiting_confirm or awaiting_crossrc */
         if (appState.chatState === 'awaiting_confirm' && (lower === 'send' || lower === 'send now')) {
             handleSendNow();
+            return;
+        }
+        if (appState.chatState === 'awaiting_filtered_confirm' && (lower === 'send' || lower === 'send now')) {
+            handleFilteredSendNow();
             return;
         }
         if (appState.chatState === 'awaiting_crossrc' && (lower === 'yes, proceed' || lower === 'yes' || lower === 'proceed')) {
             handleCrossRcProceed();
             return;
         }
-        if ((appState.chatState === 'awaiting_confirm' || appState.chatState === 'awaiting_crossrc') && lower === 'cancel') {
+        if ((appState.chatState === 'awaiting_confirm' || appState.chatState === 'awaiting_crossrc' || appState.chatState === 'awaiting_filtered_confirm' || appState.chatState === 'awaiting_multi_confirm') && lower === 'cancel') {
             handleCancelSend();
             return;
         }
 
         /* Scheduler flow — detect before regular invite */
-        const scheduleMatch = lower.match(/send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+(?:tomorrow|today|on\s+.+?)\s+(?:at\s+)?(\d{1,2}[:\.]?\d{0,2}\s*(?:AM|PM|am|pm)?)/i);
+        const scheduleRe = /send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+(?:(?:tomorrow|today)|(?:on\s+.+?)|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2},\s+\d{4}|(?:\d{4}-\d{2}-\d{2}))\s+(?:at\s+)?(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)/i;
+        const scheduleMatch = lower.match(scheduleRe);
         if (scheduleMatch) {
             const count = parseInt(scheduleMatch[1]);
             const studyId = scheduleMatch[2];
@@ -3625,12 +4073,48 @@
             return;
         }
 
-        /* Invite Agent flow */
-        const inviteMatch = lower.match(/send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})/);
+        /* "Send invites: N for study ID, N for study ID, ..." format (generated by study picker) */
+        if (lower.match(/^send invites:/)) {
+            const _pickerItems = [];
+            const _pickerRe = /(\d+)\s+for\s+(?:study\s+)?(\d{7})/gi;
+            let _pm;
+            while ((_pm = _pickerRe.exec(lower)) !== null) {
+                _pickerItems.push({ count: parseInt(_pm[1]), studyId: _pm[2] });
+            }
+            if (_pickerItems.length === 1) {
+                handleInviteFlow(_pickerItems[0].studyId, _pickerItems[0].count);
+                return;
+            }
+            if (_pickerItems.length > 1) {
+                handleMultiStudyCommand(_pickerItems);
+                return;
+            }
+        }
+
+        /* Multi-study compound command: "send X invites for study A and Y invites for study B" */
+        const _multiSegments = [];
+        const _multiRe = /(?:send|and)\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})/gi;
+        let _mm;
+        while ((_mm = _multiRe.exec(lower)) !== null) {
+            _multiSegments.push({ count: parseInt(_mm[1]), studyId: _mm[2] });
+        }
+        if (_multiSegments.length > 1) {
+            handleMultiStudyCommand(_multiSegments);
+            return;
+        }
+
+        /* Invite Agent flow — with optional filter suffix */
+        const inviteMatch = lower.match(/send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})(.*)?/);
         if (inviteMatch) {
             const count = parseInt(inviteMatch[1]);
             const studyId = inviteMatch[2];
-            handleInviteFlow(studyId, count);
+            const remainder = (inviteMatch[3] || '').trim();
+            const filters = parseFilters(remainder);
+            if (filters.countries.length > 0 || filters.customerTypes.length > 0) {
+                handleFilteredInviteFlow(studyId, count, filters);
+            } else {
+                handleInviteFlow(studyId, count);
+            }
             return;
         }
 
@@ -3659,11 +4143,45 @@
             return;
         }
 
+        /* Invites remaining — all studies or a specific one */
+        if (lower.match(/how many|invites?\s+left|remaining invite|left to send|still need to send|invites?\s+remaining|how much left|how many more/)) {
+            const studyMatch = lower.match(/(?:for\s+)?(?:study|case)?\s*(\d{7})/);
+            handleInvitesRemaining(studyMatch ? studyMatch[1] : null);
+            return;
+        }
+
+        /* Scheduled jobs query */
+        if (lower.match(/when.*schedul|schedul.*send|my schedul|scheduled job|upcoming send|scheduled invite|show.*schedul/)) {
+            handleScheduledQuery();
+            return;
+        }
+
+        /* My studies overview */
+        if (lower.match(/my studies|all studies|show studies|list studies|which studies|show all/)) {
+            handleMyStudies();
+            return;
+        }
+
+        /* Help / capabilities */
+        if (lower.match(/^help$|what can you do|what do you know|available commands|^commands$/)) {
+            handleHelp();
+            return;
+        }
+
         /* Fallback */
         showTyping();
         setTimeout(() => {
             hideTyping();
-            addBotMessage('I\'m not sure what you mean. Try one of these commands:<br>&#x2022; <em>"send X invites for study 1234567"</em><br>&#x2022; <em>"status of study 1234567"</em><br>&#x2022; <em>"today\'s summary"</em><br>&#x2022; <em>"pending studies"</em><br>&#x2022; <em>"what failed"</em>');
+            addBotMessage(
+                'I\'m not sure what you mean. Here\'s what I can help with:<br>' +
+                '&#x2022; <em>"send X invites for study 1234567"</em><br>' +
+                '&#x2022; <em>"send 5 invites for study 1234567 from Japan"</em><br>' +
+                '&#x2022; <em>"send 5 invites for study 1234567 media agency only"</em><br>' +
+                '&#x2022; <em>"how many invites are left?"</em><br>' +
+                '&#x2022; <em>"when are those scheduled to send?"</em><br>' +
+                '&#x2022; <em>"status of study 1234567"</em><br>' +
+                'Or type <em>"help"</em> to see all commands.'
+            );
         }, 1000);
     }
 
@@ -3762,12 +4280,61 @@
 
     function handleCancelSend() {
         appState.chatState = 'idle';
+        appState.currentFilters = null;
         addUserMessage('Cancel');
         showTyping();
         setTimeout(() => {
             hideTyping();
             addBotMessage('Send cancelled. No emails were sent. What would you like to do next?');
         }, 800);
+    }
+
+    function handleMultiStudyCommand(segments) {
+        const queue = [];
+        const unknown = [];
+        segments.forEach(seg => {
+            const study = STUDIES[seg.studyId];
+            if (!study) { unknown.push(seg.studyId); return; }
+            const remaining = study.totalRequired - study.alreadySent;
+            const actualCount = Math.min(seg.count, remaining);
+            if (actualCount > 0) queue.push({ studyId: seg.studyId, count: actualCount, studyName: study.name });
+        });
+
+        if (unknown.length > 0) {
+            addBotMessage('<span style="color:var(--rose);">Study ' + unknown.join(', ') + ' not found.</span> Please verify the study ID and try again.');
+            return;
+        }
+        if (queue.length === 0) {
+            addBotMessage('All selected studies have already met their invite targets. Nothing to send.');
+            return;
+        }
+
+        appState.sendQueue = queue;
+        appState.sendQueueIndex = 0;
+        appState.chatState = 'awaiting_multi_confirm';
+
+        const totalCount = queue.reduce((s, i) => s + i.count, 0);
+        let html = '<strong>Ready to send invites across ' + queue.length + ' studies:</strong><br><br>';
+        html += '<table class="msg-table">';
+        queue.forEach((item, i) => {
+            html += '<tr><td style="color:var(--text-muted);font-size:11px;">' + (i + 1) + '</td><td>' + item.studyName + '</td><td style="color:var(--text-muted);font-size:12px;">#' + item.studyId + '</td><td style="color:var(--green);font-weight:600;white-space:nowrap;">' + item.count + ' invites</td></tr>';
+        });
+        html += '</table>';
+        html += '<br><strong>' + totalCount + '</strong> invites total across <strong>' + queue.length + '</strong> studies.';
+        html += '<div class="msg-buttons" style="margin-top:12px;">';
+        html += '<button class="msg-btn primary" onclick="handleMultiStudySend()">Send all</button>';
+        html += '<button class="msg-btn secondary" onclick="handleCancelSend()">Cancel</button>';
+        html += '</div>';
+        showTyping();
+        setTimeout(() => { hideTyping(); addBotMessage(html); }, 800);
+    }
+
+    function handleMultiStudySend() {
+        if (appState.chatState !== 'awaiting_multi_confirm') return;
+        addUserMessage('Send all');
+        appState.chatState = 'sending';
+        showTyping();
+        setTimeout(() => { hideTyping(); processNextInQueue(); }, 900);
     }
 
     function startSending() {
@@ -3838,7 +4405,19 @@
     }
 
     function buildSendingHtml(sent, total, timeStr) {
-        let html = '<span class="send-count-display">Sending ' + sent + '/' + total + '...</span><br>';
+        const study = STUDIES[appState.currentStudyId];
+        const isQueued = appState.sendQueue && appState.sendQueue.length > 1;
+        let html = '';
+        if (study) {
+            html += '<span style="font-weight:600;font-size:13px;">' + study.name + '</span>';
+            if (isQueued) {
+                const pos = appState.sendQueueIndex + 1;
+                const tot = appState.sendQueue.length;
+                html += ' <span style="font-size:11px;color:var(--text-muted);font-weight:400;">Study ' + pos + ' of ' + tot + '</span>';
+            }
+            html += '<br>';
+        }
+        html += '<span class="send-count-display">Sending ' + sent + '/' + total + '...</span><br>';
         html += '<span class="sla-timer-display">\u23f1 ' + timeStr + '</span>';
         html += '<div class="progress-bar"><div class="progress-fill" style="width:0%;"></div></div>';
         html += '<div class="msg-buttons" style="margin-top:10px;">';
@@ -3850,13 +4429,23 @@
     function handleStopSend() {
         clearInterval(appState.sendingInterval);
         clearInterval(appState.slaInterval);
-        const sent = appState.emailsSent;
+        const sent  = appState.emailsSent;
         const total = appState.currentInviteCount;
-        appState.chatState = 'idle';
+        const wasQueued = appState.sendQueue && appState.sendQueue.length > 1;
+        const remainingInQueue = wasQueued ? (appState.sendQueue.length - appState.sendQueueIndex - 1) : 0;
+
+        appState.chatState    = 'idle';
+        appState.sendQueue    = [];
+        appState.sendQueueIndex = 0;
 
         document.getElementById('dashLivePanel').style.display = 'none';
 
-        addBotMessage('<strong style="color:var(--amber);">&#x26a0; Send stopped.</strong> ' + sent + '/' + total + ' emails were sent. Already-sent emails will NOT be recalled.<br><span class="msg-hint">Parent case notes updated for ' + sent + ' sent emails.</span>');
+        let msg = '<strong style="color:var(--amber);">&#x26a0; Send stopped.</strong> ' + sent + '/' + total + ' emails were sent. Already-sent emails will NOT be recalled.<br>';
+        msg += '<span class="msg-hint">Parent case notes updated for ' + sent + ' sent emails.</span>';
+        if (remainingInQueue > 0) {
+            msg += '<br><span style="font-size:12px;color:var(--text-muted);">' + remainingInQueue + ' remaining ' + (remainingInQueue === 1 ? 'study' : 'studies') + ' in queue were cancelled.</span>';
+        }
+        addBotMessage(msg);
         showToast('warning', 'Send stopped at ' + sent + '/' + total + ' emails');
     }
 
@@ -3866,14 +4455,60 @@
         const durationStr = mins + 'm ' + secs + 's';
         const totalSent = study.alreadySent + total;
 
-        let html = '&#x2705; ' + total + '/' + total + ' sent — ' + durationStr + '<br>';
-        html += 'Parent case notes updated.<br><br>';
-        html += totalSent + ' sent out of ' + study.totalRequired + ' required.';
-        html += '<div class="msg-buttons" style="margin-top:12px;">';
-        html += '<button class="msg-btn primary" onclick="handleSendMore()">Send More</button>';
-        html += '</div>';
+        const isQueued   = appState.sendQueue && appState.sendQueue.length > 0;
+        const queueLen   = isQueued ? appState.sendQueue.length : 0;
+        const queueIdx   = appState.sendQueueIndex;
+        const hasMore    = isQueued && (queueIdx + 1 < queueLen);
 
+        let html = '&#x2705; ' + total + '/' + total + ' sent — ' + durationStr;
+        if (isQueued && queueLen > 1) {
+            html += ' <span style="font-size:11px;color:var(--text-muted);">(Study ' + (queueIdx + 1) + ' of ' + queueLen + ')</span>';
+        }
+        html += '<br>';
+
+        if (appState.currentFilters && (appState.currentFilters.countries.length > 0 || appState.currentFilters.customerTypes.length > 0)) {
+            html += '<span style="font-size:12px;color:var(--text-muted);">Filtered by: ' + filterSummaryLine(appState.currentFilters) + '</span><br>';
+        }
+
+        html += 'Parent case notes updated.<br>';
+        html += totalSent + ' sent out of ' + study.totalRequired + ' required.';
+
+        if (hasMore) {
+            const next = appState.sendQueue[queueIdx + 1];
+            html += '<br><span style="font-size:12px;color:var(--text-muted);">&#x23f3; Up next: <strong>' + next.count + '</strong> invites for <strong>' + next.studyName + '</strong>…</span>';
+        }
+
+        appState.currentFilters = null;
         addBotMessage(html);
+
+        if (!isQueued || queueLen <= 1) {
+            /* Single study — show summary card after the tick message */
+            const studyId = appState.currentStudyId;
+            const studyName = study.name;
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    showSendSummary([{ studyName: studyName, studyId: studyId, count: total }]);
+                }, 600);
+            }, 800);
+        } else {
+            /* Multi-study queue — advance to next or show final summary */
+            appState.sendQueueIndex++;
+            if (appState.sendQueueIndex < queueLen) {
+                setTimeout(() => {
+                    showTyping();
+                    setTimeout(() => { hideTyping(); processNextInQueue(); }, 700);
+                }, 1200);
+            } else {
+                setTimeout(() => {
+                    const completedQueue = appState.sendQueue.slice();
+                    appState.sendQueue = [];
+                    appState.sendQueueIndex = 0;
+                    showSendSummary(completedQueue);
+                }, 1000);
+            }
+        }
     }
 
     function handleSendMore() {
@@ -4054,6 +4689,741 @@
     }
 
     /* ====================================================================
+       FILTER HELPERS
+       ==================================================================== */
+    function parseFilters(text) {
+        var lower = text.toLowerCase();
+        var cleaned = lower
+            .replace(/\b(from|only|in|filter(?:ed)?(?:\s+by)?|region|country|type|customers?|with|just|exclusively)\b/g, ' ')
+            .replace(/\s+(?:and|&)\s+|\s*,\s*/g, ' ');
+
+        var foundCountries = [];
+        var seenCountries = {};
+        /* Sort longest alias first so "united states" matches before "us" */
+        Object.keys(COUNTRY_ALIASES).sort(function(a,b){ return b.length - a.length; }).forEach(function(alias) {
+            var canonical = COUNTRY_ALIASES[alias];
+            if (!seenCountries[canonical] && cleaned.includes(alias)) {
+                seenCountries[canonical] = true;
+                foundCountries.push(canonical);
+            }
+        });
+
+        var foundTypes = [];
+        var seenTypes = {};
+        Object.keys(CUSTOMER_TYPE_ALIASES).sort(function(a,b){ return b.length - a.length; }).forEach(function(alias) {
+            var canonical = CUSTOMER_TYPE_ALIASES[alias];
+            if (!seenTypes[canonical] && cleaned.includes(alias)) {
+                seenTypes[canonical] = true;
+                foundTypes.push(canonical);
+            }
+        });
+
+        return { countries: foundCountries, customerTypes: foundTypes };
+    }
+
+    function applyFilters(pool, filters) {
+        return pool.filter(function(c) {
+            var countryOk = filters.countries.length === 0 || filters.countries.includes(c.country);
+            var typeOk    = filters.customerTypes.length === 0 || filters.customerTypes.includes(c.customerType);
+            return countryOk && typeOk;
+        });
+    }
+
+    function filterBreakdown(candidates) {
+        var byCountry = {}, byType = {};
+        candidates.forEach(function(c) {
+            byCountry[c.country]      = (byCountry[c.country]      || 0) + 1;
+            byType[c.customerType]    = (byType[c.customerType]    || 0) + 1;
+        });
+        return { byCountry: byCountry, byType: byType };
+    }
+
+    function filterSummaryLine(filters) {
+        var parts = [];
+        if (filters.countries.length)     parts.push('&#x1f30d; ' + filters.countries.join(', '));
+        if (filters.customerTypes.length) parts.push('&#x1f3e2; ' + filters.customerTypes.join(', '));
+        return parts.join(' &nbsp;&middot;&nbsp; ');
+    }
+
+    /* ====================================================================
+       FILTERED INVITE FLOW
+       ==================================================================== */
+    function handleFilteredInviteFlow(studyId, count, filters) {
+        const study = STUDIES[studyId];
+        if (!study) {
+            showTyping();
+            setTimeout(() => {
+                hideTyping();
+                let html = 'I couldn\'t find study ' + studyId + '. Here are your recent studies:<br><br>';
+                Object.keys(STUDIES).filter(id => STUDIES[id].ownerRC === appState.user.name).forEach(id => {
+                    const s = STUDIES[id];
+                    html += '<div class="msg-buttons" style="margin-top:4px;margin-bottom:4px;">';
+                    html += '<button class="msg-btn primary" onclick="document.getElementById(\'chatInput\').value=\'send ' + count + ' invites for study ' + id + '\'; sendChatMessage();">Study ' + id + ' — ' + s.name + '</button>';
+                    html += '</div>';
+                });
+                addBotMessage(html);
+            }, 1200);
+            return;
+        }
+
+        const pool      = SHORTLISTING_POOLS[studyId] || [];
+        const matched   = applyFilters(pool, filters);
+        const alreadySentCap = study.totalRequired - study.alreadySent;
+        const available = Math.min(matched.length, alreadySentCap);
+        const actualCount = Math.min(count, available);
+
+        appState.currentStudyId    = studyId;
+        appState.currentInviteCount = actualCount;
+        appState.currentFilters    = filters;
+
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+
+            /* ── No matches ── */
+            if (matched.length === 0) {
+                const bd = filterBreakdown(pool);
+                let html = '<span style="color:var(--amber);">&#x26a0; No candidates match the selected filters for Study ' + studyId + '.</span><br><br>';
+                html += '<strong>Filters applied:</strong> ' + filterSummaryLine(filters) + '<br><br>';
+                html += '<strong>What\'s available in the shortlisting pool (' + pool.length + ' total):</strong><br>';
+                html += '<em>By region:</em> ' + Object.entries(bd.byCountry).map(([k,v]) => k + ' (' + v + ')').join(', ') + '<br>';
+                html += '<em>By customer type:</em> ' + Object.entries(bd.byType).map(([k,v]) => k + ' (' + v + ')').join(', ');
+                html += '<div class="msg-buttons" style="margin-top:14px;">';
+                html += '<button class="msg-btn primary" onclick="document.getElementById(\'chatInput\').value=\'send ' + count + ' invites for study ' + studyId + '\'; sendChatMessage();">Send without filters</button>';
+                html += '</div>';
+                addBotMessage(html);
+                return;
+            }
+
+            /* ── All already sent ── */
+            if (alreadySentCap <= 0) {
+                addBotMessage('All required invites for Study ' + studyId + ' have already been sent.');
+                return;
+            }
+
+            /* ── Confirmation card ── */
+            appState.chatState = 'awaiting_filtered_confirm';
+
+            const previewBd  = filterBreakdown(matched.slice(0, actualCount));
+            const afterBatch = study.totalRequired - study.alreadySent - actualCount;
+
+            let html = '<strong>Study ' + studyId + ' — ' + study.name + '</strong><br>';
+            html += 'Researcher: ' + study.researcher + '<br><br>';
+
+            /* Filters pill row */
+            html += '<div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.18);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px;">';
+            html += '<strong>Filters applied</strong><br>';
+            if (filters.countries.length)     html += '&#x1f30d; <strong>Region:</strong> ' + filters.countries.join(', ') + '<br>';
+            if (filters.customerTypes.length) html += '&#x1f3e2; <strong>Customer type:</strong> ' + filters.customerTypes.join(', ');
+            html += '</div>';
+
+            /* Candidate availability */
+            html += matched.length + ' candidates match your filters';
+            html += ' <span style="color:var(--text-muted);font-size:12px;">(out of ' + pool.length + ' shortlisted)</span><br>';
+            if (matched.length < count) {
+                html += '<span style="color:var(--amber);font-size:12px;">&#x26a0; You requested ' + count + ', but only ' + available + ' are available — sending ' + actualCount + '.</span><br>';
+            }
+            html += '<br>';
+
+            /* Counts table */
+            html += '<table class="msg-table">';
+            html += '<tr><td>Sending now</td><td><strong>' + actualCount + '</strong></td></tr>';
+            html += '<tr><td>Already sent</td><td>' + study.alreadySent + ' of ' + study.totalRequired + ' required</td></tr>';
+            html += '<tr><td>After this batch</td><td>' + afterBatch + ' remaining</td></tr>';
+            html += '</table>';
+
+            /* Breakdown bar */
+            const breakdownParts = Object.entries(previewBd.byCountry).map(([k,v]) => k + ': ' + v)
+                .concat(Object.entries(previewBd.byType).map(([k,v]) => k + ': ' + v));
+            html += '<div style="margin-top:8px;font-size:12px;color:var(--text-muted);">' + breakdownParts.join(' &nbsp;&#183;&nbsp; ') + '</div>';
+
+            html += '<div class="msg-buttons" style="margin-top:14px;">';
+            html += '<button class="msg-btn primary" onclick="handleFilteredSendNow()">Send</button>';
+            html += '<button class="msg-btn secondary" onclick="handleCancelSend()">Cancel</button>';
+            html += '</div>';
+
+            addBotMessage(html);
+        }, 1500);
+    }
+
+    function handleFilteredSendNow() {
+        if (appState.chatState !== 'awaiting_filtered_confirm') return;
+        appState.chatState = 'sending';
+        addUserMessage('Send');
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+            startSending();
+        }, 1000);
+    }
+
+    /* ====================================================================
+       STUDY PICKER + MULTI-STUDY QUEUE
+       ==================================================================== */
+    function showStudyPicker(triggerBtn) {
+        if (appState.chatState !== 'idle') return;
+
+        const activeStudies = Object.keys(STUDIES).filter(id => {
+            const s = STUDIES[id];
+            return s.ownerRC === appState.user.name && (s.totalRequired - s.alreadySent) > 0;
+        });
+
+        if (activeStudies.length === 0) {
+            addBotMessage('&#x2705; All your studies are fully invited — nothing remaining to send.');
+            return;
+        }
+
+        appState.chatState = 'study_picker_open';
+
+        /* Build dropdown content */
+        let html = '';
+        html += '<div class="study-picker-dropdown-header">';
+        html += '<div><div class="study-picker-dropdown-title">&#x1f4e4; Send invites</div>';
+        html += '<div class="study-picker-dropdown-sub">Select studies and enter the number of invites for each.</div></div>';
+        html += '<button class="study-picker-close-btn" onclick="cancelStudyPicker()" title="Close">&#x2715;</button>';
+        html += '</div>';
+
+        activeStudies.forEach(id => {
+            const s = STUDIES[id];
+            const remaining = s.totalRequired - s.alreadySent;
+            const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
+            const defaultCount = Math.min(remaining, 10);
+
+            html += '<div class="study-picker-item" id="picker-item-' + id + '">';
+            html += '<label class="study-picker-label">';
+            html += '<input type="checkbox" id="picker-check-' + id + '" onchange="studyPickerToggle(\'' + id + '\', this)">';
+            html += '<div class="study-picker-info">';
+            html += '<div class="study-picker-name">' + s.name + '</div>';
+            html += '<div class="study-picker-meta">#' + id + ' &nbsp;&#183;&nbsp; ' + remaining + ' remaining &nbsp;&#183;&nbsp; Last: ' + (s.lastRun || 'Never') + '</div>';
+            html += '<div class="study-picker-progress-strip">';
+            html += '<div class="study-picker-progress-bar"><div class="study-picker-progress-fill" style="width:' + pct + '%;"></div></div>';
+            html += '<span>' + s.alreadySent + '/' + s.totalRequired + ' sent</span>';
+            html += '</div></div>';
+            html += '<div class="study-picker-count-wrap" id="picker-count-wrap-' + id + '">';
+            html += '<input type="number" id="picker-count-' + id + '" class="study-picker-count-input" min="1" max="' + remaining + '" value="' + defaultCount + '" onclick="event.stopPropagation()" oninput="studyPickerValidateCount(\'' + id + '\', this)">';
+            html += '<span class="study-picker-count-label">invites<br><span style="color:var(--text-faint);font-size:10px;">' + remaining + '&nbsp;left</span></span>';
+            html += '</div>';
+            html += '</label></div>';
+        });
+
+        /* Footer */
+        html += '<div id="picker-validation-msg" style="font-size:12px;color:var(--rose);min-height:14px;"></div>';
+        html += '<div class="study-picker-footer">';
+        html += '<button class="msg-btn primary" id="picker-send-btn" onclick="submitStudyPicker()" style="opacity:0.45;pointer-events:none;" disabled>Send invites</button>';
+        html += '<button class="msg-btn secondary" onclick="cancelStudyPicker()">Cancel</button>';
+        html += '</div>';
+
+        const dropdown = document.getElementById('study-picker-dropdown');
+        dropdown.innerHTML = html;
+        dropdown.classList.remove('animate-in');
+        dropdown.style.display = 'block';
+        /* Trigger reflow so animation replays */
+        void dropdown.offsetWidth;
+        dropdown.classList.add('animate-in');
+
+        positionDropdown(dropdown, triggerBtn);
+
+        /* Guard so the same click that opened it doesn't immediately close it */
+        pickerJustOpened = true;
+        setTimeout(() => { pickerJustOpened = false; }, 0);
+    }
+
+    function positionDropdown(dropdown, triggerBtn) {
+        const dropW = 420;
+        const dropH = 480; /* conservative estimate */
+        const vp    = { w: window.innerWidth, h: window.innerHeight };
+
+        let top, left;
+
+        if (triggerBtn) {
+            const r = triggerBtn.getBoundingClientRect();
+            /* Prefer opening below; fall back to above */
+            const spaceBelow = vp.h - r.bottom - 12;
+            top = spaceBelow >= Math.min(dropH, 280)
+                ? r.bottom + 6
+                : Math.max(12, r.top - dropH - 6);
+            left = r.left;
+        } else {
+            /* Text-command trigger — anchor above the chat input bar */
+            const inputBar = document.querySelector('.chat-input-bar');
+            if (inputBar) {
+                const r = inputBar.getBoundingClientRect();
+                top  = r.top - dropH - 8;
+                left = r.left + 16;
+            } else {
+                top  = (vp.h - dropH) / 2;
+                left = (vp.w - dropW) / 2;
+            }
+        }
+
+        /* Clamp inside viewport */
+        top  = Math.max(12, Math.min(top,  vp.h - dropH - 12));
+        left = Math.max(12, Math.min(left, vp.w - dropW - 12));
+
+        dropdown.style.top  = top  + 'px';
+        dropdown.style.left = left + 'px';
+    }
+
+    function closeStudyPickerDropdown() {
+        const dropdown = document.getElementById('study-picker-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        if (appState.chatState === 'study_picker_open') appState.chatState = 'idle';
+    }
+
+    function studyPickerToggle(id, checkbox) {
+        const item = document.getElementById('picker-item-' + id);
+        if (item) item.classList.toggle('selected', checkbox.checked);
+
+        const anyChecked = Object.keys(STUDIES).some(sid => {
+            const cb = document.getElementById('picker-check-' + sid);
+            return cb && cb.checked;
+        });
+        const sendBtn = document.getElementById('picker-send-btn');
+        if (sendBtn) {
+            sendBtn.disabled = !anyChecked;
+            sendBtn.style.opacity = anyChecked ? '1' : '0.45';
+            sendBtn.style.pointerEvents = anyChecked ? 'auto' : 'none';
+        }
+
+        /* Focus count input when checked */
+        if (checkbox.checked) {
+            setTimeout(() => {
+                const inp = document.getElementById('picker-count-' + id);
+                if (inp) { inp.select(); }
+            }, 50);
+        }
+    }
+
+    function studyPickerValidateCount(id, input) {
+        const s = STUDIES[id];
+        if (!s) return;
+        const remaining = s.totalRequired - s.alreadySent;
+        let val = parseInt(input.value);
+        if (isNaN(val) || val < 1) input.value = 1;
+        if (val > remaining) input.value = remaining;
+    }
+
+    function cancelStudyPicker() {
+        closeStudyPickerDropdown();
+    }
+
+    /* ====================================================================
+       SCHEDULE PICKER DROPDOWN
+       ==================================================================== */
+    function showSchedulePicker(triggerBtn) {
+        if (appState.chatState !== 'idle') return;
+
+        const activeStudies = Object.keys(STUDIES).filter(id => {
+            const s = STUDIES[id];
+            return s.ownerRC === appState.user.name && (s.totalRequired - s.alreadySent) > 0;
+        });
+
+        if (activeStudies.length === 0) {
+            addBotMessage('&#x2705; All your studies are fully invited — nothing to schedule.');
+            return;
+        }
+
+        appState.chatState = 'schedule_picker_open';
+
+        /* Default date = tomorrow, time = 09:00 */
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const todayStr    = new Date().toISOString().split('T')[0];
+
+        let html = '';
+        html += '<div class="study-picker-dropdown-header">';
+        html += '<div><div class="study-picker-dropdown-title">&#x1f4c5; Schedule invites</div>';
+        html += '<div class="study-picker-dropdown-sub">Select studies, set invite count, and choose when to send.</div></div>';
+        html += '<button class="study-picker-close-btn" onclick="cancelSchedulePicker()" title="Close">&#x2715;</button>';
+        html += '</div>';
+
+        activeStudies.forEach(id => {
+            const s = STUDIES[id];
+            const remaining   = s.totalRequired - s.alreadySent;
+            const pct         = Math.round((s.alreadySent / s.totalRequired) * 100);
+            const defaultCount = Math.min(remaining, 10);
+
+            html += '<div class="study-picker-item" id="sp2-item-' + id + '">';
+            html += '<label class="study-picker-label">';
+            html += '<input type="checkbox" id="sp2-check-' + id + '" onchange="sp2Toggle(\'' + id + '\', this)">';
+            html += '<div class="study-picker-info">';
+            html += '<div class="study-picker-name">' + s.name + '</div>';
+            html += '<div class="study-picker-meta">#' + id + ' &nbsp;&#183;&nbsp; ' + remaining + ' remaining &nbsp;&#183;&nbsp; Last: ' + (s.lastRun || 'Never') + '</div>';
+            html += '<div class="study-picker-progress-strip">';
+            html += '<div class="study-picker-progress-bar"><div class="study-picker-progress-fill" style="width:' + pct + '%;"></div></div>';
+            html += '<span>' + s.alreadySent + '/' + s.totalRequired + ' sent</span>';
+            html += '</div></div>';
+            html += '<div class="study-picker-count-wrap" id="sp2-count-wrap-' + id + '">';
+            html += '<input type="number" id="sp2-count-' + id + '" class="study-picker-count-input" min="1" max="' + remaining + '" value="' + defaultCount + '" onclick="event.stopPropagation()" oninput="sp2ValidateCount(\'' + id + '\', this)">';
+            html += '<span class="study-picker-count-label">invites<br><span style="color:var(--text-faint);font-size:10px;">' + remaining + '&nbsp;left</span></span>';
+            html += '</div>';
+            html += '</label></div>';
+        });
+
+        /* Date / time row */
+        html += '<div class="sched-datetime-row">';
+        html += '<div class="sched-datetime-group">';
+        html += '<span class="sched-datetime-label">Date</span>';
+        html += '<input type="date" id="sp2-date" class="sched-date-input" value="' + tomorrowStr + '" min="' + todayStr + '" onclick="event.stopPropagation()">';
+        html += '</div>';
+        html += '<div class="sched-datetime-group">';
+        html += '<span class="sched-datetime-label">Time</span>';
+        html += '<input type="time" id="sp2-time" class="sched-time-input" value="09:00" onclick="event.stopPropagation()">';
+        html += '</div>';
+        html += '</div>';
+
+        html += '<div id="sp2-validation" style="font-size:12px;color:var(--rose);min-height:14px;"></div>';
+        html += '<div class="study-picker-footer">';
+        html += '<button class="msg-btn primary" id="sp2-submit-btn" onclick="submitSchedulePicker()" style="opacity:0.45;pointer-events:none;" disabled>Schedule invites</button>';
+        html += '<button class="msg-btn secondary" onclick="cancelSchedulePicker()">Cancel</button>';
+        html += '</div>';
+
+        const dropdown = document.getElementById('sched-picker-dropdown');
+        dropdown.innerHTML = html;
+        dropdown.classList.remove('animate-in');
+        dropdown.style.display = 'block';
+        void dropdown.offsetWidth;
+        dropdown.classList.add('animate-in');
+
+        positionDropdown(dropdown, triggerBtn);
+
+        schedPickerJustOpened = true;
+        setTimeout(() => { schedPickerJustOpened = false; }, 0);
+    }
+
+    function sp2Toggle(id, checkbox) {
+        const item = document.getElementById('sp2-item-' + id);
+        if (item) item.classList.toggle('selected', checkbox.checked);
+
+        const anyChecked = Object.keys(STUDIES).some(sid => {
+            const cb = document.getElementById('sp2-check-' + sid);
+            return cb && cb.checked;
+        });
+        const btn = document.getElementById('sp2-submit-btn');
+        if (btn) {
+            btn.disabled = !anyChecked;
+            btn.style.opacity = anyChecked ? '1' : '0.45';
+            btn.style.pointerEvents = anyChecked ? 'auto' : 'none';
+        }
+        if (checkbox.checked) {
+            setTimeout(() => { const inp = document.getElementById('sp2-count-' + id); if (inp) inp.select(); }, 50);
+        }
+    }
+
+    function sp2ValidateCount(id, input) {
+        const s = STUDIES[id];
+        if (!s) return;
+        const remaining = s.totalRequired - s.alreadySent;
+        let val = parseInt(input.value);
+        if (isNaN(val) || val < 1) input.value = 1;
+        if (val > remaining) input.value = remaining;
+    }
+
+    function cancelSchedulePicker() {
+        closeSchedPickerDropdown();
+    }
+
+    function closeSchedPickerDropdown() {
+        const dropdown = document.getElementById('sched-picker-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        if (appState.chatState === 'schedule_picker_open') appState.chatState = 'idle';
+    }
+
+    function submitSchedulePicker() {
+        const items = [];
+        Object.keys(STUDIES).forEach(id => {
+            const cb = document.getElementById('sp2-check-' + id);
+            if (!cb || !cb.checked) return;
+            const countInput = document.getElementById('sp2-count-' + id);
+            const count = Math.max(1, parseInt(countInput ? countInput.value : 10) || 10);
+            const study = STUDIES[id];
+            const actualCount = Math.min(count, study.totalRequired - study.alreadySent);
+            if (actualCount > 0) items.push({ studyId: id, count: actualCount });
+        });
+
+        const validationEl = document.getElementById('sp2-validation');
+
+        if (items.length === 0) {
+            if (validationEl) validationEl.textContent = 'Please select at least one study.';
+            return;
+        }
+
+        const dateInput = document.getElementById('sp2-date');
+        const timeInput = document.getElementById('sp2-time');
+
+        if (!dateInput || !dateInput.value) {
+            if (validationEl) validationEl.textContent = 'Please select a date.';
+            return;
+        }
+        if (!timeInput || !timeInput.value) {
+            if (validationEl) validationEl.textContent = 'Please select a time.';
+            return;
+        }
+
+        /* Format: "Apr 17, 2026 at 9:00 AM" */
+        const dateObj  = new Date(dateInput.value + 'T' + timeInput.value);
+        const dateStr  = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const timeStr  = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const dateTimeStr = dateStr + ' at ' + timeStr;
+
+        closeSchedPickerDropdown();
+
+        const cmds = items.map(item => 'Send ' + item.count + ' invites for study ' + item.studyId + ' on ' + dateTimeStr);
+
+        /* Prefill chat input (do not auto-send) */
+        fillAndFocusChatInput(cmds[0]);
+
+        /* If multiple selected, provide quick-pick buttons for each */
+        if (cmds.length > 1) {
+            let html = '<strong>Multiple schedules prepared.</strong><br><span style="color:var(--text-muted);font-size:12px;">Pick one to prefill:</span>';
+            html += '<div class="msg-buttons" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">';
+            cmds.forEach(cmd => {
+                html += '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="' + cmd.replace(/'/g, '&#39;') + '">' + cmd + '</button>';
+            });
+            html += '</div>';
+            addBotMessage(html);
+        }
+    }
+
+    function submitStudyPicker() {
+        const queue = [];
+        Object.keys(STUDIES).forEach(id => {
+            const checkbox = document.getElementById('picker-check-' + id);
+            if (!checkbox || !checkbox.checked) return;
+            const countInput = document.getElementById('picker-count-' + id);
+            const count = Math.max(1, parseInt(countInput ? countInput.value : 10) || 10);
+            const study = STUDIES[id];
+            const remaining = study.totalRequired - study.alreadySent;
+            const actualCount = Math.min(count, remaining);
+            if (actualCount > 0) {
+                queue.push({ studyId: id, count: actualCount, studyName: study.name });
+            }
+        });
+
+        const validationEl = document.getElementById('picker-validation-msg');
+        if (queue.length === 0) {
+            if (validationEl) validationEl.textContent = 'Please select at least one study.';
+            return;
+        }
+
+        /* Close the dropdown */
+        closeStudyPickerDropdown();
+
+        /* Build natural-language command and prefill the chat input for user review */
+        const commandText = 'Send invites: ' + queue.map(q => q.count + ' for study ' + q.studyId).join(', ');
+        fillAndFocusChatInput(commandText);
+    }
+
+    function processNextInQueue() {
+        if (appState.sendQueueIndex >= appState.sendQueue.length) {
+            return; /* showCompletionMessage handles the final summary trigger */
+        }
+
+        const item  = appState.sendQueue[appState.sendQueueIndex];
+        const study = STUDIES[item.studyId];
+        if (!study) {
+            appState.sendQueueIndex++;
+            processNextInQueue();
+            return;
+        }
+
+        appState.currentStudyId     = item.studyId;
+        appState.currentInviteCount = item.count;
+        appState.currentFilters     = null;
+        appState.slaSeconds         = 0;
+        appState.emailsSent         = 0;
+        appState.chatState          = 'sending';
+
+        /* For multi-study queue, announce which study is starting (after the first) */
+        if (appState.sendQueue.length > 1 && appState.sendQueueIndex > 0) {
+            addBotMessage(
+                '<span style="font-size:12px;color:var(--text-muted);">Study ' + (appState.sendQueueIndex + 1) + ' of ' + appState.sendQueue.length + '</span><br>' +
+                'Starting: <strong>' + item.studyName + '</strong> — ' + item.count + ' invites'
+            );
+            setTimeout(() => startSending(), 600);
+        } else {
+            startSending();
+        }
+    }
+
+    function showSendSummary(items) {
+        const totalSent = items.reduce((s, i) => s + i.count, 0);
+        let html = '<strong>&#x1f389; All done! Here\'s your send summary:</strong><br><br>';
+        html += '<table class="msg-table">';
+        items.forEach(item => {
+            html += '<tr><td>' + item.studyName + '</td><td style="color:var(--text-muted);font-size:12px;">#' + item.studyId + '</td><td style="color:var(--green);font-weight:600;white-space:nowrap;">' + item.count + ' sent &#x2705;</td></tr>';
+        });
+        html += '</table>';
+        if (items.length > 1) {
+            html += '<br><strong>' + totalSent + '</strong> invites sent across <strong>' + items.length + '</strong> studies.';
+        }
+        html += '<div class="msg-buttons" style="margin-top:12px;">';
+        html += '<button type="button" class="msg-btn primary chat-suggestion-btn" data-action="showStudyPicker">Send more invites</button>';
+        html += '</div>';
+        addBotMessage(html);
+    }
+
+    function handleInvitesRemaining(studyId) {
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+
+            if (studyId) {
+                const study = STUDIES[studyId];
+                if (!study) {
+                    addBotMessage('<span style="color:var(--rose);">Study ' + studyId + ' not found.</span> Please verify and try again.');
+                    return;
+                }
+                const remaining = study.totalRequired - study.alreadySent;
+                let html = '<strong>Invites remaining — Study ' + studyId + '</strong>';
+                html += '<table class="msg-table" style="margin-top:8px;">';
+                html += '<tr><td>Study</td><td>' + study.name + '</td></tr>';
+                html += '<tr><td>Sent</td><td>' + study.alreadySent + ' of ' + study.totalRequired + ' required</td></tr>';
+                html += '<tr><td>Remaining</td><td><strong>' + remaining + '</strong></td></tr>';
+                html += '<tr><td>Last run</td><td>' + (study.lastRun || 'Never') + '</td></tr>';
+                html += '</table>';
+                if (remaining > 0) {
+                    const sendCount = Math.min(remaining, 10);
+                    html += '<div class="msg-buttons" style="margin-top:12px;">';
+                    html += '<button class="msg-btn primary" onclick="document.getElementById(\'chatInput\').value=\'send ' + sendCount + ' invites for study ' + studyId + '\'; sendChatMessage();">Send ' + sendCount + ' now</button>';
+                    html += '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Send ' + sendCount + ' invites for study ' + studyId + ' tomorrow at 9am">Schedule for later</button>';
+                    html += '</div>';
+                } else {
+                    html += '<br><span style="color:var(--green);">&#x2705; All invites sent for this study!</span>';
+                }
+                addBotMessage(html);
+            } else {
+                /* All studies */
+                let totalRemaining = 0;
+                let studyLines = '';
+                let buttons = '';
+
+                Object.keys(STUDIES).forEach(id => {
+                    const s = STUDIES[id];
+                    if (s.ownerRC !== appState.user.name) return;
+                    const remaining = s.totalRequired - s.alreadySent;
+                    const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
+                    if (remaining > 0) {
+                        totalRemaining += remaining;
+                        studyLines += '<tr><td>Study ' + id + '</td><td>' + s.name + '</td><td><strong>' + remaining + '</strong> left (' + pct + '% sent)</td></tr>';
+                        const sendCount = Math.min(remaining, 10);
+                        buttons += '<button class="msg-btn primary" onclick="document.getElementById(\'chatInput\').value=\'send ' + sendCount + ' invites for study ' + id + '\'; sendChatMessage();">Send for ' + id + '</button>';
+                    }
+                });
+
+                if (!studyLines) {
+                    addBotMessage('&#x2705; All your studies are fully invited — nothing remaining.');
+                    return;
+                }
+
+                let html = '<strong>Invites remaining across your studies</strong>';
+                html += '<table class="msg-table" style="margin-top:8px;">' + studyLines + '</table>';
+                html += '<br>Total: <strong>' + totalRemaining + '</strong> invites still needed';
+                html += '<div class="msg-buttons" style="margin-top:12px;">' + buttons + '</div>';
+                addBotMessage(html);
+            }
+        }, 1200);
+    }
+
+    function handleScheduledQuery() {
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+            const activeJobs = appState.scheduledJobs.filter(j => j.status === 'scheduled');
+            if (activeJobs.length === 0) {
+                let html = 'You have no scheduled invite jobs right now.<br>';
+                html += '<div class="msg-buttons" style="margin-top:12px;">';
+                html += '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="Send 10 invites for study 1234567 tomorrow at 9am">Schedule one now</button>';
+                html += '</div>';
+                addBotMessage(html);
+            } else {
+                let html = '<strong>Your scheduled invite jobs:</strong>';
+                html += '<table class="msg-table" style="margin-top:8px;">';
+                html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Count</td><td style="font-weight:600;">Scheduled for</td></tr>';
+                activeJobs.forEach(j => {
+                    html += '<tr><td>Study ' + j.studyId + '<br><span style="font-size:11px;color:var(--text-faint);">' + j.studyName + '</span></td><td>' + j.count + ' invites</td><td>' + j.scheduledTime + '</td></tr>';
+                });
+                html += '</table>';
+                html += '<div class="msg-buttons" style="margin-top:12px;">';
+                html += '<button class="msg-btn secondary" onclick="navigateTo(\'settings\')">Manage scheduled jobs</button>';
+                html += '</div>';
+                addBotMessage(html);
+            }
+        }, 1200);
+    }
+
+    function handleMyStudies() {
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+            let studyLines = '';
+            let buttons = '';
+
+            Object.keys(STUDIES).forEach(id => {
+                const s = STUDIES[id];
+                if (s.ownerRC !== appState.user.name) return;
+                const remaining = s.totalRequired - s.alreadySent;
+                const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
+                const icon = remaining === 0 ? '&#x2705;' : (s.alreadySent === 0 ? '&#x25ab;' : '&#x1f7e1;');
+                studyLines += '<tr><td>' + icon + ' Study ' + id + '<br><span style="font-size:11px;color:var(--text-faint);">' + s.researcher + '</span></td><td>' + s.name + '</td><td>' + s.alreadySent + '/' + s.totalRequired + ' (' + pct + '%)</td><td>' + (remaining > 0 ? '<strong>' + remaining + '</strong> left' : '<span style="color:var(--green);">Done</span>') + '</td></tr>';
+                if (remaining > 0) {
+                    const sendCount = Math.min(remaining, 10);
+                    buttons += '<button class="msg-btn primary" onclick="document.getElementById(\'chatInput\').value=\'send ' + sendCount + ' invites for study ' + id + '\'; sendChatMessage();">Send for ' + id + '</button>';
+                }
+            });
+
+            let html = '<strong>Your studies:</strong>';
+            html += '<table class="msg-table" style="margin-top:8px;">';
+            html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Name</td><td style="font-weight:600;">Progress</td><td style="font-weight:600;">Remaining</td></tr>';
+            html += studyLines + '</table>';
+            if (buttons) {
+                html += '<div class="msg-buttons" style="margin-top:12px;">' + buttons + '</div>';
+            }
+            addBotMessage(html);
+        }, 1200);
+    }
+
+    function handleHelp() {
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+            let html = '<strong>Here\'s what I can help you with:</strong><br><br>';
+
+            html += '<strong>&#x1f4e4; Sending invites</strong><br>';
+            html += '&#x2022; <em>"Send 10 invites for study 1234567"</em><br>';
+            html += '&#x2022; <em>"Send 5 invites for study 1234567 tomorrow at 9am"</em><br><br>';
+
+            html += '<strong>&#x1f30d; Filtered sending</strong><br>';
+            html += '&#x2022; <em>"Send 5 invites for study 1234567 from Japan"</em><br>';
+            html += '&#x2022; <em>"Send 5 invites for study 1234567 from India, large enterprise"</em><br>';
+            html += '&#x2022; <em>"Send 8 invites for study 1234567 media agency only"</em><br>';
+            html += '&#x2022; <em>"Send 5 invites for study 1234567 from US and SMB"</em><br>';
+            html += '<span style="font-size:12px;color:var(--text-muted);">Regions: US, Japan, India, Germany, UK, Spain, France, Brazil, Australia, Canada, Singapore…<br>Customer types: Large Enterprise, Media Agency, SMB, Startup, Government, Non-profit</span><br><br>';
+
+            html += '<strong>&#x1f4ca; Checking status</strong><br>';
+            html += '&#x2022; <em>"How many invites are left?"</em><br>';
+            html += '&#x2022; <em>"How many invites are left for study 1234567?"</em><br>';
+            html += '&#x2022; <em>"Status of study 1234567"</em><br>';
+            html += '&#x2022; <em>"Today\'s summary"</em> &nbsp;&#x2022; <em>"Pending studies"</em> &nbsp;&#x2022; <em>"My studies"</em><br><br>';
+
+            html += '<strong>&#x1f4c5; Schedules</strong><br>';
+            html += '&#x2022; <em>"Show my scheduled invites"</em><br>';
+            html += '&#x2022; <em>"Show my scheduled jobs"</em><br><br>';
+
+            html += '<strong>Other</strong><br>';
+            html += '&#x2022; <em>"What failed?"</em>';
+
+            html += '<div class="msg-buttons" style="margin-top:12px;">';
+            html += '<button type="button" class="msg-btn primary chat-suggestion-btn" data-suggest="Send 5 invites for study 1234567 from Japan">Try filtered send</button>';
+            html += '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="How many invites are left?">Invites remaining</button>';
+            html += '<button type="button" class="msg-btn secondary chat-suggestion-btn" data-suggest="My studies">My studies</button>';
+            html += '</div>';
+            addBotMessage(html);
+        }, 800);
+    }
+
+    /* ====================================================================
        DASHBOARD
        ==================================================================== */
     function populateDashboard() {
@@ -4087,7 +5457,7 @@
             '<div class="dash-stat-card">' +
                 '<div class="dash-stat-icon amber">&#x2709;</div>' +
                 '<div class="dash-stat-body">' +
-                    '<div class="dash-stat-label">Pending Invites</div>' +
+                    '<div class="dash-stat-label">Participants Required</div>' +
                     '<div class="dash-stat-value">' + totalPendingInvites + '</div>' +
                     '<div class="dash-stat-sub">across ' + pendingStudies.length + ' ' + (pendingStudies.length === 1 ? 'study' : 'studies') + '</div>' +
                 '</div>' +
@@ -4125,16 +5495,50 @@
                 ? '<span style="color:var(--rose);font-size:12px;font-weight:600;margin-left:6px;">&#x26A0; ' + totalFailed + ' failed</span>'
                 : '';
 
+            const p0Total      = s.p0Ready        || 0;
+            const p0New        = s.p0NewlyMarked   || 0;
+            const p0Previous   = p0Total - p0New;
+            const newBadge     = p0New > 0
+                ? '<span class="dash-new-badge">+' + p0New + ' new</span>'
+                : '';
+
+            /* Detail row content */
+            const detailHtml =
+                '<div class="dash-detail-chips">' +
+                    '<div class="dash-detail-chip">' +
+                        '<span class="dash-detail-chip-label">Invites sent</span>' +
+                        '<span class="dash-detail-chip-value" style="color:var(--green);">' + s.alreadySent + '</span>' +
+                        '<span class="dash-detail-chip-sub">of ' + s.totalRequired + ' total needed</span>' +
+                    '</div>' +
+                    '<div class="dash-detail-chip">' +
+                        '<span class="dash-detail-chip-label">Total invites needed</span>' +
+                        '<span class="dash-detail-chip-value">' + s.totalRequired + '</span>' +
+                        '<span class="dash-detail-chip-sub">' + remaining + ' still pending</span>' +
+                    '</div>' +
+                    '<div class="dash-detail-chip">' +
+                        '<span class="dash-detail-chip-label">P0s marked by UXR</span>' +
+                        '<span class="dash-detail-chip-value" style="color:var(--amber);">' + p0Total + newBadge + '</span>' +
+                        '<span class="dash-detail-chip-sub">' + (p0New > 0 ? p0Previous + ' before + ' + p0New + ' newly marked' : 'marked as ready to schedule') + '</span>' +
+                    '</div>' +
+                '</div>';
+
             rows +=
-                '<tr>' +
+                /* Main row */
+                '<tr id="dash-row-' + id + '">' +
                     '<td><strong>' + s.name + '</strong><br><span style="font-size:11px;color:var(--text-faint);">#' + id + ' &#183; ' + s.researcher + '</span></td>' +
                     '<td><span class="dash-pending-count">&#x2709; ' + remaining + ' to send</span>' + failedBadge + '</td>' +
                     '<td>' + (s.lastRun ? 'Last: ' + s.lastRun : '<span style="color:var(--text-faint)">Never sent</span>') + '</td>' +
                     '<td>' +
-                        '<button class="dash-send-btn" onclick="navigateTo(\'chat\'); showToast(\'info\', \'Study ' + id + ' loaded in chat\');">' +
-                            'Send invites' +
-                        '</button>' +
+                        '<div class="dash-action-btns">' +
+                            '<button class="dash-send-btn" onclick="goToChatWithStudy(\'' + id + '\', ' + remaining + ');">Send invites</button>' +
+                            '<button class="dash-schedule-btn" onclick="goToChatScheduleStudy(\'' + id + '\', ' + remaining + ');">Schedule</button>' +
+                            '<button class="dash-expand-btn" id="dash-expand-btn-' + id + '" onclick="toggleDashExpand(\'' + id + '\')" title="Show details">&#x25BE;</button>' +
+                        '</div>' +
                     '</td>' +
+                '</tr>' +
+                /* Hidden detail row */
+                '<tr class="dash-expand-row" id="dash-expand-row-' + id + '">' +
+                    '<td colspan="4">' + detailHtml + '</td>' +
                 '</tr>';
         });
 
@@ -4144,7 +5548,7 @@
                     '<th>Study</th>' +
                     '<th>Invites needed</th>' +
                     '<th>Last run</th>' +
-                    '<th></th>' +
+                    '<th style="text-align:center;"></th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody>' +
             '</table>';
@@ -4288,6 +5692,11 @@
         checkSession();
     });
     </script>
+
+    <!-- ====== STUDY PICKER DROPDOWN (shared, populated by JS) ====== -->
+    <div id="study-picker-dropdown" class="study-picker-dropdown" style="display:none;" role="dialog" aria-modal="true" aria-label="Select studies"></div>
+    <!-- ====== SCHEDULE PICKER DROPDOWN (shared, populated by JS) ====== -->
+    <div id="sched-picker-dropdown" class="study-picker-dropdown" style="display:none;" role="dialog" aria-modal="true" aria-label="Schedule invites"></div>
 
 </body>
 </html>

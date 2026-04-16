@@ -1,0 +1,47 @@
+<div class="settings-screen">
+  <header class="screen-header">
+    <h1 class="screen-title">Scheduled Invites</h1>
+    <p class="screen-subtitle">View and manage your upcoming scheduled invite jobs</p>
+  </header>
+
+  <section class="settings-section card">
+    <table class="settings-table">
+      <thead>
+        <tr>
+          <th>Study</th>
+          <th>Study #</th>
+          <th>Count</th>
+          <th>Scheduled For</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (schedulerService.jobs().length === 0) {
+          <tr>
+            <td colspan="6" style="text-align:center;color:var(--text-muted);font-size:13px;">No scheduled jobs</td>
+          </tr>
+        } @else {
+          @for (job of schedulerService.jobs(); track $index; let i = $index) {
+            <tr>
+              <td>{{ job.studyName }}</td>
+              <td class="mono">#{{ job.studyId }}</td>
+              <td>{{ job.count }}</td>
+              <td>{{ job.scheduledTime }}</td>
+              <td>
+                <app-status-badge [status]="job.status" />
+              </td>
+              <td>
+                @if (job.status === 'scheduled') {
+                  <button class="btn-danger-sm" (click)="onCancelJob(i)">Cancel</button>
+                } @else {
+                  &mdash;
+                }
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+</div>

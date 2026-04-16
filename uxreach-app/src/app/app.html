@@ -1,0 +1,13 @@
+<!-- Login overlay — shown when not authenticated -->
+<app-login-overlay />
+
+<!-- App shell — sidebar + main content -->
+<div class="app-shell" [class.visible]="appState.loggedIn()">
+  <app-sidebar />
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>
+
+<!-- Toast notifications -->
+<app-toast-container />

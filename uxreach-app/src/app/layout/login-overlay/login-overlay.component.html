@@ -1,0 +1,11 @@
+<div class="login-overlay" [class.hidden]="appState.loggedIn()">
+  <div class="login-card">
+    <div class="login-logo">UX</div>
+    <h1>UXReach</h1>
+    <p>Invite Email Agent</p>
+    <button class="google-sso-btn" (click)="signIn()">
+      <span class="google-g">G</span>
+      Sign in with Google
+    </button>
+  </div>
+</div>

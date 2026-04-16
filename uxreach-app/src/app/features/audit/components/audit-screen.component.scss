@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.audit-screen {
+  padding: 24px;
+}
+
+.screen-header {
+  margin-bottom: 28px;
+}
+
+.screen-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.screen-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  padding: 0;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead {
+    background: var(--card-alt);
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  th {
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  td {
+    padding: 14px 16px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    transition: background 0.15s ease;
+
+    &:hover td {
+      background: rgba(37, 99, 235, 0.02);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+.sortable-header {
+  cursor: pointer;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--blue);
+  }
+}
+
+.sort-arrow {
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.mono {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.failed-cell {
+  color: var(--rose) !important;
+  font-weight: 600;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 32px 16px !important;
+  color: var(--text-faint);
+}
+
+.sla-check {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.sla-x {
+  color: var(--rose);
+  font-weight: 700;
+}

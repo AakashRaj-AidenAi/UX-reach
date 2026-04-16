@@ -1,0 +1,47 @@
+<div class="chat-screen">
+  <!-- Header -->
+  <div class="chat-screen-header">
+    <div class="chat-screen-avatar">&#x2728;</div>
+    <div>
+      <div class="chat-screen-title">UXReach Assistant</div>
+      <div class="chat-screen-subtitle">
+        <span class="pulse-dot" style="width:6px;height:6px;"></span>
+        Online
+      </div>
+    </div>
+    <app-chat-health-strip />
+  </div>
+
+  <!-- Message list -->
+  <div class="message-list" #messageContainer>
+    @for (msg of messages(); track msg.id) {
+      <app-chat-message
+        [message]="msg"
+        (actionClicked)="onAction($event)"
+      />
+    }
+  </div>
+
+  <!-- Study Picker Dropdown -->
+  @if (chatEngine.showStudyPicker()) {
+    <div class="picker-overlay">
+      <app-study-picker
+        (submit)="onStudyPickerSubmit($event)"
+        (cancel)="onStudyPickerCancel()"
+      />
+    </div>
+  }
+
+  <!-- Schedule Picker Dropdown -->
+  @if (chatEngine.showSchedulePicker()) {
+    <div class="picker-overlay">
+      <app-schedule-picker
+        (submit)="onSchedulePickerSubmit($event)"
+        (cancel)="onSchedulePickerCancel()"
+      />
+    </div>
+  }
+
+  <!-- Input bar -->
+  <app-chat-input-bar (messageSent)="onSend($event)" />
+</div>

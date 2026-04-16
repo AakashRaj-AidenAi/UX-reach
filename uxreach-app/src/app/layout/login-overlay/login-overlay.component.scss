@@ -1,0 +1,92 @@
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+
+  &.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.login-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 48px;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+}
+
+.login-logo {
+  width: 64px;
+  height: 64px;
+  background: var(--gradient-brand);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 24px;
+  color: #fff;
+  margin: 0 auto 20px;
+}
+
+.google-sso-btn {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--card-alt);
+    border-color: var(--card-border-hover);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.google-g {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #4285f4;
+}

@@ -1,0 +1,46 @@
+<!-- Header -->
+<div class="sidebar-header">
+  <div class="sidebar-logo">UX</div>
+  <div>
+    <div class="sidebar-brand">UXReach</div>
+    <div class="sidebar-version">v2.0 POC</div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<nav class="sidebar-nav">
+  <div class="nav-section-label">Main</div>
+  @for (item of mainNavItems; track item.route) {
+    <a
+      class="nav-item"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+    >
+      <span class="nav-icon">{{ item.icon }}</span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  }
+
+  <div class="nav-section-label">Reference</div>
+  @for (item of refNavItems; track item.route) {
+    <a
+      class="nav-item"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+    >
+      <span class="nav-icon">{{ item.icon }}</span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  }
+</nav>
+
+<!-- Footer -->
+<div class="sidebar-footer">
+  <div class="sidebar-user">
+    <div class="sidebar-user-avatar">{{ appState.userInitials() }}</div>
+    <div>
+      <div class="sidebar-user-name">{{ appState.userName() }}</div>
+    </div>
+  </div>
+  <button class="sidebar-logout" (click)="signOut()">&larr; Sign Out</button>
+</div>

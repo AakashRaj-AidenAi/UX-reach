@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:/Users/AakashRaj/AppData/Roaming/npm/\"*.cmd)",
+      "Bash(npx @angular/cli@19 new uxreach-app --standalone --style=scss --routing --skip-tests --skip-git --ssr=false --inline-style=false --inline-template=false)"
+    ]
+  }
+}

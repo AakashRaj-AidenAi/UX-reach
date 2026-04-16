@@ -1,0 +1,50 @@
+<div class="audit-screen">
+  <header class="screen-header">
+    <h1 class="screen-title">Audit Trail</h1>
+    <p class="screen-subtitle">Complete history of all invite runs with anonymized data</p>
+  </header>
+
+  <div class="table-wrapper card">
+    <table class="audit-table">
+      <thead>
+        <tr>
+          @for (col of columns; track col.key) {
+            <th (click)="sort(col.key)" class="sortable-header">
+              {{ col.label }}<span class="sort-arrow">{{ getSortIcon(col.key) }}</span>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (run of auditService.sortedRuns(); track run.id) {
+          <tr>
+            <td class="mono">{{ run.id }}</td>
+            <td>{{ run.studyId }}</td>
+            <td>{{ run.studyName }}</td>
+            <td>{{ run.date }}</td>
+            <td>{{ run.rc }}</td>
+            <td>{{ run.sent }}</td>
+            <td [class.failed-cell]="run.failed > 0">{{ run.failed }}</td>
+            <td>
+              <app-status-badge [status]="run.status" />
+            </td>
+            <td class="mono">{{ run.duration }}</td>
+            <td>
+              @if (run.sla === true) {
+                <span class="sla-check">&#x2713;</span>
+              } @else if (run.sla === false) {
+                <span class="sla-x">&#x2717;</span>
+              } @else {
+                &mdash;
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="10" class="empty-row">No audit runs recorded yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

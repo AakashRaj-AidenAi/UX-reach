@@ -1,0 +1,145 @@
+<div class="dashboard-screen">
+  <div class="dash-title">Dashboard</div>
+  <div class="dash-subtitle">Overview of your active studies — updated as of today</div>
+
+  <!-- Live progress panel -->
+  @if (isSending) {
+    <div class="dash-live-panel">
+      <div class="dash-live-header">
+        <div class="dash-live-title">
+          <span class="pulse-dot"></span> Live Send in Progress
+        </div>
+        <span class="chat-timer chat-timer-active">&#x23f1; {{ formatTimer(elapsedSeconds) }}</span>
+      </div>
+      <div style="font-size:14px;color:var(--text-dim);margin-bottom:12px;">{{ getCurrentStudyName() }}</div>
+      <div class="dash-progress-bar">
+        <div class="dash-progress-fill" [style.width.%]="sendProgressPercent"></div>
+      </div>
+      <div class="dash-progress-info">
+        <span>{{ emailsSent }} of {{ currentInviteCount }} sent</span>
+        <span>{{ sendProgressPercent }}%</span>
+      </div>
+    </div>
+  }
+
+  <!-- Stat summary row -->
+  <div class="dash-stat-row">
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon amber">&#x2709;</div>
+      <div class="dash-stat-body">
+        <div class="dash-stat-label">Participants Required</div>
+        <div class="dash-stat-value">{{ totalPendingInvites }}</div>
+        <div class="dash-stat-sub">across {{ pendingStudies.length }} {{ pendingStudies.length === 1 ? 'study' : 'studies' }}</div>
+      </div>
+    </div>
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon blue">&#x1f4ca;</div>
+      <div class="dash-stat-body">
+        <div class="dash-stat-label">New Responses</div>
+        <div class="dash-stat-value">{{ totalNewResponses }}</div>
+        <div class="dash-stat-sub">since last check</div>
+      </div>
+    </div>
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon green">&#x2705;</div>
+      <div class="dash-stat-body">
+        <div class="dash-stat-label">P0s Ready to Schedule</div>
+        <div class="dash-stat-value">{{ totalP0Ready }}</div>
+        <div class="dash-stat-sub">newly marked by UXR</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending invites section -->
+  <div class="dash-section-heading">
+    Pending invites
+    <span class="dash-count-pill">{{ pendingStudies.length }}</span>
+  </div>
+
+  @if (pendingStudies.length === 0) {
+    <div class="dash-empty-state">All studies are fully invited — nothing pending.</div>
+  } @else {
+    <table class="dash-pending-table">
+      <thead>
+        <tr>
+          <th>Study</th>
+          <th>Invites needed</th>
+          <th>Last run</th>
+          <th style="text-align:center;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (study of pendingStudies; track study.id) {
+          <!-- Main row -->
+          <tr>
+            <td>
+              <strong>{{ study.name }}</strong><br>
+              <span style="font-size:11px;color:var(--text-faint);">#{{ study.id }} &middot; {{ study.researcher }}</span>
+            </td>
+            <td>
+              <span class="dash-pending-count">&#x2709; {{ study.remaining }} to send</span>
+              @if (study.failed > 0) {
+                <span style="color:var(--rose);font-size:12px;font-weight:600;margin-left:6px;">&#x26A0; {{ study.failed }} failed</span>
+              }
+            </td>
+            <td>
+              @if (study.lastRun) {
+                Last: {{ study.lastRun }}
+              } @else {
+                <span style="color:var(--text-faint)">Never sent</span>
+              }
+            </td>
+            <td>
+              <div class="dash-action-btns">
+                <button class="dash-send-btn" (click)="goToChatWithStudy(study.id, study.remaining)">Send invites</button>
+                <button class="dash-schedule-btn" (click)="goToChatScheduleStudy(study.id, study.remaining)">Schedule</button>
+                <button
+                  class="dash-expand-btn"
+                  [class.open]="study.expanded"
+                  (click)="toggleExpand(study)"
+                  title="Show details">
+                  &#x25BE;
+                </button>
+              </div>
+            </td>
+          </tr>
+          <!-- Expandable detail row -->
+          @if (study.expanded) {
+            <tr class="dash-expand-row open">
+              <td colspan="4">
+                <div class="dash-detail-chips">
+                  <div class="dash-detail-chip">
+                    <span class="dash-detail-chip-label">Invites sent</span>
+                    <span class="dash-detail-chip-value" style="color:var(--green);">{{ study.sent }}</span>
+                    <span class="dash-detail-chip-sub">of {{ study.required }} total needed</span>
+                  </div>
+                  <div class="dash-detail-chip">
+                    <span class="dash-detail-chip-label">Total invites needed</span>
+                    <span class="dash-detail-chip-value">{{ study.required }}</span>
+                    <span class="dash-detail-chip-sub">{{ study.remaining }} still pending</span>
+                  </div>
+                  <div class="dash-detail-chip">
+                    <span class="dash-detail-chip-label">P0s marked by UXR</span>
+                    <span class="dash-detail-chip-value" style="color:var(--amber);">
+                      {{ study.p0Ready }}
+                      @if (study.p0NewlyMarked > 0) {
+                        <span class="dash-new-badge">+{{ study.p0NewlyMarked }} new</span>
+                      }
+                    </span>
+                    <span class="dash-detail-chip-sub">
+                      @if (study.p0NewlyMarked > 0) {
+                        {{ study.p0Ready - study.p0NewlyMarked }} before + {{ study.p0NewlyMarked }} newly marked
+                      } @else {
+                        marked as ready to schedule
+                      }
+                    </span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  }
+</div>
