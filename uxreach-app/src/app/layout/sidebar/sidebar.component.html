@@ -16,22 +16,11 @@
       [routerLink]="item.route"
       routerLinkActive="active"
     >
-      <span class="nav-icon">{{ item.icon }}</span>
+      <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
       <span class="nav-label">{{ item.label }}</span>
     </a>
   }
 
-  <div class="nav-section-label">Reference</div>
-  @for (item of refNavItems; track item.route) {
-    <a
-      class="nav-item"
-      [routerLink]="item.route"
-      routerLinkActive="active"
-    >
-      <span class="nav-icon">{{ item.icon }}</span>
-      <span class="nav-label">{{ item.label }}</span>
-    </a>
-  }
 </nav>
 
 <!-- Footer -->
@@ -42,5 +31,8 @@
       <div class="sidebar-user-name">{{ appState.userName() }}</div>
     </div>
   </div>
-  <button class="sidebar-logout" (click)="signOut()">&larr; Sign Out</button>
+  <button class="sidebar-logout" (click)="signOut()">
+    <span class="material-symbols-outlined icon-sm">logout</span>
+    Sign Out
+  </button>
 </div>

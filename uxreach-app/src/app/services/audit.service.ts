@@ -1,9 +1,12 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, inject, computed, signal } from '@angular/core';
 import { AuditRun, AuditSortKey } from '../models/audit-run.model';
 import { AUDIT_RUNS } from '../mock-data/audit-runs.data';
+import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuditService {
+  private readonly api = inject(ApiService);
+
   readonly runs = signal<AuditRun[]>([...AUDIT_RUNS]);
   readonly sortKey = signal<AuditSortKey>('date');
   readonly sortAsc = signal(false);
@@ -28,6 +31,21 @@ export class AuditService {
 
     return list;
   });
+
+  constructor() {
+    this.fetchRuns();
+  }
+
+  fetchRuns(): void {
+    this.api.getAuditRuns().subscribe({
+      next: (data) => {
+        this.runs.set(data);
+      },
+      error: () => {
+        // Fallback to mock data already loaded
+      }
+    });
+  }
 
   sortBy(key: AuditSortKey): void {
     if (this.sortKey() === key) {

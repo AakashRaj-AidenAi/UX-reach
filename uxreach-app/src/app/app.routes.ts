@@ -45,14 +45,6 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   {
-    path: 'architecture',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/audit/components/audit-screen.component').then(
-        m => m.AuditScreenComponent
-      )
-  },
-  {
     path: '**',
     redirectTo: 'chat'
   }

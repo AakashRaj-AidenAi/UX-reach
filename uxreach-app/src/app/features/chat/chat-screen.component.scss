@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background: var(--bg, #f5f7fa);
+  background: var(--bg);
   overflow: hidden;
   position: relative;
 }
@@ -11,27 +11,28 @@
 .chat-screen-header {
   background: var(--card);
   border-bottom: 1px solid var(--card-border);
-  padding: 16px 24px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   gap: 12px;
+  height: 64px;
 }
 
 .chat-screen-avatar {
-  width: 40px;
-  height: 40px;
-  background: var(--gradient-brand);
+  width: 36px;
+  height: 36px;
+  background: var(--blue);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   color: #fff;
 }
 
 .chat-screen-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
 }
 
@@ -44,8 +45,8 @@
 }
 
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--green);
   display: inline-block;
@@ -53,9 +54,9 @@
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(5, 150, 105, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(30, 142, 62, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(30, 142, 62, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(30, 142, 62, 0); }
 }
 
 .message-list {

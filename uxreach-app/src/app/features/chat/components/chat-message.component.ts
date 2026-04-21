@@ -31,9 +31,9 @@ import { ChatMessage } from '../../../models/chat.model';
           @if (message.sendingProgress) {
             <div class="sending-progress">
               @if (message.sendingProgress.studyName) {
-                <span style="font-weight:600;font-size:13px;">{{ message.sendingProgress.studyName }}</span>
+                <span style="font-weight:500;font-size:14px;">{{ message.sendingProgress.studyName }}</span>
                 @if (message.sendingProgress.queuePosition) {
-                  <span style="font-size:11px;color:var(--text-muted);font-weight:400;"> Study {{ message.sendingProgress.queuePosition }} of {{ message.sendingProgress.queueTotal }}</span>
+                  <span style="font-size:12px;color:var(--text-muted);font-weight:400;"> Study {{ message.sendingProgress.queuePosition }} of {{ message.sendingProgress.queueTotal }}</span>
                 }
                 <br>
               }
@@ -41,7 +41,7 @@ import { ChatMessage } from '../../../models/chat.model';
                 Sending {{ message.sendingProgress.sent }}/{{ message.sendingProgress.total }}...
               </span><br>
               @if (message.sendingProgress.durationStr) {
-                <span class="sla-timer-display">&#x23f1; {{ message.sendingProgress.durationStr }}</span>
+                <span class="sla-timer-display">{{ message.sendingProgress.durationStr }}</span>
               }
               <div class="progress-bar">
                 <div
@@ -102,27 +102,27 @@ import { ChatMessage } from '../../../models/chat.model';
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 500;
       flex-shrink: 0;
     }
 
     .chat-msg-avatar.bot-avatar {
-      background: rgba(37, 99, 235, 0.1);
+      background: rgba(26, 115, 232, 0.1);
       color: var(--blue);
     }
 
     .chat-msg-avatar.user-avatar {
-      background: rgba(124, 58, 237, 0.1);
-      color: var(--purple);
+      background: #e8f0fe;
+      color: #1a73e8;
     }
 
     .chat-msg-content {
       max-width: 70%;
       padding: 12px 16px;
-      border-radius: 14px;
+      border-radius: 12px;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
     .content--bot {
@@ -133,9 +133,9 @@ import { ChatMessage } from '../../../models/chat.model';
     }
 
     .content--user {
-      background: rgba(37, 99, 235, 0.08);
-      border: 1px solid rgba(37, 99, 235, 0.2);
-      color: #1e40af;
+      background: #e8f0fe;
+      border: none;
+      color: #202124;
       border-top-right-radius: 4px;
     }
 
@@ -143,7 +143,7 @@ import { ChatMessage } from '../../../models/chat.model';
       padding: 12px 20px;
     }
 
-    /* ── Typing indicator ── */
+    /* Typing indicator */
     .typing-indicator {
       display: flex;
       gap: 4px;
@@ -167,22 +167,23 @@ import { ChatMessage } from '../../../models/chat.model';
       30% { transform: translateY(-6px); opacity: 1; }
     }
 
-    /* ── Content ── */
+    /* Content */
     .content {
       ::ng-deep {
-        strong { font-weight: 600; }
+        strong { font-weight: 500; }
         em { font-style: italic; color: var(--text-muted); }
       }
     }
 
-    /* ── Sending progress ── */
+    /* Sending progress */
     .sending-progress {
       margin-bottom: 8px;
     }
 
     .send-count-display {
-      font-weight: 600;
-      font-size: 13px;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text);
     }
 
     .sla-timer-display {
@@ -193,7 +194,7 @@ import { ChatMessage } from '../../../models/chat.model';
     .progress-bar {
       width: 100%;
       height: 4px;
-      background: #e2e8f0;
+      background: #e8eaed;
       border-radius: 2px;
       margin-top: 8px;
       overflow: hidden;
@@ -202,7 +203,7 @@ import { ChatMessage } from '../../../models/chat.model';
     .progress-fill {
       height: 100%;
       border-radius: 2px;
-      background: linear-gradient(90deg, #3b82f6, #10b981);
+      background: var(--blue);
       transition: width 0.5s ease;
 
       &.complete {
@@ -210,56 +211,77 @@ import { ChatMessage } from '../../../models/chat.model';
       }
     }
 
-    /* ── Action buttons ── */
+    /* Action buttons */
     .msg-buttons {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 12px;
       flex-wrap: wrap;
     }
 
     .msg-btn {
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 12px;
+      padding: 6px 16px;
+      border-radius: 18px;
+      font-size: 13px;
       cursor: pointer;
       border: none;
-      transition: all 0.2s ease;
-      font-weight: 600;
+      transition: all 0.15s ease;
+      font-weight: 500;
+      font-family: 'Google Sans', 'Roboto', sans-serif;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .msg-btn.primary {
-      background: rgba(37, 99, 235, 0.1);
-      color: #2563eb;
-      border: 1px solid rgba(37, 99, 235, 0.3);
+      background: rgba(26, 115, 232, 0.08);
+      color: #1a73e8;
+      border: 1px solid rgba(26, 115, 232, 0.3);
+    }
+
+    .msg-btn.primary:hover {
+      background: rgba(26, 115, 232, 0.15);
+      box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
     }
 
     .msg-btn.secondary {
-      background: #f1f5f9;
-      color: #475569;
-      border: 1px solid #cbd5e1;
+      background: var(--card-alt);
+      color: var(--text-dim);
+      border: 1px solid var(--card-border);
+    }
+
+    .msg-btn.secondary:hover {
+      background: #e8eaed;
     }
 
     .msg-btn.danger {
-      background: rgba(225, 29, 72, 0.1);
-      color: #e11d48;
-      border: 1px solid rgba(225, 29, 72, 0.3);
+      background: rgba(217, 48, 37, 0.08);
+      color: #d93025;
+      border: 1px solid rgba(217, 48, 37, 0.3);
+    }
+
+    .msg-btn.danger:hover {
+      background: rgba(217, 48, 37, 0.15);
     }
 
     .msg-btn.success {
-      background: rgba(5, 150, 105, 0.1);
-      color: #059669;
-      border: 1px solid rgba(5, 150, 105, 0.3);
+      background: rgba(30, 142, 62, 0.08);
+      color: #1e8e3e;
+      border: 1px solid rgba(30, 142, 62, 0.3);
+    }
+
+    .msg-btn.success:hover {
+      background: rgba(30, 142, 62, 0.15);
     }
 
     .msg-btn:hover {
-      transform: translateY(-1px);
+      box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
     }
 
     .msg-btn:disabled {
-      opacity: 0.5;
+      opacity: 0.38;
       cursor: not-allowed;
-      transform: none;
+      box-shadow: none;
     }
 
     @keyframes fadeInMsg {

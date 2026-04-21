@@ -8,6 +8,7 @@ import { AuditService } from './audit.service';
 import { SendingService } from './sending.service';
 import { SchedulerService } from './scheduler.service';
 import { ToastService } from './toast.service';
+import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
 export class ChatEngineService implements OnDestroy {
@@ -17,6 +18,7 @@ export class ChatEngineService implements OnDestroy {
   private readonly sendingService = inject(SendingService);
   private readonly schedulerService = inject(SchedulerService);
   private readonly toastService = inject(ToastService);
+  private readonly api = inject(ApiService);
 
   readonly messages = signal<ChatMessage[]>([]);
 
@@ -39,7 +41,7 @@ export class ChatEngineService implements OnDestroy {
           this.showCompletionMessage(result.studyId, result.sent, result.total, result.durationStr);
           this.toastService.show('success', `All ${result.total} invites sent successfully for Study ${result.studyId}`);
         } else {
-          let msg = `<strong style="color:var(--amber);">&#x26a0; Send stopped.</strong> ${result.sent}/${result.total} emails were sent. Already-sent emails will NOT be recalled.<br><span class="msg-hint">Parent case notes updated for ${result.sent} sent emails.</span>`;
+          let msg = `<strong style="color:var(--amber);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> Send stopped.</strong> ${result.sent}/${result.total} emails were sent. Already-sent emails will NOT be recalled.<br><span class="msg-hint">Parent case notes updated for ${result.sent} sent emails.</span>`;
           if (result.queuePosition && result.queuePosition > 0) {
             msg += `<br><span style="font-size:12px;color:var(--text-muted);">${result.queuePosition} remaining ${result.queuePosition === 1 ? 'study' : 'studies'} in queue were cancelled.</span>`;
           }
@@ -59,11 +61,11 @@ export class ChatEngineService implements OnDestroy {
   initChat(): void {
     this.messages.set([]);
     this.addBotMessage(
-      'Hello! I can help you send invites, filter by region or customer type, check what\'s remaining, and more.',
+      'Hello! I can help you send invites, track participant responses, check ICF status, and more.',
       [
-        { label: '\uD83D\uDCE4 Send invites now', type: 'primary', action: 'open_study_picker' },
-        { label: '\uD83D\uDCC5 Schedule invites', type: 'primary', action: 'open_schedule_picker' },
-        { label: '\uD83C\uDF0D Filter by region', type: 'primary', action: 'suggest', payload: 'Send 5 invites for study 1234567 from Japan' },
+        { label: 'Send invites now', type: 'primary', action: 'open_study_picker' },
+        { label: 'Schedule invites', type: 'primary', action: 'open_schedule_picker' },
+        { label: 'Study progress', type: 'primary', action: 'suggest', payload: 'Study progress 1234567' },
         { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
         { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Show today's summary" },
         { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
@@ -213,6 +215,50 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
+    // ── Query Agent: Participant Tracking ──
+
+    // Responses for study
+    const responsesMatch = lower.match(/(?:who\s+)?respond(?:ed)?|responses?\s+(?:for|to)\s+(?:study|case)?\s*(\d{7})/);
+    if (responsesMatch) {
+      const sid = responsesMatch[1] || this.extractStudyId(lower);
+      if (sid) { this.handleQueryAgentChat(`responses for study ${sid}`); return; }
+    }
+
+    // Bookings
+    const bookingsMatch = lower.match(/(?:who\s+)?book|booking|calendar|slot.*?(\d{7})/);
+    if (bookingsMatch && bookingsMatch[1]) {
+      this.handleQueryAgentChat(`bookings for study ${bookingsMatch[1]}`);
+      return;
+    }
+
+    // ICF status
+    const icfMatch = lower.match(/icf|consent|signed.*?(\d{7})/);
+    if (icfMatch && icfMatch[1]) {
+      this.handleQueryAgentChat(`icf status for study ${icfMatch[1]}`);
+      return;
+    }
+
+    // Reminders needed
+    const reminderMatch = lower.match(/remind|follow.?up|non.?respond.*?(\d{7})/);
+    if (reminderMatch && reminderMatch[1]) {
+      this.handleQueryAgentChat(`who needs a reminder for study ${reminderMatch[1]}`);
+      return;
+    }
+
+    // Confirmed count
+    const confirmedMatch = lower.match(/confirm|locked.?in|ready.*?(\d{7})/);
+    if (confirmedMatch && confirmedMatch[1]) {
+      this.handleQueryAgentChat(`how many confirmed for study ${confirmedMatch[1]}`);
+      return;
+    }
+
+    // Study progress
+    const progressMatch = lower.match(/progress\s+(?:for\s+)?(?:study|case)?\s*(\d{7})/);
+    if (progressMatch) {
+      this.handleQueryAgentChat(`study progress ${progressMatch[1]}`);
+      return;
+    }
+
     // Help
     if (lower.match(/^help$|what can you do|what do you know|available commands|^commands$/)) {
       this.handleHelp();
@@ -227,10 +273,10 @@ export class ChatEngineService implements OnDestroy {
         'I\'m not sure what you mean. Here\'s what I can help with:<br>' +
         '&#x2022; <em>"send X invites for study 1234567"</em><br>' +
         '&#x2022; <em>"send 5 invites for study 1234567 from Japan"</em><br>' +
-        '&#x2022; <em>"send 5 invites for study 1234567 media agency only"</em><br>' +
+        '&#x2022; <em>"study progress 1234567"</em> &mdash; full participant funnel<br>' +
+        '&#x2022; <em>"who responded to study 1234567"</em><br>' +
+        '&#x2022; <em>"who needs a reminder for study 1234567"</em><br>' +
         '&#x2022; <em>"how many invites are left?"</em><br>' +
-        '&#x2022; <em>"when are those scheduled to send?"</em><br>' +
-        '&#x2022; <em>"status of study 1234567"</em><br>' +
         'Or type <em>"help"</em> to see all commands.',
         undefined, 0
       );
@@ -258,7 +304,7 @@ export class ChatEngineService implements OnDestroy {
         setTimeout(() => {
           this.removeTyping();
           this.addBotMessage(
-            `<span style="color:var(--rose);">&#x26a0; Cross-RC sends are disabled.</span> Study ${studyId} belongs to ${study.ownerRC}. Enable cross-RC sending in Settings to proceed.`,
+            `<span style="color:var(--rose);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">warning</span> Cross-RC sends are disabled.</span> Study ${studyId} belongs to ${study.ownerRC}. Enable cross-RC sending in Settings to proceed.`,
             undefined, 0
           );
         }, 1000);
@@ -270,7 +316,7 @@ export class ChatEngineService implements OnDestroy {
       setTimeout(() => {
         this.removeTyping();
         this.addBotMessage(
-          `&#x26a0;&#xfe0f; This study is worked on by ${study.ownerRC}. Are you sure you want to send invites for this study?`,
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> This study is worked on by ${study.ownerRC}. Are you sure you want to send invites for this study?`,
           [
             { label: 'Yes, proceed', type: 'primary', action: 'proceed_crossrc' },
             { label: 'Cancel', type: 'secondary', action: 'cancel' }
@@ -339,7 +385,7 @@ export class ChatEngineService implements OnDestroy {
 
       if (matched.length === 0) {
         const bd = this.studyService.filterBreakdown(pool);
-        let html = `<span style="color:var(--amber);">&#x26a0; No candidates match the selected filters for Study ${studyId}.</span><br><br>`;
+        let html = `<span style="color:var(--amber);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> No candidates match the selected filters for Study ${studyId}.</span><br><br>`;
         html += `<strong>Filters applied:</strong> ${this.studyService.filterSummaryLine(filters)}<br><br>`;
         html += `<strong>What's available in the shortlisting pool (${pool.length} total):</strong><br>`;
         html += `<em>By region:</em> ${Object.entries(bd.byCountry).map(([k, v]) => `${k} (${v})`).join(', ')}<br>`;
@@ -367,13 +413,13 @@ export class ChatEngineService implements OnDestroy {
       html += `Researcher: ${study.researcher}<br><br>`;
       html += `<div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.18);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px;">`;
       html += `<strong>Filters applied</strong><br>`;
-      if (filters.countries.length) html += `&#x1f30d; <strong>Region:</strong> ${filters.countries.join(', ')}<br>`;
-      if (filters.customerTypes.length) html += `&#x1f3e2; <strong>Customer type:</strong> ${filters.customerTypes.join(', ')}`;
+      if (filters.countries.length) html += `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">public</span> <strong>Region:</strong> ${filters.countries.join(', ')}<br>`;
+      if (filters.customerTypes.length) html += `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">business</span> <strong>Customer type:</strong> ${filters.customerTypes.join(', ')}`;
       html += `</div>`;
       html += `${matched.length} candidates match your filters`;
       html += ` <span style="color:var(--text-muted);font-size:12px;">(out of ${pool.length} shortlisted)</span><br>`;
       if (matched.length < count) {
-        html += `<span style="color:var(--amber);font-size:12px;">&#x26a0; You requested ${count}, but only ${available} are available — sending ${actualCount}.</span><br>`;
+        html += `<span style="color:var(--amber);font-size:12px;"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">warning</span> You requested ${count}, but only ${available} are available — sending ${actualCount}.</span><br>`;
       }
       html += '<br>';
       html += '<table class="msg-table">';
@@ -606,7 +652,7 @@ export class ChatEngineService implements OnDestroy {
       return updated;
     });
 
-    let html = `&#x2705; ${sent}/${total} sent — ${durationStr}`;
+    let html = `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ${sent}/${total} sent — ${durationStr}`;
     if (queue.length > 1) {
       html += ` <span style="font-size:11px;color:var(--text-muted);">(Study ${queueIdx + 1} of ${queue.length})</span>`;
     }
@@ -620,7 +666,7 @@ export class ChatEngineService implements OnDestroy {
 
     if (hasMore) {
       const next = queue[queueIdx + 1];
-      html += `<br><span style="font-size:12px;color:var(--text-muted);">&#x23f3; Up next: <strong>${next.count}</strong> invites for <strong>${next.studyName}</strong>...</span>`;
+      html += `<br><span style="font-size:12px;color:var(--text-muted);"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> Up next: <strong>${next.count}</strong> invites for <strong>${next.studyName}</strong>...</span>`;
     }
 
     this.appState.currentFilters.set(null);
@@ -658,10 +704,10 @@ export class ChatEngineService implements OnDestroy {
 
   private showSendSummary(items: SendQueueItem[]): void {
     const totalSent = items.reduce((s, i) => s + i.count, 0);
-    let html = '<strong>&#x1f389; All done! Here\'s your send summary:</strong><br><br>';
+    let html = '<strong><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">celebration</span> All done! Here\'s your send summary:</strong><br><br>';
     html += '<table class="msg-table">';
     items.forEach(item => {
-      html += `<tr><td>${item.studyName}</td><td style="color:var(--text-muted);font-size:12px;">#${item.studyId}</td><td style="color:var(--green);font-weight:600;white-space:nowrap;">${item.count} sent &#x2705;</td></tr>`;
+      html += `<tr><td>${item.studyName}</td><td style="color:var(--text-muted);font-size:12px;">#${item.studyId}</td><td style="color:var(--green);font-weight:600;white-space:nowrap;">${item.count} sent <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span></td></tr>`;
     });
     html += '</table>';
     if (items.length > 1) {
@@ -726,7 +772,7 @@ export class ChatEngineService implements OnDestroy {
       const jobIndex = this.schedulerService.jobs().length - 1;
 
       const html =
-        `&#x2705; <strong>Scheduled:</strong> ${count} invites for Study ${studyId} - ${study.name} on ${dateTimeStr}.<br>` +
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> <strong>Scheduled:</strong> ${count} invites for Study ${studyId} - ${study.name} on ${dateTimeStr}.<br>` +
         `<span class="msg-hint">I'll notify you when it's done.</span>`;
 
       this.addBotMessage(html, [
@@ -766,7 +812,9 @@ export class ChatEngineService implements OnDestroy {
         html += '<br><strong>Run History</strong>';
         html += '<table class="msg-table" style="margin-top:8px;">';
         runs.forEach(r => {
-          const statusIcon = r.status === 'completed' ? '&#x2705;' : '&#x26a0;';
+          const statusIcon = r.status === 'completed'
+            ? '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span>'
+            : '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">warning</span>';
           html += `<tr><td>${r.date}</td><td>${r.sent} sent &#x2022; ${r.duration} &#x2022; ${statusIcon}</td></tr>`;
         });
         html += '</table>';
@@ -858,7 +906,7 @@ export class ChatEngineService implements OnDestroy {
       this.removeTyping();
       const failedRuns = this.auditService.runs().filter(r => r.failed > 0);
       if (failedRuns.length === 0) {
-        this.addBotMessage('No failures today. &#x2705;', undefined, 0);
+        this.addBotMessage('No failures today. <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span>', undefined, 0);
       } else {
         let html = '<strong>Runs with failures:</strong><br>';
         failedRuns.forEach(r => {
@@ -895,7 +943,7 @@ export class ChatEngineService implements OnDestroy {
           actions.push({ label: `Send ${sendCount} now`, type: 'primary', action: 'suggest', payload: `send ${sendCount} invites for study ${studyId}` });
           actions.push({ label: 'Schedule for later', type: 'secondary', action: 'suggest', payload: `Send ${sendCount} invites for study ${studyId} tomorrow at 9am` });
         } else {
-          html += '<br><span style="color:var(--green);">&#x2705; All invites sent for this study!</span>';
+          html += '<br><span style="color:var(--green);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> All invites sent for this study!</span>';
         }
         this.addBotMessage(html, actions.length > 0 ? actions : undefined, 0);
       } else {
@@ -918,7 +966,7 @@ export class ChatEngineService implements OnDestroy {
         });
 
         if (!studyLines) {
-          this.addBotMessage('&#x2705; All your studies are fully invited — nothing remaining.', undefined, 0);
+          this.addBotMessage('<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> All your studies are fully invited — nothing remaining.', undefined, 0);
           return;
         }
 
@@ -968,7 +1016,11 @@ export class ChatEngineService implements OnDestroy {
         if (s.ownerRC !== this.appState.userName()) return;
         const remaining = s.totalRequired - s.alreadySent;
         const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
-        const icon = remaining === 0 ? '&#x2705;' : (s.alreadySent === 0 ? '&#x25ab;' : '&#x1f7e1;');
+        const icon = remaining === 0
+          ? '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span>'
+          : (s.alreadySent === 0
+            ? '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--text-muted);">radio_button_unchecked</span>'
+            : '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">fiber_manual_record</span>');
         studyLines += `<tr><td>${icon} Study ${id}<br><span style="font-size:11px;color:var(--text-faint);">${s.researcher}</span></td><td>${s.name}</td><td>${s.alreadySent}/${s.totalRequired} (${pct}%)</td><td>${remaining > 0 ? '<strong>' + remaining + '</strong> left' : '<span style="color:var(--green);">Done</span>'}</td></tr>`;
         if (remaining > 0) {
           const sendCount = Math.min(remaining, 10);
@@ -984,30 +1036,77 @@ export class ChatEngineService implements OnDestroy {
     }, 1200);
   }
 
+  // ── QUERY AGENT (calls backend for participant data) ──
+
+  private extractStudyId(text: string): string | null {
+    const m = text.match(/(\d{7})/);
+    return m ? m[1] : null;
+  }
+
+  handleQueryAgentChat(queryText: string): void {
+    this.addTyping();
+    const userName = this.appState.userName();
+
+    this.api.sendMessage(queryText, userName).subscribe({
+      next: (response) => {
+        this.removeTyping();
+        const actions: MessageAction[] = [];
+        if (response.actions) {
+          response.actions.forEach((a: any) => {
+            actions.push({
+              label: a.label,
+              type: a.type || 'secondary',
+              action: a.action || 'suggest',
+              payload: a.payload
+            });
+          });
+        }
+        this.addBotMessage(response.html, actions.length > 0 ? actions : undefined, 0);
+      },
+      error: () => {
+        this.removeTyping();
+        this.addBotMessage(
+          '<span style="color:var(--rose);">Could not reach the server.</span> Please check the backend is running on localhost:8000.',
+          undefined, 0
+        );
+        this.toastService.show('error', 'Backend API unavailable');
+      }
+    });
+  }
+
   handleHelp(): void {
     this.addTyping();
     setTimeout(() => {
       this.removeTyping();
+      const hIcon = (name: string, color?: string) => `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;${color ? 'color:' + color + ';' : ''}">${name}</span>`;
       let html = '<strong>Here\'s what I can help you with:</strong><br><br>';
-      html += '<strong>&#x1f4e4; Sending invites</strong><br>';
+      html += `<strong>${hIcon('outgoing_mail', 'var(--blue)')} Sending invites</strong><br>`;
       html += '&#x2022; <em>"Send 10 invites for study 1234567"</em><br>';
       html += '&#x2022; <em>"Send 5 invites for study 1234567 tomorrow at 9am"</em><br><br>';
-      html += '<strong>&#x1f30d; Filtered sending</strong><br>';
+      html += `<strong>${hIcon('public', 'var(--blue)')} Filtered sending</strong><br>`;
       html += '&#x2022; <em>"Send 5 invites for study 1234567 from Japan"</em><br>';
       html += '&#x2022; <em>"Send 5 invites for study 1234567 from India, large enterprise"</em><br>';
       html += '&#x2022; <em>"Send 8 invites for study 1234567 media agency only"</em><br>';
       html += '<span style="font-size:12px;color:var(--text-muted);">Regions: US, Japan, India, Germany, UK, Spain, France, Brazil, Australia, Canada, Singapore...<br>Customer types: Large Enterprise, Media Agency, SMB, Startup, Government, Non-profit</span><br><br>';
-      html += '<strong>&#x1f4ca; Checking status</strong><br>';
+      html += `<strong>${hIcon('insights', 'var(--blue)')} Checking status</strong><br>`;
       html += '&#x2022; <em>"How many invites are left?"</em><br>';
       html += '&#x2022; <em>"Status of study 1234567"</em><br>';
       html += '&#x2022; <em>"Today\'s summary"</em> &nbsp;&#x2022; <em>"Pending studies"</em> &nbsp;&#x2022; <em>"My studies"</em><br><br>';
-      html += '<strong>&#x1f4c5; Schedules</strong><br>';
+      html += `<strong>${hIcon('group', 'var(--blue)')} Participant tracking</strong><br>`;
+      html += '&#x2022; <em>"Who responded to study 1234567"</em><br>';
+      html += '&#x2022; <em>"Who booked for study 1234567"</em><br>';
+      html += '&#x2022; <em>"ICF status for study 1234567"</em><br>';
+      html += '&#x2022; <em>"Who needs a reminder for study 1234567"</em><br>';
+      html += '&#x2022; <em>"How many confirmed for study 1234567"</em><br>';
+      html += '&#x2022; <em>"Study progress 1234567"</em><br><br>';
+      html += `<strong>${hIcon('calendar_today', 'var(--blue)')} Schedules</strong><br>`;
       html += '&#x2022; <em>"Show my scheduled invites"</em><br><br>';
       html += '<strong>Other</strong><br>';
       html += '&#x2022; <em>"What failed?"</em>';
 
       this.addBotMessage(html, [
         { label: 'Try filtered send', type: 'primary', action: 'suggest', payload: 'Send 5 invites for study 1234567 from Japan' },
+        { label: 'Study progress', type: 'primary', action: 'suggest', payload: 'Study progress 1234567' },
         { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
         { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
       ], 0);

@@ -33,7 +33,9 @@
               </td>
               <td>
                 @if (job.status === 'scheduled') {
-                  <button class="btn-danger-sm" (click)="onCancelJob(i)">Cancel</button>
+                  <button class="btn-danger-sm" (click)="onCancelJob(i)">
+                    <span class="material-symbols-outlined icon-sm">cancel</span> Cancel
+                  </button>
                 } @else {
                   &mdash;
                 }

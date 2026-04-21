@@ -11,12 +11,21 @@ import { Toast } from '../../models/toast.model';
 export class ToastContainerComponent {
   protected readonly toastService = inject(ToastService);
 
-  getIcon(toast: Toast): string {
+  getIconName(toast: Toast): string {
     switch (toast.type) {
-      case 'success': return '\u2705';
-      case 'warning': return '\u26A0\uFE0F';
-      case 'error': return '\u274C';
-      case 'info': return '\u2139\uFE0F';
+      case 'success': return 'check_circle';
+      case 'warning': return 'warning';
+      case 'error': return 'error';
+      case 'info': return 'info';
+    }
+  }
+
+  getIconColorClass(toast: Toast): string {
+    switch (toast.type) {
+      case 'success': return 'icon-green';
+      case 'warning': return 'icon-amber';
+      case 'error': return 'icon-rose';
+      case 'info': return 'icon-blue';
     }
   }
 

@@ -22,10 +22,10 @@ interface PickerStudy {
     <div class="study-picker-dropdown animate-in" (click)="$event.stopPropagation()">
       <div class="study-picker-dropdown-header">
         <div>
-          <div class="study-picker-dropdown-title">&#x1f4c5; Schedule invites</div>
+          <div class="study-picker-dropdown-title"><span class="material-symbols-outlined icon-blue" style="vertical-align:middle;">calendar_today</span> Schedule invites</div>
           <div class="study-picker-dropdown-sub">Select studies, set invite count, and choose when to send.</div>
         </div>
-        <button class="study-picker-close-btn" (click)="onCancel()" title="Close">&#x2715;</button>
+        <button class="study-picker-close-btn" (click)="onCancel()" title="Close"><span class="material-symbols-outlined icon-sm">close</span></button>
       </div>
 
       @for (item of studies; track item.id) {

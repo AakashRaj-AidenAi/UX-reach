@@ -22,14 +22,10 @@ export class SidebarComponent {
   private readonly router = inject(Router);
 
   readonly mainNavItems: NavItem[] = [
-    { icon: '\uD83D\uDCAC', label: 'Chat Agent', route: '/chat', section: 'main' },
-    { icon: '\uD83D\uDCCA', label: 'Dashboard', route: '/dashboard', section: 'main' },
-    { icon: '\uD83D\uDCDC', label: 'Audit Trail', route: '/audit', section: 'main' },
-    { icon: '\uD83D\uDCC5', label: 'Scheduled Invites', route: '/scheduled', section: 'main' }
-  ];
-
-  readonly refNavItems: NavItem[] = [
-    { icon: '\uD83C\uDFD7\uFE0F', label: 'Architecture', route: '/architecture', section: 'ref' }
+    { icon: 'chat', label: 'Chat Agent', route: '/chat', section: 'main' },
+    { icon: 'dashboard', label: 'Dashboard', route: '/dashboard', section: 'main' },
+    { icon: 'history', label: 'Audit Trail', route: '/audit', section: 'main' },
+    { icon: 'event', label: 'Scheduled Invites', route: '/scheduled', section: 'main' }
   ];
 
   signOut(): void {

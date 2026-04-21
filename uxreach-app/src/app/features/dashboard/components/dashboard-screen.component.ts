@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { StudyService } from '../../../services/study.service';
 import { AuditService } from '../../../services/audit.service';
 import { AppStateService } from '../../../services/app-state.service';
+import { ApiService, StudyProgress } from '../../../services/api.service';
+import { ToastService } from '../../../services/toast.service';
 
 interface PendingStudy {
   id: string;
@@ -17,6 +19,11 @@ interface PendingStudy {
   p0Ready: number;
   p0NewlyMarked: number;
   expanded: boolean;
+  // Participant progress from API
+  confirmed: number;
+  pendingIcf: number;
+  noResponse: number;
+  progressLoaded: boolean;
 }
 
 @Component({
@@ -31,17 +38,21 @@ export class DashboardScreenComponent {
   private readonly auditService = inject(AuditService);
   protected readonly appState = inject(AppStateService);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
+  private readonly toastService = inject(ToastService);
 
   protected pendingStudies: PendingStudy[] = [];
   protected totalPendingInvites = 0;
   protected totalNewResponses = 0;
   protected totalP0Ready = 0;
+  protected loading = true;
 
   constructor() {
     this.refreshData();
   }
 
   refreshData(): void {
+    this.loading = true;
     const rcName = this.appState.userName();
     const studyMap = this.studyService.getStudiesForRC(rcName);
     const auditRuns = this.auditService.runs();
@@ -62,7 +73,7 @@ export class DashboardScreenComponent {
         const failedRuns = auditRuns.filter(r => r.studyId === id && r.failed > 0);
         const totalFailed = failedRuns.reduce((sum, r) => sum + r.failed, 0);
 
-        this.pendingStudies.push({
+        const study: PendingStudy = {
           id,
           name: s.name,
           researcher: s.researcher,
@@ -73,10 +84,29 @@ export class DashboardScreenComponent {
           failed: totalFailed,
           p0Ready: s.p0Ready || 0,
           p0NewlyMarked: s.p0NewlyMarked || 0,
-          expanded: false
+          expanded: false,
+          confirmed: 0,
+          pendingIcf: 0,
+          noResponse: 0,
+          progressLoaded: false
+        };
+        this.pendingStudies.push(study);
+
+        // Fetch participant progress from API
+        this.api.getStudyProgress(id).subscribe({
+          next: (progress: StudyProgress) => {
+            study.confirmed = progress.confirmed;
+            study.pendingIcf = progress.pendingIcf;
+            study.noResponse = progress.noResponse;
+            study.progressLoaded = true;
+          },
+          error: () => {
+            study.progressLoaded = true; // still mark as loaded to remove spinner
+          }
         });
       }
     }
+    this.loading = false;
   }
 
   protected get isSending(): boolean {

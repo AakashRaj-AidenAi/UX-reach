@@ -4,6 +4,7 @@ import { AppStateService } from './app-state.service';
 import { StudyService } from './study.service';
 import { AuditService } from './audit.service';
 import { AuditRun } from '../models/audit-run.model';
+import { ApiService } from './api.service';
 
 export interface SendingResult {
   studyId: string;
@@ -20,9 +21,11 @@ export class SendingService {
   private readonly appState = inject(AppStateService);
   private readonly studyService = inject(StudyService);
   private readonly auditService = inject(AuditService);
+  private readonly api = inject(ApiService);
 
   private sendingInterval: ReturnType<typeof setInterval> | null = null;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private currentSessionId: string | null = null;
 
   readonly onEmailTick$ = new Subject<{ sent: number; total: number }>();
   readonly onComplete$ = new Subject<SendingResult>();
@@ -33,7 +36,71 @@ export class SendingService {
     this.appState.elapsedSeconds.set(0);
 
     const total = count;
+    const userName = this.appState.userName();
 
+    // Try API first, fallback to local simulation
+    this.api.startSend(studyId, count, userName).subscribe({
+      next: (response) => {
+        this.currentSessionId = response.sessionId;
+        this.startApiPolling(studyId, total);
+      },
+      error: () => {
+        // Fallback to local simulation
+        this.startLocalSimulation(studyId, total);
+      }
+    });
+  }
+
+  private startApiPolling(studyId: string, total: number): void {
+    if (!this.currentSessionId) return;
+
+    this.timerInterval = setInterval(() => {
+      this.appState.elapsedSeconds.update(s => s + 1);
+    }, 1000);
+
+    this.sendingInterval = setInterval(() => {
+      if (!this.currentSessionId) return;
+
+      this.api.getSendProgress(this.currentSessionId).subscribe({
+        next: (progress) => {
+          this.appState.emailsSent.set(progress.sent);
+          this.onEmailTick$.next({ sent: progress.sent, total: progress.total });
+
+          if (progress.isComplete) {
+            this.clearIntervals();
+            this.appState.chatState.set('idle');
+            this.currentSessionId = null;
+
+            const durationStr = progress.durationStr || this.formatDuration(this.appState.elapsedSeconds());
+
+            this.studyService.updateStudySent(studyId, progress.sent);
+            this.recordAuditRun(studyId, progress.sent, durationStr);
+
+            const queue = this.appState.sendQueue();
+            const queueIdx = this.appState.sendQueueIndex();
+
+            this.onComplete$.next({
+              studyId,
+              sent: progress.sent,
+              total: progress.total,
+              durationStr,
+              completed: true,
+              queuePosition: queue.length > 1 ? queueIdx + 1 : undefined,
+              queueTotal: queue.length > 1 ? queue.length : undefined
+            });
+          }
+        },
+        error: () => {
+          // If polling fails, switch to local simulation
+          this.clearIntervals();
+          this.currentSessionId = null;
+          this.startLocalSimulation(studyId, total);
+        }
+      });
+    }, 1000);
+  }
+
+  private startLocalSimulation(studyId: string, total: number): void {
     this.timerInterval = setInterval(() => {
       this.appState.elapsedSeconds.update(s => s + 1);
     }, 1000);
@@ -51,25 +118,7 @@ export class SendingService {
         const durationStr = this.formatDuration(this.appState.elapsedSeconds());
 
         this.studyService.updateStudySent(studyId, total);
-
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        const runId = `RUN-${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`;
-        const study = this.studyService.getStudy(studyId);
-
-        const auditRun: AuditRun = {
-          id: runId,
-          studyId,
-          studyName: study?.name ?? 'Unknown Study',
-          date: dateStr,
-          rc: this.appState.userName(),
-          sent: total,
-          failed: 0,
-          status: 'completed',
-          duration: durationStr,
-          sla: true
-        };
-        this.auditService.addRun(auditRun);
+        this.recordAuditRun(studyId, total, durationStr);
 
         const queue = this.appState.sendQueue();
         const queueIdx = this.appState.sendQueueIndex();
@@ -87,36 +136,45 @@ export class SendingService {
     }, 500);
   }
 
+  private recordAuditRun(studyId: string, sent: number, durationStr: string): void {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const runId = `RUN-${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`;
+    const study = this.studyService.getStudy(studyId);
+
+    const auditRun: AuditRun = {
+      id: runId,
+      studyId,
+      studyName: study?.name ?? 'Unknown Study',
+      date: dateStr,
+      rc: this.appState.userName(),
+      sent,
+      failed: 0,
+      status: 'completed',
+      duration: durationStr,
+      sla: true
+    };
+    this.auditService.addRun(auditRun);
+  }
+
   stopSending(): void {
     const sent = this.appState.emailsSent();
     const total = this.appState.currentInviteCount();
     const durationStr = this.formatDuration(this.appState.elapsedSeconds());
     const studyId = this.appState.currentStudyId() ?? '';
 
+    // Try to stop via API
+    if (this.currentSessionId) {
+      this.api.stopSend(this.currentSessionId).subscribe();
+      this.currentSessionId = null;
+    }
+
     this.clearIntervals();
     this.appState.chatState.set('idle');
 
     if (sent > 0) {
       this.studyService.updateStudySent(studyId, sent);
-
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
-      const runId = `RUN-${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`;
-      const study = this.studyService.getStudy(studyId);
-
-      const auditRun: AuditRun = {
-        id: runId,
-        studyId,
-        studyName: study?.name ?? 'Unknown Study',
-        date: dateStr,
-        rc: this.appState.userName(),
-        sent,
-        failed: 0,
-        status: 'completed',
-        duration: durationStr,
-        sla: true
-      };
-      this.auditService.addRun(auditRun);
+      this.recordAuditRun(studyId, sent, durationStr);
     }
 
     const wasQueued = this.appState.sendQueue().length > 1;

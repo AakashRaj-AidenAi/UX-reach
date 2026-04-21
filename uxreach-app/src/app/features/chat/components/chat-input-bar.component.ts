@@ -15,32 +15,39 @@ import { FormsModule } from '@angular/forms';
         [(ngModel)]="text"
         (keydown.enter)="send()"
       />
-      <button class="chat-send-btn" (click)="send()" [disabled]="!text.trim()">&#x27A4;</button>
+      <button class="chat-send-btn" (click)="send()" [disabled]="!text.trim()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
   `,
   styles: [`
     .chat-input-bar {
-      padding: 16px 24px;
+      padding: 12px 24px 16px;
       background: var(--card);
       border-top: 1px solid var(--card-border);
       display: flex;
       gap: 10px;
+      align-items: center;
     }
 
     .chat-input-field {
       flex: 1;
-      padding: 12px 16px;
+      padding: 10px 20px;
       border: 1px solid var(--card-border);
-      border-radius: 12px;
+      border-radius: 24px;
       font-size: 14px;
       color: var(--text);
-      background: var(--card-alt);
+      background: var(--bg);
       outline: none;
-      font-family: inherit;
+      font-family: 'Google Sans', 'Roboto', sans-serif;
+      height: 44px;
     }
 
     .chat-input-field:focus {
       border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
     }
 
     .chat-input-field::placeholder {
@@ -48,28 +55,28 @@ import { FormsModule } from '@angular/forms';
     }
 
     .chat-send-btn {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      background: var(--gradient-brand);
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      background: var(--blue);
       border: none;
-      border-radius: 12px;
+      border-radius: 50%;
       color: #fff;
       font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
 
     .chat-send-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+      background: #1765cc;
+      box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
     }
 
     .chat-send-btn:disabled {
-      opacity: 0.4;
+      opacity: 0.38;
       cursor: not-allowed;
     }
   `]

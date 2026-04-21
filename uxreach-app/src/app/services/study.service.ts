@@ -1,12 +1,52 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Study, StudyMap } from '../models/study.model';
 import { Candidate, FilterSet, FilterBreakdown } from '../models/candidate.model';
 import { STUDIES } from '../mock-data/studies.data';
 import { SHORTLISTING_POOLS, COUNTRY_ALIASES, CUSTOMER_TYPE_ALIASES } from '../mock-data/candidates.data';
+import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
 export class StudyService {
+  private readonly api = inject(ApiService);
   private studies: StudyMap = { ...STUDIES };
+  private readonly studiesLoaded = signal(false);
+
+  constructor() {
+    this.fetchStudies();
+  }
+
+  fetchStudies(): void {
+    this.api.getStudies().subscribe({
+      next: (data: any) => {
+        // Backend returns an array of studies; convert to map
+        if (Array.isArray(data)) {
+          const map: StudyMap = {};
+          data.forEach((s: any) => {
+            map[s.id] = {
+              name: s.name,
+              researcher: s.researcher,
+              ownerRC: s.ownerRc || s.ownerRC || 'Sarah Chen',
+              totalRequired: s.totalRequired,
+              alreadySent: s.alreadySent,
+              lastRun: s.lastRun || null,
+              newResponses: s.newResponses || 0,
+              p0Ready: s.p0Ready || 0,
+              p0NewlyMarked: s.p0NewlyMarked || 0,
+            };
+          });
+          this.studies = map;
+        } else {
+          this.studies = data;
+        }
+        this.studiesLoaded.set(true);
+      },
+      error: () => {
+        // Fallback to mock data
+        this.studies = { ...STUDIES };
+        this.studiesLoaded.set(true);
+      }
+    });
+  }
 
   getStudy(id: string): Study | undefined {
     return this.studies[id];
@@ -120,8 +160,8 @@ export class StudyService {
 
   filterSummaryLine(filters: FilterSet): string {
     const parts: string[] = [];
-    if (filters.countries.length) parts.push('&#x1f30d; ' + filters.countries.join(', '));
-    if (filters.customerTypes.length) parts.push('&#x1f3e2; ' + filters.customerTypes.join(', '));
+    if (filters.countries.length) parts.push('<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">public</span> ' + filters.countries.join(', '));
+    if (filters.customerTypes.length) parts.push('<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">business</span> ' + filters.customerTypes.join(', '));
     return parts.join(' &nbsp;&middot;&nbsp; ');
   }
 }

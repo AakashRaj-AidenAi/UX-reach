@@ -32,7 +32,7 @@ export class AuditScreenComponent {
   }
 
   protected getSortIcon(key: AuditSortKey): string {
-    if (this.auditService.sortKey() !== key) return ' \u25B4\u25BE';
-    return this.auditService.sortAsc() ? ' \u25B2' : ' \u25BC';
+    if (this.auditService.sortKey() !== key) return 'unfold_more';
+    return this.auditService.sortAsc() ? 'arrow_drop_up' : 'arrow_drop_down';
   }
 }

@@ -9,7 +9,7 @@
         <div class="dash-live-title">
           <span class="pulse-dot"></span> Live Send in Progress
         </div>
-        <span class="chat-timer chat-timer-active">&#x23f1; {{ formatTimer(elapsedSeconds) }}</span>
+        <span class="chat-timer chat-timer-active"><span class="material-symbols-outlined icon-sm">schedule</span> {{ formatTimer(elapsedSeconds) }}</span>
       </div>
       <div style="font-size:14px;color:var(--text-dim);margin-bottom:12px;">{{ getCurrentStudyName() }}</div>
       <div class="dash-progress-bar">
@@ -25,7 +25,7 @@
   <!-- Stat summary row -->
   <div class="dash-stat-row">
     <div class="dash-stat-card">
-      <div class="dash-stat-icon amber">&#x2709;</div>
+      <div class="dash-stat-icon amber"><span class="material-symbols-outlined">mail</span></div>
       <div class="dash-stat-body">
         <div class="dash-stat-label">Participants Required</div>
         <div class="dash-stat-value">{{ totalPendingInvites }}</div>
@@ -33,7 +33,7 @@
       </div>
     </div>
     <div class="dash-stat-card">
-      <div class="dash-stat-icon blue">&#x1f4ca;</div>
+      <div class="dash-stat-icon blue"><span class="material-symbols-outlined">insights</span></div>
       <div class="dash-stat-body">
         <div class="dash-stat-label">New Responses</div>
         <div class="dash-stat-value">{{ totalNewResponses }}</div>
@@ -41,7 +41,7 @@
       </div>
     </div>
     <div class="dash-stat-card">
-      <div class="dash-stat-icon green">&#x2705;</div>
+      <div class="dash-stat-icon green"><span class="material-symbols-outlined">check_circle</span></div>
       <div class="dash-stat-body">
         <div class="dash-stat-label">P0s Ready to Schedule</div>
         <div class="dash-stat-value">{{ totalP0Ready }}</div>
@@ -75,11 +75,24 @@
             <td>
               <strong>{{ study.name }}</strong><br>
               <span style="font-size:11px;color:var(--text-faint);">#{{ study.id }} &middot; {{ study.researcher }}</span>
+              @if (study.progressLoaded && (study.confirmed > 0 || study.pendingIcf > 0 || study.noResponse > 0)) {
+                <div class="dash-participant-strip">
+                  @if (study.confirmed > 0) {
+                    <span class="dash-pstat green"><span class="material-symbols-outlined icon-sm icon-green">fiber_manual_record</span> {{ study.confirmed }} confirmed</span>
+                  }
+                  @if (study.pendingIcf > 0) {
+                    <span class="dash-pstat amber"><span class="material-symbols-outlined icon-sm icon-amber">fiber_manual_record</span> {{ study.pendingIcf }} pending ICF</span>
+                  }
+                  @if (study.noResponse > 0) {
+                    <span class="dash-pstat red"><span class="material-symbols-outlined icon-sm icon-rose">fiber_manual_record</span> {{ study.noResponse }} no response</span>
+                  }
+                </div>
+              }
             </td>
             <td>
-              <span class="dash-pending-count">&#x2709; {{ study.remaining }} to send</span>
+              <span class="dash-pending-count"><span class="material-symbols-outlined icon-sm">mail</span> {{ study.remaining }} to send</span>
               @if (study.failed > 0) {
-                <span style="color:var(--rose);font-size:12px;font-weight:600;margin-left:6px;">&#x26A0; {{ study.failed }} failed</span>
+                <span style="color:var(--rose);font-size:12px;font-weight:600;margin-left:6px;"><span class="material-symbols-outlined icon-sm icon-rose">warning</span> {{ study.failed }} failed</span>
               }
             </td>
             <td>
@@ -98,7 +111,7 @@
                   [class.open]="study.expanded"
                   (click)="toggleExpand(study)"
                   title="Show details">
-                  &#x25BE;
+                  <span class="material-symbols-outlined">{{ study.expanded ? 'expand_less' : 'expand_more' }}</span>
                 </button>
               </div>
             </td>

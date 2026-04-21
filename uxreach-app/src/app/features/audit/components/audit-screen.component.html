@@ -10,7 +10,7 @@
         <tr>
           @for (col of columns; track col.key) {
             <th (click)="sort(col.key)" class="sortable-header">
-              {{ col.label }}<span class="sort-arrow">{{ getSortIcon(col.key) }}</span>
+              {{ col.label }}<span class="sort-arrow material-symbols-outlined icon-sm">{{ getSortIcon(col.key) }}</span>
             </th>
           }
         </tr>
@@ -31,9 +31,9 @@
             <td class="mono">{{ run.duration }}</td>
             <td>
               @if (run.sla === true) {
-                <span class="sla-check">&#x2713;</span>
+                <span class="sla-check material-symbols-outlined icon-green">check</span>
               } @else if (run.sla === false) {
-                <span class="sla-x">&#x2717;</span>
+                <span class="sla-x material-symbols-outlined icon-rose">close</span>
               } @else {
                 &mdash;
               }
