@@ -270,25 +270,30 @@ def _build_help_html() -> str:
     html = "<strong>Here's what I can help you with:</strong><br><br>"
     html += "<strong>Sending invites</strong><br>"
     html += '&#x2022; <em>"Send 10 invites for study 1234567"</em><br>'
-    html += '&#x2022; <em>"Send 5 invites for study 1234567 tomorrow at 9am"</em><br><br>'
-    html += "<strong>Filtered sending</strong><br>"
-    html += '&#x2022; <em>"Send 5 invites for study 1234567 from Japan"</em><br>'
-    html += '&#x2022; <em>"Send 5 invites for study 1234567 from India, large enterprise"</em><br><br>'
+    html += '&#x2022; <em>"Send 5 invites for study 1234567 tomorrow at 9am"</em><br>'
+    html += '&#x2022; <em>"Send 5 invites for study 1234567 from Canada"</em><br>'
+    html += '&#x2022; <em>"Send 5 invites: 2 from Canada, 2 from USA, 1 from India"</em><br>'
+    html += '&#x2022; <em>"Send 5 invites for study 1234567 to Media Agency"</em><br>'
+    html += '&#x2022; <em>"Send invites for all P0s in Ready to Schedule for study 1234567"</em><br>'
+    html += '&#x2022; <em>"Send 5 invites for study 1234567 and 3 for study 2345678"</em><br><br>'
     html += "<strong>Checking status</strong><br>"
     html += '&#x2022; <em>"How many invites are left?"</em><br>'
     html += '&#x2022; <em>"Status of study 1234567"</em><br>'
-    html += '&#x2022; <em>"Today\'s summary"</em>  &#x2022; <em>"Pending studies"</em>  &#x2022; <em>"My studies"</em><br><br>'
+    html += '&#x2022; <em>"Today\'s summary"</em>  &#x2022; <em>"EOD update"</em>  &#x2022; <em>"Pending studies"</em><br><br>'
     html += "<strong>Participant tracking</strong><br>"
     html += '&#x2022; <em>"Who responded to study 1234567"</em><br>'
     html += '&#x2022; <em>"Who booked for study 1234567"</em><br>'
     html += '&#x2022; <em>"ICF status for study 1234567"</em><br>'
     html += '&#x2022; <em>"Who needs a reminder for study 1234567"</em><br>'
-    html += '&#x2022; <em>"How many confirmed for study 1234567"</em><br>'
     html += '&#x2022; <em>"Study progress 1234567"</em><br><br>'
-    html += "<strong>Schedules</strong><br>"
-    html += '&#x2022; <em>"Show my scheduled invites"</em><br><br>'
-    html += "<strong>Other</strong><br>"
-    html += '&#x2022; <em>"What failed?"</em>'
+    html += "<strong>Updates &amp; Replies</strong><br>"
+    html += '&#x2022; <em>"Show my EOD update"</em><br>'
+    html += '&#x2022; <em>"Draft a reply for John Smith asking to resend the ICF link"</em><br><br>'
+    html += "<strong>Not supported</strong><br>"
+    html += '<span style="color:var(--rose);">&#x2022;</span> Modifying email templates<br>'
+    html += '<span style="color:var(--rose);">&#x2022;</span> Creating or deleting studies/candidates<br>'
+    html += '<span style="color:var(--rose);">&#x2022;</span> Exporting PII or changing incentives<br>'
+    html += '<span style="color:var(--rose);">&#x2022;</span> Reassigning cases or changing study ownership'
     return html
 
 
@@ -517,6 +522,127 @@ def _build_study_progress_html(study_id: str) -> tuple[str, list[dict] | None]:
     return html, actions if actions else None
 
 
+def _build_send_all_p0s_html(study_id: str | None, rc_name: str) -> tuple[str, list[dict] | None]:
+    if study_id:
+        study = study_service.get_study(study_id)
+        if study is None:
+            return f'<span style="color:var(--rose);">Study {study_id} not found.</span> Please verify the ID.', None
+        remaining = study.total_required - study.already_sent
+        if remaining <= 0:
+            return f'All required invites for Study {study_id} have already been sent.', None
+        html = (
+            f"<strong>Send all P0s for Study {study_id} — {study.name}</strong><br>"
+            f"<span style='font-size:12px;color:var(--text-muted);'>All shortlisted P0 candidates in 'Ready to Schedule' status</span><br><br>"
+            f"<strong>{remaining}</strong> invites ready to send ({study.already_sent}/{study.total_required} already sent)."
+        )
+        actions = [
+            {"label": f"Send all {remaining}", "type": "primary", "action": "suggest",
+             "payload": f"send {remaining} invites for study {study_id}"},
+            {"label": "Cancel", "type": "secondary", "action": "cancel"},
+        ]
+        return html, actions
+
+    # All studies
+    rc_studies = study_service.get_studies_for_rc(rc_name)
+    pending = [(s, s.total_required - s.already_sent) for s in rc_studies if (s.total_required - s.already_sent) > 0]
+    if not pending:
+        return 'All your studies are fully invited. No P0s remaining.', None
+    total = sum(r for _, r in pending)
+    html = f"<strong>Send all P0s across your studies</strong><br><br>"
+    html += '<table class="msg-table">'
+    actions = []
+    for s, remaining in pending:
+        html += f"<tr><td>Study {s.id}</td><td>{s.name}</td><td><strong>{remaining}</strong> P0s ready</td></tr>"
+        actions.append({"label": f"Send for {s.id}", "type": "primary", "action": "suggest",
+                        "payload": f"send {remaining} invites for study {s.id}"})
+    html += "</table>"
+    html += f"<br>Total: <strong>{total}</strong> P0 invites across <strong>{len(pending)}</strong> studies."
+    return html, actions
+
+
+def _build_eod_update_html(rc_name: str) -> tuple[str, list[dict] | None]:
+    from datetime import date
+    rc_studies = study_service.get_studies_for_rc(rc_name)
+    today = date.today().strftime("%b %d, %Y")
+
+    html = f"<strong>EOD Update — {today}</strong><br>"
+    html += "<span style='font-size:12px;color:var(--text-muted);'>Draft end-of-day update for your studies:</span><br><br>"
+    html += '<table class="msg-table">'
+    html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Sent</td><td style="font-weight:600;">Remaining</td></tr>'
+
+    total_sent = 0
+    total_remaining = 0
+    for s in rc_studies:
+        remaining = s.total_required - s.already_sent
+        total_sent += s.already_sent
+        total_remaining += remaining
+        icon = (
+            '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span>'
+            if remaining == 0
+            else '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">hourglass_empty</span>'
+        )
+        rem_text = f'<strong>{remaining}</strong>' if remaining > 0 else '<span style="color:var(--green);">Done</span>'
+        html += f'<tr><td>{icon} Study {s.id}<br><span style="font-size:11px;color:var(--text-faint);">{s.name}</span></td><td>{s.already_sent}/{s.total_required}</td><td>{rem_text}</td></tr>'
+
+    html += f'<tr style="border-top:1px solid var(--card-border);"><td><strong>Total</strong></td><td><strong>{total_sent}</strong> sent</td><td><strong>{total_remaining}</strong> remaining</td></tr>'
+    html += '</table>'
+    html += '<br><span style="font-size:12px;color:var(--text-muted);">In production: this would be posted to Salesforce cases and shared with UXRs and Pod leads. (POC)</span>'
+
+    actions = [
+        {"label": "Pending studies", "type": "secondary", "action": "suggest", "payload": "pending studies"},
+        {"label": "My studies", "type": "secondary", "action": "suggest", "payload": "my studies"},
+    ]
+    return html, actions
+
+
+def _build_candidate_reply_html(req_text: str) -> tuple[str, list[dict] | None]:
+    import re
+    name_match = re.search(r"['\"]?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)['\"]?", req_text or "")
+    participant_name = name_match.group(1) if name_match else "the participant"
+    first_name = participant_name.split()[0]
+
+    html = f"<strong>Draft Reply — {participant_name}</strong><br>"
+    html += "<span style='font-size:12px;color:var(--text-muted);'>Here's a suggested reply based on their query:</span><br><br>"
+    html += '<div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.18);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;">'
+    html += f"Hi {first_name},<br><br>"
+    html += "Thank you for reaching out! Please find the ICF link below:<br>"
+    html += "<strong style='color:var(--blue);'>[ICF Link]</strong><br><br>"
+    html += "If you have any questions about the study or consent form, feel free to reply to this email.<br><br>"
+    html += "Thank you for your participation!<br>Best regards,<br>Research Coordinator"
+    html += "</div>"
+    html += "<br><span style='font-size:12px;color:var(--text-muted);'>(POC: in production this would be sent via Gmail after your approval.)</span>"
+
+    actions = [
+        {"label": "Send this reply", "type": "primary", "action": "suggest", "payload": "Confirm send reply"},
+        {"label": "Edit draft", "type": "secondary", "action": "suggest", "payload": "help"},
+    ]
+    return html, actions
+
+
+_UNSUPPORTED_MESSAGES = {
+    "unsupported_template":   "Sorry, I am not allowed to modify the email template. Templates are managed by UXR Ops.",
+    "unsupported_assign":     "Please contact your team lead for case assignments. I cannot assign cases.",
+    "unsupported_ownership":  "Please contact your team lead for ownership or UXR changes. I cannot modify study assignments.",
+    "unsupported_crossrc":    "Sorry, I can't send invites because that study is not assigned to you. Please contact your team lead.",
+    "unsupported_delete":     "Sorry, I cannot delete records from Salesforce. SF is read+write only — please contact UXR Ops.",
+    "unsupported_create":     "I can only work with existing studies. To create a new study, please contact your team lead.",
+    "unsupported_pii":        "I cannot export candidate PII or email lists. Please contact UXR Ops for data exports.",
+    "unsupported_incentive":  "I am not allowed to modify incentive amounts. Incentives are specified by UXR Ops.",
+    "unsupported_external":   "Daily updates are restricted to Google UX Ads team recipients. I cannot send to personal or external email addresses.",
+    "unsupported_reschedule": "I cannot modify candidate schedules. Please contact your team lead to reschedule appointments.",
+}
+
+
+def _build_unsupported_html(intent: str) -> tuple[str, list[dict] | None]:
+    msg = _UNSUPPORTED_MESSAGES.get(intent, "Sorry, I can't help with that request.")
+    html = (
+        '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">block</span> '
+        + msg
+    )
+    actions = [{"label": "Help — what can you do?", "type": "secondary", "action": "suggest", "payload": "help"}]
+    return html, actions
+
+
 def _build_unknown_html() -> str:
     html = (
         "I'm not sure what you mean. Here's what I can help with:<br>"
@@ -537,8 +663,34 @@ def process_message(req: ChatRequest):
     actions = None
     intent = parsed.intent
 
-    if intent == "send_invite":
-        html, actions = _build_send_invite_html(parsed.study_id, parsed.count)
+    if intent == "off_topic":
+        html = (
+            '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">info</span> '
+            "I'm only able to help with UXReach tasks — like sending invites, checking study status, "
+            "tracking participant responses, ICF status, and scheduling. "
+            "For anything else, please use the appropriate tool."
+        )
+        actions = [{"label": "What can you do?", "type": "secondary", "action": "suggest", "payload": "help"}]
+
+    elif intent == "send_invite":
+        if not parsed.study_id:
+            # No study ID — show study picker prompt
+            rc_studies = study_service.get_studies_for_rc(req.user_name)
+            html = "Sure! Which study would you like to send invites for? Here are your active studies:"
+            actions = []
+            for s in rc_studies:
+                remaining = s.total_required - s.already_sent
+                if remaining > 0:
+                    actions.append({
+                        "label": f"Study {s.id} — {s.name} ({remaining} left)",
+                        "type": "primary",
+                        "action": "suggest",
+                        "payload": f"send 10 invites for study {s.id}",
+                    })
+            if not actions:
+                html = "All your studies are fully invited — nothing remaining to send."
+        else:
+            html, actions = _build_send_invite_html(parsed.study_id, parsed.count or 10)
 
     elif intent == "schedule":
         html, actions = _build_schedule_html(parsed.study_id, parsed.count, parsed.scheduled_time)
@@ -593,6 +745,18 @@ def process_message(req: ChatRequest):
 
     elif intent == "study_progress":
         html, actions = _build_study_progress_html(parsed.study_id)
+
+    elif intent == "send_all_p0s":
+        html, actions = _build_send_all_p0s_html(parsed.study_id, req.user_name)
+
+    elif intent == "eod_update":
+        html, actions = _build_eod_update_html(req.user_name)
+
+    elif intent == "candidate_reply":
+        html, actions = _build_candidate_reply_html(req.message)
+
+    elif intent.startswith("unsupported_"):
+        html, actions = _build_unsupported_html(intent)
 
     elif intent == "greeting":
         first_name = req.user_name.split()[0] if req.user_name else "there"
