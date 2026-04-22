@@ -5,10 +5,12 @@ import { StudyProgress } from '../models/study-progress';
 import { STUDIES } from '../mock-data/studies.data';
 import { SHORTLISTING_POOLS, COUNTRY_ALIASES, CUSTOMER_TYPE_ALIASES } from '../mock-data/candidates.data';
 import { ApiService } from './api.service';
+import { AppStateService } from './app-state.service';
 
 @Injectable({ providedIn: 'root' })
 export class StudyService {
   private readonly api = inject(ApiService);
+  private readonly appState = inject(AppStateService);
   private studies: StudyMap = { ...STUDIES };
   private readonly studiesLoaded = signal(false);
 
@@ -50,7 +52,16 @@ export class StudyService {
   }
 
   getStudy(id: string): Study | undefined {
-    return this.studies[id];
+    const study = this.studies[id];
+    if (!study) return undefined;
+    if (study.ownerRC !== this.appState.userName()) return undefined;
+    return study;
+  }
+
+  isOwnedByOther(id: string): boolean {
+    const study = this.studies[id];
+    if (!study) return false;
+    return study.ownerRC !== this.appState.userName();
   }
 
   /**
@@ -105,27 +116,27 @@ export class StudyService {
     };
   }
 
-  getAllStudies(): StudyMap {
-    return this.studies;
-  }
-
-  getStudiesForRC(rcName: string): Record<string, Study> {
-    const result: Record<string, Study> = {};
+  private visibleStudies(): StudyMap {
+    const name = this.appState.userName();
+    const result: StudyMap = {};
     for (const id of Object.keys(this.studies)) {
-      if (this.studies[id].ownerRC === rcName) {
-        result[id] = this.studies[id];
-      }
+      if (this.studies[id].ownerRC === name) result[id] = this.studies[id];
     }
     return result;
   }
 
-  getActiveStudiesForRC(rcName: string): Record<string, Study> {
+  getAllStudies(): StudyMap {
+    return this.visibleStudies();
+  }
+
+  getStudiesForRC(_rcName: string): Record<string, Study> {
+    return this.visibleStudies();
+  }
+
+  getActiveStudiesForRC(_rcName: string): Record<string, Study> {
     const result: Record<string, Study> = {};
-    for (const id of Object.keys(this.studies)) {
-      const s = this.studies[id];
-      if (s.ownerRC === rcName && (s.totalRequired - s.alreadySent) > 0) {
-        result[id] = s;
-      }
+    for (const [id, s] of Object.entries(this.visibleStudies())) {
+      if ((s.totalRequired - s.alreadySent) > 0) result[id] = s;
     }
     return result;
   }

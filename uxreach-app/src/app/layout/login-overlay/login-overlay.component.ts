@@ -1,6 +1,5 @@
 import { Component, inject } from '@angular/core';
 import { AppStateService } from '../../services/app-state.service';
-import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login-overlay',
@@ -10,9 +9,5 @@ import { AuthService } from '../../services/auth.service';
 })
 export class LoginOverlayComponent {
   protected readonly appState = inject(AppStateService);
-  private readonly authService = inject(AuthService);
-
-  signIn(): void {
-    this.authService.login();
-  }
+  // GIS button is rendered into #google-btn by AuthService.initGis()
 }

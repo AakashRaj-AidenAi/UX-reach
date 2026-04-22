@@ -40,6 +40,14 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'admin',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-screen.component').then(
+        m => m.AdminScreenComponent
+      )
+  },
+  {
     path: 'settings',
     redirectTo: 'scheduled',
     pathMatch: 'full'

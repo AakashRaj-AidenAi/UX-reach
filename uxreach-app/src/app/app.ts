@@ -17,6 +17,9 @@ export class App implements OnInit {
   private readonly authService = inject(AuthService);
 
   ngOnInit(): void {
-    this.authService.checkSession();
+    // Restore an existing session; if none, initGoogleAuth sets up the GIS button
+    if (!this.authService.checkSession()) {
+      this.authService.initGoogleAuth();
+    }
   }
 }

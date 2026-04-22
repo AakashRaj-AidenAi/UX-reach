@@ -14,10 +14,16 @@ export interface CachedQueryResponse {
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
   readonly loggedIn = signal(false);
-  readonly userName = signal('Sarah Chen');
+  readonly userName = signal('');
+  readonly userEmail = signal('');
+  readonly userPicture = signal('');
+  readonly userRole = signal('rc');
+  readonly loginError = signal('');
   readonly currentScreen = signal('chat');
   readonly chatState = signal<ChatState>('idle');
   readonly currentStudyId = signal<string | null>(null);
+  readonly lastMentionedStudyId = signal<string | null>(null);
+  readonly pendingChatAction = signal<{ action: string; studyId?: string; count?: number } | null>(null);
   readonly currentInviteCount = signal(0);
   readonly emailsSent = signal(0);
   readonly elapsedSeconds = signal(0);

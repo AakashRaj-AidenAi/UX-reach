@@ -127,10 +127,26 @@
   color: #fff;
 }
 
+.sidebar-user-photo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .sidebar-user-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text);
+}
+
+.sidebar-user-email {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
 
 .sidebar-logout {

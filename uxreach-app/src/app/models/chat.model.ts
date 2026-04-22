@@ -33,7 +33,8 @@ export interface ChatMessage {
 }
 
 export interface SendingProgress {
-  sent: number;
+  sent: number;       // local progress tracker
+  emailsSent?: number; // from backend API response
   total: number;
   elapsedSeconds: number;
   isComplete: boolean;

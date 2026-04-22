@@ -6,7 +6,7 @@ Run: uvicorn main:app --reload --port 8000
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import studies, chat, sending, audit, settings, health, participants
+from app.routers import studies, chat, sending, audit, settings, health, participants, auth
 
 app = FastAPI(
     title="UXReach Invite Email Agent API",
@@ -29,6 +29,7 @@ app.add_middleware(
 )
 
 # Register routers
+app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(studies.router)
 app.include_router(chat.router)

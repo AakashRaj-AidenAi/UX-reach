@@ -63,8 +63,9 @@ export class SendingService {
 
       this.api.getSendProgress(this.currentSessionId).subscribe({
         next: (progress) => {
-          this.appState.emailsSent.set(progress.sent);
-          this.onEmailTick$.next({ sent: progress.sent, total: progress.total });
+          const tickSent = progress.emailsSent ?? progress.sent ?? 0;
+          this.appState.emailsSent.set(tickSent);
+          this.onEmailTick$.next({ sent: tickSent, total: progress.total });
 
           if (progress.isComplete) {
             this.clearIntervals();
@@ -72,9 +73,10 @@ export class SendingService {
             this.currentSessionId = null;
 
             const durationStr = progress.durationStr || this.formatDuration(this.appState.elapsedSeconds());
+            const sentCount = progress.emailsSent ?? progress.sent ?? total;
 
-            this.studyService.updateStudySent(studyId, progress.sent);
-            this.recordAuditRun(studyId, progress.sent, durationStr);
+            this.studyService.updateStudySent(studyId, sentCount);
+            this.recordAuditRun(studyId, sentCount, durationStr);
             this.appState.bumpStudyListVersion();
 
             const queue = this.appState.sendQueue();
@@ -82,7 +84,7 @@ export class SendingService {
 
             this.onComplete$.next({
               studyId,
-              sent: progress.sent,
+              sent: sentCount,
               total: progress.total,
               durationStr,
               completed: true,

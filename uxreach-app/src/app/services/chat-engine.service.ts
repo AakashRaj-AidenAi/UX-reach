@@ -108,6 +108,11 @@ export class ChatEngineService implements OnDestroy {
   }
 
   newConversation(): void {
+    // Don't create a duplicate empty chat — only create a new one if the current chat has at least one user message.
+    const activeMessages = this.history.activeConversation()?.messages ?? this.messages();
+    const hasUserMessage = activeMessages.some(m => m.sender === 'user');
+    if (!hasUserMessage) return;
+
     this.history.startNewConversation();
     this.suppressPersist = true;
     this.messages.set([]);
@@ -238,6 +243,28 @@ export class ChatEngineService implements OnDestroy {
       }
     }
 
+    // "Send N invites for each of my studies" / "send N invites for all my studies"
+    const eachStudyRe = /send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:each|all)\s+(?:of\s+)?(?:my\s+)?studies?/i;
+    const eachStudyMatch = lower.match(eachStudyRe);
+    if (eachStudyMatch) {
+      const count = parseInt(eachStudyMatch[1], 10);
+      const allStudies = this.studyService.getAllStudies();
+      const segments: SendQueueItem[] = [];
+      Object.keys(allStudies).forEach(id => {
+        const s = allStudies[id];
+        const remaining = s.totalRequired - s.alreadySent;
+        if (remaining > 0) {
+          segments.push({ studyId: id, count, studyName: s.name });
+        }
+      });
+      if (segments.length === 0) {
+        this.addBotMessage('All your studies are fully invited — nothing remaining to send.', undefined, 0);
+      } else {
+        this.handleMultiStudyCommand(segments);
+      }
+      return;
+    }
+
     // Multi-study compound: "send X invites for study A and Y invites for study B"
     const multiSegments: SendQueueItem[] = [];
     const multiRe = /(?:send|and)\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})/gi;
@@ -248,6 +275,26 @@ export class ChatEngineService implements OnDestroy {
     }
     if (multiSegments.length > 1) {
       this.handleMultiStudyCommand(multiSegments);
+      return;
+    }
+
+    // "send N" / "send N invites" with no study ID — use last mentioned study as context
+    const sendCountOnlyMatch = lower.match(/^send\s+(\d+)(?:\s+invites?)?$/);
+    if (sendCountOnlyMatch) {
+      const count = parseInt(sendCountOnlyMatch[1], 10);
+      const contextStudyId = this.appState.lastMentionedStudyId();
+      if (contextStudyId) {
+        this.handleInviteFlow(contextStudyId, count);
+      } else {
+        this.openStudyPicker();
+      }
+      return;
+    }
+
+    // Invite without count — ask how many
+    const inviteNoCountMatch = lower.match(/send\s+invites?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})/);
+    if (inviteNoCountMatch && !lower.match(/send\s+\d+\s+invite/)) {
+      this.handleInviteCountPrompt(inviteNoCountMatch[1]);
       return;
     }
 
@@ -310,8 +357,132 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
-    // Help (local)
-    if (lower.match(/^help$|what can you do|what do you know|available commands|^commands$/)) {
+    // ── Query Agent: Participant Tracking ──
+
+    // Responses for study
+    const responsesMatch = lower.match(/(?:who\s+)?respond(?:ed)?|responses?\s+(?:for|to)\s+(?:study|case)?\s*(\d{7})/);
+    if (responsesMatch) {
+      const sid = responsesMatch[1] || extractStudyId(lower);
+      if (sid) { this.handleQueryAgentChat(`responses for study ${sid}`); return; }
+    }
+
+    // Bookings
+    const bookingsMatch = lower.match(/(?:who\s+)?book|booking|calendar|slot.*?(\d{7})/);
+    if (bookingsMatch && bookingsMatch[1]) {
+      this.handleQueryAgentChat(`bookings for study ${bookingsMatch[1]}`);
+      return;
+    }
+
+    // ICF status
+    const icfMatch = lower.match(/icf|consent|signed.*?(\d{7})/);
+    if (icfMatch && icfMatch[1]) {
+      this.handleQueryAgentChat(`icf status for study ${icfMatch[1]}`);
+      return;
+    }
+
+    // Reminders needed
+    const reminderMatch = lower.match(/remind|follow.?up|non.?respond.*?(\d{7})/);
+    if (reminderMatch && reminderMatch[1]) {
+      this.handleQueryAgentChat(`who needs a reminder for study ${reminderMatch[1]}`);
+      return;
+    }
+
+    // Confirmed count
+    const confirmedMatch = lower.match(/confirm|locked.?in|ready.*?(\d{7})/);
+    if (confirmedMatch && confirmedMatch[1]) {
+      this.handleQueryAgentChat(`how many confirmed for study ${confirmedMatch[1]}`);
+      return;
+    }
+
+    // Study progress
+    const progressMatch = lower.match(/progress\s+(?:for\s+)?(?:study|case)?\s*(\d{7})/);
+    if (progressMatch) {
+      this.handleQueryAgentChat(`study progress ${progressMatch[1]}`);
+      return;
+    }
+
+    // ── New supported: Send all P0s ready to schedule ──
+    if (lower.match(/all\s+p0s?|ready\s+to\s+schedule|all.*ready.*schedule/)) {
+      const studyMatch = lower.match(/(\d{7})/);
+      if (studyMatch) {
+        const s = this.studyService.getStudy(studyMatch[1]);
+        const remaining = s ? (s.totalRequired - s.alreadySent) : 0;
+        if (remaining > 0) { this.handleInviteFlow(studyMatch[1], remaining); }
+        else { this.addTyping(); setTimeout(() => { this.removeTyping(); this.addBotMessage(`All required invites for Study ${studyMatch[1]} have already been sent.`, undefined, 0); }, 800); }
+      } else {
+        this.handleMyStudies();
+      }
+      return;
+    }
+
+    // ── New supported: EOD update ──
+    if (lower.match(/\beod\b|end.?of.?day|daily update|eod update/)) {
+      this.handleEodUpdate();
+      return;
+    }
+
+    // ── New supported: Candidate reply / draft ──
+    if (lower.match(/draft.*reply|reply.*draft|prepare.*draft|draft.*response|candidate.*reply|reply.*candidate|resend.*icf|resend.*link|send.*icf.*link/)) {
+      this.handleCandidateReplyDraft(text);
+      return;
+    }
+
+    // ── Unsupported: Template modification ──
+    if (lower.match(/modify.*template|change.*template|edit.*template|update.*template|template.*modern|template.*technical/)) {
+      this.handleUnsupported('Sorry, I am not allowed to modify the email template. Templates are managed by UXR Ops.');
+      return;
+    }
+
+    // ── Unsupported: Candidate deletion ──
+    if (lower.match(/remove\s+candidate|delete\s+candidate|remove.*from\s+study.*\d{7}|delete.*from\s+study/)) {
+      this.handleUnsupported('Sorry, I cannot delete records from Salesforce. SF is read+write only — please contact UXR Ops if you need to remove a candidate.');
+      return;
+    }
+
+    // ── Unsupported: Study creation ──
+    if (lower.match(/create\s+(?:a\s+)?(?:new\s+)?(?:uxr\s+)?study|new\s+study|start\s+(?:a\s+)?study/)) {
+      this.handleUnsupported('I can only work with existing studies. To create a new study, please contact your team lead.');
+      return;
+    }
+
+    // ── Unsupported: PII / CSV export ──
+    if (lower.match(/export.*(?:email|candidate|csv|pii|list)|download.*(?:email|candidate)|email\s+list.*csv/)) {
+      this.handleUnsupported('I cannot export candidate PII or email lists. Please contact UXR Ops for data exports.');
+      return;
+    }
+
+    // ── Unsupported: Incentive change ──
+    if (lower.match(/(?:increase|change|modify|update)\s+incentive|incentive.*\$\d+|\$\d+.*incentive/)) {
+      this.handleUnsupported('I am not allowed to modify incentive amounts. Incentives are specified by UXR Ops — please contact them for changes.');
+      return;
+    }
+
+    // ── Unsupported: Case assignment ──
+    if (lower.match(/assign\s+(?:me\s+)?(?:case|study)|(?:case|study)\s+\d{7}.*assign/)) {
+      this.handleUnsupported('Please contact your team lead for case assignments. I cannot assign cases.');
+      return;
+    }
+
+    // ── Unsupported: Ownership / UXR change ──
+    if (lower.match(/change\s+(?:the\s+)?uxr|change\s+owner|ownership\s+change|reassign.*study|transfer.*study/)) {
+      this.handleUnsupported('Please contact your team lead for ownership or UXR changes. I cannot modify study assignments.');
+      return;
+    }
+
+    // ── Unsupported: External email recipient ──
+    if (lower.match(/personal.*(?:gmail|mail)|send.*update.*(?:gmail|personal|external)|external.*email.*update/)) {
+      this.handleUnsupported('Daily updates are restricted to Google UX Ads team recipients only. I cannot send updates to external or personal email addresses.');
+      return;
+    }
+
+    // ── Unsupported: Candidate schedule change ──
+    if (lower.match(/reschedule\s+candidate|reschedule.*\d{6}|move.*appointment|change.*(?:slot|time).*for.*candidate/)) {
+      this.handleUnsupported('I cannot modify candidate schedules. Please contact your team lead to reschedule appointments.');
+      return;
+    }
+
+    // Help
+    if (lower.match(/^help$|what.*can.*you|what do you know|available commands|^commands$|what.*you.*do|capabilities/)) {
       this.handleHelp();
       return;
     }
@@ -390,9 +561,14 @@ export class ChatEngineService implements OnDestroy {
   // ── INVITE FLOW ──
 
   handleInviteFlow(studyId: string, count: number): void {
+    this.appState.lastMentionedStudyId.set(studyId);
     const study = this.studyService.getStudy(studyId);
     if (!study) {
-      this.handleInvalidStudy(studyId);
+      if (this.studyService.isOwnedByOther(studyId)) {
+        this.handleUnauthorizedStudy(studyId);
+      } else {
+        this.handleInvalidStudy(studyId);
+      }
       return;
     }
 
@@ -401,34 +577,6 @@ export class ChatEngineService implements OnDestroy {
 
     this.appState.currentStudyId.set(studyId);
     this.appState.currentInviteCount.set(actualCount);
-
-    if (study.ownerRC !== this.appState.userName()) {
-      if (!this.appState.allowCrossRcSend()) {
-        this.addTyping();
-        setTimeout(() => {
-          this.removeTyping();
-          this.addBotMessage(
-            `<span style="color:var(--rose);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">warning</span> Cross-RC sends are disabled.</span> Study ${studyId} belongs to ${study.ownerRC}. Enable cross-RC sending in Settings to proceed.`,
-            undefined, 0
-          );
-        }, 1000);
-        return;
-      }
-
-      this.appState.chatState.set('awaiting_crossrc');
-      this.addTyping();
-      setTimeout(() => {
-        this.removeTyping();
-        this.addBotMessage(
-          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> This study is worked on by ${study.ownerRC}. Are you sure you want to send invites for this study?`,
-          [
-            { label: 'Yes, proceed', type: 'primary', action: 'proceed_crossrc' },
-            { label: 'Cancel', type: 'secondary', action: 'cancel' }
-          ], 0
-        );
-      }, 1000);
-      return;
-    }
 
     this.showSendConfirmation(studyId, actualCount);
   }
@@ -469,7 +617,11 @@ export class ChatEngineService implements OnDestroy {
   handleFilteredInviteFlow(studyId: string, count: number, filters: FilterSet): void {
     const study = this.studyService.getStudy(studyId);
     if (!study) {
-      this.handleInvalidStudy(studyId);
+      if (this.studyService.isOwnedByOther(studyId)) {
+        this.handleUnauthorizedStudy(studyId);
+      } else {
+        this.handleInvalidStudy(studyId);
+      }
       return;
     }
 
@@ -568,9 +720,15 @@ export class ChatEngineService implements OnDestroy {
       if (actualCount > 0) queue.push({ studyId: seg.studyId, count: actualCount, studyName: study.name });
     });
 
-    if (unknown.length > 0) {
-      this.addBotMessage(`<span style="color:var(--rose);">Study ${unknown.join(', ')} not found.</span> Please verify the study ID and try again.`, undefined, 0);
+    if (unknown.length > 0 && queue.length === 0) {
+      this.addBotMessage(`<span style="color:var(--rose);">None of the specified studies were found.</span> Please verify the study IDs and try again.`, undefined, 0);
       return;
+    }
+    if (unknown.length > 0) {
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> <span style="color:var(--amber);">Study ${unknown.join(', ')} not found — skipping and proceeding with the remaining ${queue.length} ${queue.length === 1 ? 'study' : 'studies'}.</span>`,
+        undefined, 0
+      );
     }
     if (queue.length === 0) {
       this.addBotMessage('All selected studies have already met their invite targets. Nothing to send.', undefined, 0);
@@ -662,6 +820,32 @@ export class ChatEngineService implements OnDestroy {
     const study = this.studyService.getStudy(studyId);
     const queue = this.appState.sendQueue();
     const queueIdx = this.appState.sendQueueIndex();
+
+    // Health check before send — non-blocking; warns in chat if any dependency is down
+    const DEP_LABELS: Record<string, string> = {
+      salesforce: 'Salesforce',
+      shortlisting_app: 'Shortlisting App',
+      cloud_sql: 'Cloud SQL',
+      gemini: 'Gemini'
+    };
+    this.api.getDependencies().subscribe({
+      next: (healthData) => {
+        const deps: Record<string, { status: string }> = healthData?.dependencies ?? {};
+        const downDeps = Object.entries(deps)
+          .filter(([, dep]) => dep.status !== 'connected')
+          .map(([key]) => DEP_LABELS[key] ?? key);
+        if (downDeps.length > 0) {
+          const names = downDeps.join(', ');
+          this.addBotMessage(
+            `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> ` +
+            `<strong>Dependency alert:</strong> ${names} ${downDeps.length === 1 ? 'is' : 'are'} currently unavailable. ` +
+            `The invite send may not complete successfully.`,
+            undefined, 0
+          );
+          this.toastService.show('warning', `Dependency alert: ${names} unavailable`);
+        }
+      }
+    });
 
     const msgId = this.generateId();
     const msg: ChatMessage = {
@@ -889,6 +1073,7 @@ export class ChatEngineService implements OnDestroy {
   // ── QUERY RESPONSES ──
 
   handleStatusQuery(studyId: string): void {
+    this.appState.lastMentionedStudyId.set(studyId);
     const study = this.studyService.getStudy(studyId);
     if (!study) {
       this.addTyping();
@@ -1058,7 +1243,6 @@ export class ChatEngineService implements OnDestroy {
         const allStudies = this.studyService.getAllStudies();
         Object.keys(allStudies).forEach(id => {
           const s = allStudies[id];
-          if (s.ownerRC !== this.appState.userName()) return;
           const remaining = s.totalRequired - s.alreadySent;
           const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
           if (remaining > 0) {
@@ -1117,7 +1301,6 @@ export class ChatEngineService implements OnDestroy {
 
       Object.keys(allStudies).forEach(id => {
         const s = allStudies[id];
-        if (s.ownerRC !== this.appState.userName()) return;
         const remaining = s.totalRequired - s.alreadySent;
         const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
         const icon = remaining === 0
@@ -1308,8 +1491,17 @@ export class ChatEngineService implements OnDestroy {
       html += '&#x2022; <em>"Study progress 1234567"</em><br><br>';
       html += `<strong>${hIcon('calendar_today', 'var(--blue)')} Schedules</strong><br>`;
       html += '&#x2022; <em>"Show my scheduled invites"</em><br><br>';
+      html += `<strong>${hIcon('edit_note', 'var(--blue)')} Updates &amp; Replies</strong><br>`;
+      html += '&#x2022; <em>"Show my EOD update"</em><br>';
+      html += '&#x2022; <em>"Draft a reply for John Smith asking to resend the ICF link"</em><br><br>';
       html += '<strong>Other</strong><br>';
-      html += '&#x2022; <em>"What failed?"</em>';
+      html += '&#x2022; <em>"What failed?"</em><br>';
+      html += '&#x2022; <em>"Send invites for all P0s ready to schedule for 1234567"</em><br><br>';
+      html += `<strong><span style="color:var(--rose);">${hIcon('block', 'var(--rose)')} Not supported</span></strong><br>`;
+      html += '<span style="color:var(--rose);">&#x2022;</span> Modifying email templates<br>';
+      html += '<span style="color:var(--rose);">&#x2022;</span> Creating or deleting studies / candidates<br>';
+      html += '<span style="color:var(--rose);">&#x2022;</span> Exporting PII / CSV / email lists<br>';
+      html += '<span style="color:var(--rose);">&#x2022;</span> Changing incentive amounts or study ownership';
 
       this.addBotMessage(html, [
         { label: 'Try filtered send', type: 'primary', action: 'suggest', payload: 'Send 5 invites for study 1234567 from Japan' },
@@ -1317,6 +1509,140 @@ export class ChatEngineService implements OnDestroy {
         { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
         { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
       ], 0);
+    }, 800);
+  }
+
+  handleUnsupported(message: string): void {
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">block</span> ${message}`,
+        [{ label: 'Help — what can you do?', type: 'secondary', action: 'suggest', payload: 'help' }],
+        0
+      );
+    }, 800);
+  }
+
+  handleEodUpdate(): void {
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      const allStudies = this.studyService.getAllStudies();
+      const userName = this.appState.userName();
+      const myStudies = Object.entries(allStudies).filter(([, s]) => s.ownerRC === userName);
+
+      let html = '<strong>EOD Update — ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</strong><br>';
+      html += '<span style="font-size:12px;color:var(--text-muted);">Here\'s a draft of your end-of-day update:</span><br><br>';
+      html += '<table class="msg-table">';
+      html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Sent</td><td style="font-weight:600;">Remaining</td></tr>';
+
+      let totalSent = 0;
+      let totalRemaining = 0;
+
+      myStudies.forEach(([id, s]) => {
+        const remaining = s.totalRequired - s.alreadySent;
+        totalSent += s.alreadySent;
+        totalRemaining += remaining;
+        const statusIcon = remaining === 0
+          ? '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span>'
+          : '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">hourglass_empty</span>';
+        html += `<tr><td>${statusIcon} Study ${id}<br><span style="font-size:11px;color:var(--text-faint);">${s.name}</span></td><td>${s.alreadySent}/${s.totalRequired}</td><td>${remaining > 0 ? '<strong>' + remaining + '</strong>' : '<span style="color:var(--green);">Done</span>'}</td></tr>`;
+      });
+
+      html += `<tr style="border-top:1px solid var(--card-border);"><td><strong>Total</strong></td><td><strong>${totalSent}</strong> sent</td><td><strong>${totalRemaining}</strong> remaining</td></tr>`;
+      html += '</table>';
+      html += '<br><span style="font-size:12px;color:var(--text-muted);">This update would be posted to your Salesforce cases and shared with the UXR leads and Pod leads. (POC: not sending)</span>';
+
+      this.addBotMessage(html, [
+        { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' },
+        { label: 'Pending studies', type: 'secondary', action: 'suggest', payload: 'Pending studies' }
+      ], 0);
+    }, 1200);
+  }
+
+  handleCandidateReplyDraft(text: string): void {
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      const nameMatch = text.match(/['"]?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)['"]?/);
+      const participantName = nameMatch ? nameMatch[1] : 'the participant';
+
+      let html = `<strong>Draft Reply — ${participantName}</strong><br>`;
+      html += '<span style="font-size:12px;color:var(--text-muted);">Here\'s a suggested reply based on their query:</span><br><br>';
+      html += '<div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.18);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;">';
+      html += `Hi ${participantName.split(' ')[0]},<br><br>`;
+      html += 'Thank you for reaching out! Please find the ICF link below for your reference:<br>';
+      html += '<strong style="color:var(--blue);">[ICF Link will be inserted here]</strong><br><br>';
+      html += 'If you have any questions about the study or the consent form, feel free to reply to this email.<br><br>';
+      html += 'Thank you for participating!<br>Best regards,<br>' + (this.appState.userName() || 'Research Coordinator');
+      html += '</div>';
+      html += '<br><span style="font-size:12px;color:var(--text-muted);">(POC: In production, this would be sent via Gmail. You can review and modify before sending.)</span>';
+
+      this.addBotMessage(html, [
+        { label: 'Looks good — send', type: 'primary', action: 'suggest', payload: 'Confirm send reply' },
+        { label: 'Edit draft', type: 'secondary', action: 'suggest', payload: 'help' }
+      ], 0);
+    }, 1200);
+  }
+
+  handleUnauthorizedStudy(studyId: string): void {
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">lock</span> Sorry, I can't send the invites because study <strong>${studyId}</strong> is not assigned to you. Please contact your team lead.`,
+        [{ label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }],
+        0
+      );
+    }, 800);
+  }
+
+  handleInviteCountPrompt(studyId: string): void {
+    this.appState.lastMentionedStudyId.set(studyId);
+    const study = this.studyService.getStudy(studyId);
+    if (!study) {
+      if (this.studyService.isOwnedByOther(studyId)) {
+        this.handleUnauthorizedStudy(studyId);
+      } else {
+        this.handleInvalidStudy(studyId);
+      }
+      return;
+    }
+
+    const remaining = study.totalRequired - study.alreadySent;
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+
+      if (remaining <= 0) {
+        this.addBotMessage(`All required invites for Study ${studyId} — <strong>${study.name}</strong> have already been sent.`, undefined, 0);
+        return;
+      }
+
+      let html = `<strong>Study ${studyId} — ${study.name}</strong><br>`;
+      html += `Researcher: ${study.researcher}<br><br>`;
+      html += `<table class="msg-table">`;
+      html += `<tr><td>Already sent</td><td>${study.alreadySent} of ${study.totalRequired} required</td></tr>`;
+      html += `<tr><td>Remaining</td><td><strong>${remaining}</strong></td></tr>`;
+      html += `</table><br>`;
+      html += `How many invites would you like to send?`;
+
+      const quickCounts = [5, 10, 20].filter(n => n <= remaining);
+      const actions: MessageAction[] = quickCounts.map(n => ({
+        label: `Send ${n}`,
+        type: 'primary' as const,
+        action: 'suggest',
+        payload: `send ${n} invites for study ${studyId}`
+      }));
+      actions.push({
+        label: `Send all ${remaining}`,
+        type: 'secondary' as const,
+        action: 'suggest',
+        payload: `send ${remaining} invites for study ${studyId}`
+      });
+
+      this.addBotMessage(html, actions, 0);
     }, 800);
   }
 
