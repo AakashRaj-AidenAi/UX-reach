@@ -52,6 +52,8 @@ export class AuthService {
     }, 100);
   }
 
+  private gisReady = false;
+
   private initGis(): void {
     google.accounts.id.initialize({
       client_id: this.clientId,
@@ -59,18 +61,23 @@ export class AuthService {
       auto_select: false,
       cancel_on_tap_outside: true,
     });
-
+    this.gisReady = true;
+    // If login component already called renderButton before GIS was ready, render now.
     const btn = document.getElementById('google-btn');
-    if (btn) {
-      google.accounts.id.renderButton(btn, {
-        type: 'standard',
-        shape: 'rectangular',
-        theme: 'outline',
-        text: 'signin_with',
-        size: 'large',
-        width: 300,
-      });
-    }
+    if (btn) this.renderButton(btn);
+  }
+
+  /** Called by LoginOverlayComponent.ngAfterViewInit to render into a known-live element. */
+  renderButton(el: HTMLElement): void {
+    if (!this.gisReady) return; // initGis will call back once ready
+    google.accounts.id.renderButton(el, {
+      type: 'standard',
+      shape: 'rectangular',
+      theme: 'outline',
+      text: 'signin_with',
+      size: 'large',
+      width: 300,
+    });
   }
 
   private handleCredential(resp: { credential: string }): void {

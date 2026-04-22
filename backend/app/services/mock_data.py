@@ -13,6 +13,7 @@ ALLOWED_USERS: list[dict] = [
     {"email": "sarah.chen@google.com",     "name": "Sarah Chen",   "role": "rc"},
     {"email": "aakash.aidenai@gmail.com",  "name": "Aakash",       "role": "rc"},
     {"email": "shubhamkapadia0@gmail.com", "name": "Shubham",      "role": "rc"},
+    {"email": "vinothdkumar7@gmail.com",   "name": "Vinoth",       "role": "rc"},
 ]
 
 # ── Studies (keyed by study ID) ──
