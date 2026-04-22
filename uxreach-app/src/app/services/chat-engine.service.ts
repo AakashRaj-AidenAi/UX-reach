@@ -265,6 +265,12 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
+    // Greeting
+    if (lower.match(/^(hi|hey|hello|howdy|good\s*(morning|afternoon|evening)|how are you|what'?s up|sup|yo)[\s!?]*$/)) {
+      this.handleGreeting();
+      return;
+    }
+
     // Fallback
     this.addTyping();
     setTimeout(() => {
@@ -1072,6 +1078,22 @@ export class ChatEngineService implements OnDestroy {
         this.toastService.show('error', 'Backend API unavailable');
       }
     });
+  }
+
+  handleGreeting(): void {
+    const firstName = this.appState.userName().split(' ')[0] || 'there';
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      this.addBotMessage(
+        `Hey ${firstName}! Good to see you. I'm your UXReach assistant — I can help you send invites, check study status, track responses, and more.<br><br>What would you like to do today?`,
+        [
+          { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' },
+          { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Today's summary" },
+          { label: 'Help', type: 'secondary', action: 'suggest', payload: 'help' }
+        ], 0
+      );
+    }, 800);
   }
 
   handleHelp(): void {

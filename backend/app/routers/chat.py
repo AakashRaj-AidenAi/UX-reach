@@ -594,6 +594,19 @@ def process_message(req: ChatRequest):
     elif intent == "study_progress":
         html, actions = _build_study_progress_html(parsed.study_id)
 
+    elif intent == "greeting":
+        first_name = req.user_name.split()[0] if req.user_name else "there"
+        html = (
+            f"Hey {first_name}! 👋 Good to see you. I'm your UXReach assistant — "
+            f"I can help you send invites, check study status, track responses, and more.<br><br>"
+            f"What would you like to do today?"
+        )
+        actions = [
+            {"label": "My studies", "type": "secondary", "action": "suggest", "payload": "show my studies"},
+            {"label": "Today's summary", "type": "secondary", "action": "suggest", "payload": "today's summary"},
+            {"label": "Help", "type": "secondary", "action": "suggest", "payload": "help"},
+        ]
+
     elif intent == "help":
         html = _build_help_html()
 

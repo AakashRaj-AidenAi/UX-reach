@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from fastapi import APIRouter
@@ -27,8 +28,8 @@ def dependency_status():
                 "last_check": datetime.now().isoformat(),
             },
             "gemini": {
-                "status": "connected",
-                "model": "gemini-3.1-pro",
+                "status": "connected" if (os.getenv("GEMINI_API_KEY", "") not in ("", "your_gemini_api_key_here")) else "not_configured",
+                "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
                 "latency_ms": 120,
                 "last_check": datetime.now().isoformat(),
             },
