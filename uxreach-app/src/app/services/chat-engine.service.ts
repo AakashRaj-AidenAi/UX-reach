@@ -108,6 +108,11 @@ export class ChatEngineService implements OnDestroy {
   }
 
   newConversation(): void {
+    // Don't create a duplicate empty chat — only create a new one if the current chat has at least one user message.
+    const activeMessages = this.history.activeConversation()?.messages ?? this.messages();
+    const hasUserMessage = activeMessages.some(m => m.sender === 'user');
+    if (!hasUserMessage) return;
+
     this.history.startNewConversation();
     this.suppressPersist = true;
     this.messages.set([]);
@@ -270,6 +275,26 @@ export class ChatEngineService implements OnDestroy {
     }
     if (multiSegments.length > 1) {
       this.handleMultiStudyCommand(multiSegments);
+      return;
+    }
+
+    // "send N" / "send N invites" with no study ID — use last mentioned study as context
+    const sendCountOnlyMatch = lower.match(/^send\s+(\d+)(?:\s+invites?)?$/);
+    if (sendCountOnlyMatch) {
+      const count = parseInt(sendCountOnlyMatch[1], 10);
+      const contextStudyId = this.appState.lastMentionedStudyId();
+      if (contextStudyId) {
+        this.handleInviteFlow(contextStudyId, count);
+      } else {
+        this.openStudyPicker();
+      }
+      return;
+    }
+
+    // Invite without count — ask how many
+    const inviteNoCountMatch = lower.match(/send\s+invites?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})/);
+    if (inviteNoCountMatch && !lower.match(/send\s+\d+\s+invite/)) {
+      this.handleInviteCountPrompt(inviteNoCountMatch[1]);
       return;
     }
 
@@ -536,9 +561,14 @@ export class ChatEngineService implements OnDestroy {
   // ── INVITE FLOW ──
 
   handleInviteFlow(studyId: string, count: number): void {
+    this.appState.lastMentionedStudyId.set(studyId);
     const study = this.studyService.getStudy(studyId);
     if (!study) {
-      this.handleInvalidStudy(studyId);
+      if (this.studyService.isOwnedByOther(studyId)) {
+        this.handleUnauthorizedStudy(studyId);
+      } else {
+        this.handleInvalidStudy(studyId);
+      }
       return;
     }
 
@@ -587,7 +617,11 @@ export class ChatEngineService implements OnDestroy {
   handleFilteredInviteFlow(studyId: string, count: number, filters: FilterSet): void {
     const study = this.studyService.getStudy(studyId);
     if (!study) {
-      this.handleInvalidStudy(studyId);
+      if (this.studyService.isOwnedByOther(studyId)) {
+        this.handleUnauthorizedStudy(studyId);
+      } else {
+        this.handleInvalidStudy(studyId);
+      }
       return;
     }
 
@@ -1039,6 +1073,7 @@ export class ChatEngineService implements OnDestroy {
   // ── QUERY RESPONSES ──
 
   handleStatusQuery(studyId: string): void {
+    this.appState.lastMentionedStudyId.set(studyId);
     const study = this.studyService.getStudy(studyId);
     if (!study) {
       this.addTyping();
@@ -1549,6 +1584,66 @@ export class ChatEngineService implements OnDestroy {
         { label: 'Edit draft', type: 'secondary', action: 'suggest', payload: 'help' }
       ], 0);
     }, 1200);
+  }
+
+  handleUnauthorizedStudy(studyId: string): void {
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">lock</span> Sorry, I can't send the invites because study <strong>${studyId}</strong> is not assigned to you. Please contact your team lead.`,
+        [{ label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }],
+        0
+      );
+    }, 800);
+  }
+
+  handleInviteCountPrompt(studyId: string): void {
+    this.appState.lastMentionedStudyId.set(studyId);
+    const study = this.studyService.getStudy(studyId);
+    if (!study) {
+      if (this.studyService.isOwnedByOther(studyId)) {
+        this.handleUnauthorizedStudy(studyId);
+      } else {
+        this.handleInvalidStudy(studyId);
+      }
+      return;
+    }
+
+    const remaining = study.totalRequired - study.alreadySent;
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+
+      if (remaining <= 0) {
+        this.addBotMessage(`All required invites for Study ${studyId} — <strong>${study.name}</strong> have already been sent.`, undefined, 0);
+        return;
+      }
+
+      let html = `<strong>Study ${studyId} — ${study.name}</strong><br>`;
+      html += `Researcher: ${study.researcher}<br><br>`;
+      html += `<table class="msg-table">`;
+      html += `<tr><td>Already sent</td><td>${study.alreadySent} of ${study.totalRequired} required</td></tr>`;
+      html += `<tr><td>Remaining</td><td><strong>${remaining}</strong></td></tr>`;
+      html += `</table><br>`;
+      html += `How many invites would you like to send?`;
+
+      const quickCounts = [5, 10, 20].filter(n => n <= remaining);
+      const actions: MessageAction[] = quickCounts.map(n => ({
+        label: `Send ${n}`,
+        type: 'primary' as const,
+        action: 'suggest',
+        payload: `send ${n} invites for study ${studyId}`
+      }));
+      actions.push({
+        label: `Send all ${remaining}`,
+        type: 'secondary' as const,
+        action: 'suggest',
+        payload: `send ${remaining} invites for study ${studyId}`
+      });
+
+      this.addBotMessage(html, actions, 0);
+    }, 800);
   }
 
   handleInvalidStudy(studyId: string): void {

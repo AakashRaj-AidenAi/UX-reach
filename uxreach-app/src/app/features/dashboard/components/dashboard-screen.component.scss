@@ -419,3 +419,182 @@
   color: var(--text-muted);
   font-size: 14px;
 }
+
+/* ====== Modal ====== */
+.dash-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+}
+
+.dash-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 201;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  width: 420px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.dash-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.dash-modal-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.dash-modal-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.dash-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  &:hover { color: var(--text); }
+}
+
+.dash-modal-body {
+  padding: 18px 20px;
+}
+
+.dash-modal-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.dash-modal-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-top: 14px;
+}
+
+.dash-quick-counts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.dash-count-chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.15s;
+
+  &:hover { border-color: var(--blue); color: var(--blue); }
+  &.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+}
+
+.dash-count-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-sizing: border-box;
+  outline: none;
+  &:focus { border-color: var(--blue); }
+}
+
+.dash-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--card-border);
+}
+
+.dash-modal-cancel {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  &:hover { background: var(--surface); }
+}
+
+.dash-modal-confirm {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  &:hover { opacity: 0.9; }
+}
+
+.dash-modal-sending-label {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.dash-send-progress-bar {
+  height: 8px;
+  background: var(--card-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.dash-send-progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.dash-send-progress-pct {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.dash-modal-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  font-size: 15px;
+  color: var(--text);
+  text-align: center;
+}

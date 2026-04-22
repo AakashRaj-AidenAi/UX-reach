@@ -22,6 +22,8 @@ export class AppStateService {
   readonly currentScreen = signal('chat');
   readonly chatState = signal<ChatState>('idle');
   readonly currentStudyId = signal<string | null>(null);
+  readonly lastMentionedStudyId = signal<string | null>(null);
+  readonly pendingChatAction = signal<{ action: string; studyId?: string; count?: number } | null>(null);
   readonly currentInviteCount = signal(0);
   readonly emailsSent = signal(0);
   readonly elapsedSeconds = signal(0);

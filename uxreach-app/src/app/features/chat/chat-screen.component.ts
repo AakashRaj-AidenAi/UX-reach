@@ -51,6 +51,30 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   ngOnInit(): void {
     this.chatEngine.initChat();
+    this.handlePendingAction();
+  }
+
+  private handlePendingAction(): void {
+    const pending = this.appState.pendingChatAction();
+    if (!pending) return;
+    this.appState.pendingChatAction.set(null);
+
+    setTimeout(() => {
+      if (pending.action === 'send_invite') {
+        if (pending.studyId && pending.count != null) {
+          this.chatEngine.handleInviteFlow(pending.studyId, pending.count);
+        } else {
+          this.chatEngine.openStudyPicker();
+        }
+      } else if (pending.action === 'schedule_invite') {
+        if (pending.studyId && pending.count != null) {
+          this.chatEngine.addUserMessage(`Schedule ${pending.count} invites for study ${pending.studyId}`);
+          this.chatEngine.openSchedulePicker();
+        } else {
+          this.chatEngine.openSchedulePicker();
+        }
+      }
+    }, 300);
   }
 
   toggleSidebar(): void {

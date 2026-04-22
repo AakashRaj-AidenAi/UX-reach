@@ -137,6 +137,9 @@ export class ChatHistoryService {
     if (!id) return;
     this.conversations.update(list => list.map(c => {
       if (c.id !== id) return c;
+      const prevUserCount = c.messages.filter(m => m.sender === 'user').length;
+      const newUserCount  = messages.filter(m => m.sender === 'user').length;
+      const hasNewContent = newUserCount > prevUserCount;
       const firstUser = messages.find(m => m.sender === 'user');
       const title = c.title === 'New chat' && firstUser
         ? this.deriveTitle(typeof firstUser.html === 'string' ? this.stripHtml(firstUser.html) : 'New chat')
@@ -144,7 +147,7 @@ export class ChatHistoryService {
       return {
         ...c,
         title,
-        updatedAt: new Date().toISOString(),
+        updatedAt: hasNewContent ? new Date().toISOString() : c.updatedAt,
         messages
       };
     }));
