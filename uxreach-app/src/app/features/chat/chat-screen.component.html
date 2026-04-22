@@ -1,20 +1,7 @@
-<div class="chat-screen-wrapper">
-  <!-- History sidebar -->
-  <app-chat-history-sidebar
-    [open]="sidebarOpen()"
-    (close)="closeSidebar()"
-    (newChat)="onNewChat()"
-    (selectConversation)="onSelectConversation($event)"
-    (deleteConversation)="onDeleteConversation($event)"
-    (clearAll)="onClearAll()"
-  />
-
-  <div class="chat-screen">
-    <!-- Header -->
-    <div class="chat-screen-header">
-      <button class="chat-header-btn" (click)="toggleSidebar()" title="Chats (Ctrl+Shift+O)">
-        <span class="material-symbols-outlined icon-sm">menu</span>
-      </button>
+<div class="chat-screen">
+  <!-- Header -->
+  <div class="chat-screen-header">
+    <div class="chat-header-left">
       <div>
         <div class="chat-screen-title">UXReach Assistant</div>
         <div class="chat-screen-subtitle">
@@ -23,60 +10,68 @@
         </div>
       </div>
 
-      <div class="chat-search">
-        <span class="material-symbols-outlined chat-search-icon">search</span>
-        <input
-          class="chat-search-input"
-          type="text"
-          placeholder="Search in chat"
-          [(ngModel)]="searchQuery"
-        />
-        @if (searchQuery) {
-          <button class="chat-search-clear" (click)="searchQuery = ''" title="Clear search">
-            <span class="material-symbols-outlined icon-sm">close</span>
-          </button>
-        }
-      </div>
-
-      <app-chat-health-strip />
+      <app-chat-switcher
+        [requestOpen]="switcherRequestOpen()"
+        (newChat)="onNewChat()"
+        (selectConversation)="onSelectConversation($event)"
+        (deleteConversation)="onDeleteConversation($event)"
+        (clearAll)="onClearAll()"
+      />
     </div>
 
-    <!-- Message list -->
-    <div class="message-list" #messageContainer>
-      @for (msg of messages(); track msg.id) {
-        @if (!searchQuery || msg.isTyping || messageMatchesSearch(msg.html)) {
-          <app-chat-message
-            [message]="msg"
-            [searchQuery]="searchQuery"
-            (actionClicked)="onAction($event)"
-          />
-        }
+    <div class="chat-search">
+      <span class="material-symbols-outlined chat-search-icon">search</span>
+      <input
+        class="chat-search-input"
+        type="text"
+        placeholder="Search in chat"
+        [(ngModel)]="searchQuery"
+      />
+      @if (searchQuery) {
+        <button class="chat-search-clear" (click)="searchQuery = ''" title="Clear search">
+          <span class="material-symbols-outlined icon-sm">close</span>
+        </button>
       }
     </div>
 
-    <!-- Study Picker Dropdown -->
-    @if (chatEngine.showStudyPicker()) {
-      <div class="picker-overlay">
-        <app-study-picker
-          [mode]="chatEngine.pickerMode()"
-          [refreshKey]="appState.studyListVersion()"
-          (submit)="onStudyPickerSubmit($event)"
-          (cancel)="onStudyPickerCancel()"
-        />
-      </div>
-    }
-
-    <!-- Schedule Picker Dropdown -->
-    @if (chatEngine.showSchedulePicker()) {
-      <div class="picker-overlay">
-        <app-schedule-picker
-          (submit)="onSchedulePickerSubmit($event)"
-          (cancel)="onSchedulePickerCancel()"
-        />
-      </div>
-    }
-
-    <!-- Input bar -->
-    <app-chat-input-bar (messageSent)="onSend($event)" />
+    <app-chat-health-strip />
   </div>
+
+  <!-- Message list -->
+  <div class="message-list" #messageContainer>
+    @for (msg of messages(); track msg.id) {
+      @if (!searchQuery || msg.isTyping || messageMatchesSearch(msg.html)) {
+        <app-chat-message
+          [message]="msg"
+          [searchQuery]="searchQuery"
+          (actionClicked)="onAction($event)"
+        />
+      }
+    }
+  </div>
+
+  <!-- Study Picker Dropdown -->
+  @if (chatEngine.showStudyPicker()) {
+    <div class="picker-overlay">
+      <app-study-picker
+        [mode]="chatEngine.pickerMode()"
+        [refreshKey]="appState.studyListVersion()"
+        (submit)="onStudyPickerSubmit($event)"
+        (cancel)="onStudyPickerCancel()"
+      />
+    </div>
+  }
+
+  <!-- Schedule Picker Dropdown -->
+  @if (chatEngine.showSchedulePicker()) {
+    <div class="picker-overlay">
+      <app-schedule-picker
+        (submit)="onSchedulePickerSubmit($event)"
+        (cancel)="onSchedulePickerCancel()"
+      />
+    </div>
+  }
+
+  <!-- Input bar -->
+  <app-chat-input-bar (messageSent)="onSend($event)" />
 </div>

@@ -1,35 +1,19 @@
-.chat-screen-wrapper {
-  display: flex;
-  height: 100%;
-  width: 100%;
-  background: var(--bg);
-  overflow: hidden;
-}
-
 .chat-screen {
   display: flex;
   flex-direction: column;
   height: 100%;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   background: var(--bg);
   overflow: hidden;
   position: relative;
 }
 
-.chat-header-btn {
-  background: transparent;
-  border: 1px solid var(--card-border);
-  color: var(--text-dim);
-  border-radius: 6px;
-  padding: 6px 8px;
-  cursor: pointer;
-  display: inline-flex;
+.chat-header-left {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  gap: 14px;
+  min-width: 0;
 }
-.chat-header-btn:hover { background: var(--card-alt); color: var(--text); }
 
 .chat-search {
   position: relative;

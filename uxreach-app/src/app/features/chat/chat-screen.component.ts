@@ -18,7 +18,7 @@ import { ChatMessageComponent } from './components/chat-message.component';
 import { ChatInputBarComponent } from './components/chat-input-bar.component';
 import { StudyPickerComponent } from './components/study-picker.component';
 import { SchedulePickerComponent } from './components/schedule-picker.component';
-import { ChatHistorySidebarComponent } from './components/chat-history-sidebar.component';
+import { ChatSwitcherComponent } from './components/chat-switcher.component';
 
 @Component({
   selector: 'app-chat-screen',
@@ -31,7 +31,7 @@ import { ChatHistorySidebarComponent } from './components/chat-history-sidebar.c
     ChatInputBarComponent,
     StudyPickerComponent,
     SchedulePickerComponent,
-    ChatHistorySidebarComponent
+    ChatSwitcherComponent
   ],
   changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: './chat-screen.component.html',
@@ -42,8 +42,8 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   protected readonly appState = inject(AppStateService);
   readonly messages = this.chatEngine.messages;
 
-  protected readonly sidebarOpen = signal(false);
   protected searchQuery = '';
+  protected switcherRequestOpen = signal(false);
 
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
 
@@ -51,14 +51,6 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   ngOnInit(): void {
     this.chatEngine.initChat();
-  }
-
-  toggleSidebar(): void {
-    this.sidebarOpen.update(v => !v);
-  }
-
-  closeSidebar(): void {
-    this.sidebarOpen.set(false);
   }
 
   onNewChat(): void {
@@ -95,15 +87,16 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
     const target = event.target as HTMLElement | null;
     const inEditable = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
 
-    // Cmd/Ctrl+Shift+O → toggle sidebar
+    // Cmd/Ctrl+Shift+O → open chat switcher popover
     if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
       event.preventDefault();
-      this.toggleSidebar();
+      this.switcherRequestOpen.set(true);
+      // Reset the trigger so a subsequent press can re-open after a close.
+      setTimeout(() => this.switcherRequestOpen.set(false), 0);
       return;
     }
-    // Esc → close sidebar / open pickers
+    // Esc → close open pickers (switcher handles its own Esc)
     if (event.key === 'Escape' && !inEditable) {
-      if (this.sidebarOpen()) { this.sidebarOpen.set(false); return; }
       if (this.chatEngine.showStudyPicker()) { this.chatEngine.cancelStudyPicker(); return; }
       if (this.chatEngine.showSchedulePicker()) { this.chatEngine.cancelSchedulePicker(); return; }
     }
