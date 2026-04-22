@@ -165,11 +165,9 @@ export class ChatEngineService implements OnDestroy {
       const segments: SendQueueItem[] = [];
       Object.keys(allStudies).forEach(id => {
         const s = allStudies[id];
-        if (s.ownerRC === this.appState.userName()) {
-          const remaining = s.totalRequired - s.alreadySent;
-          if (remaining > 0) {
-            segments.push({ studyId: id, count, studyName: s.name });
-          }
+        const remaining = s.totalRequired - s.alreadySent;
+        if (remaining > 0) {
+          segments.push({ studyId: id, count, studyName: s.name });
         }
       });
       if (segments.length === 0) {
@@ -257,7 +255,7 @@ export class ChatEngineService implements OnDestroy {
     // Responses for study
     const responsesMatch = lower.match(/(?:who\s+)?respond(?:ed)?|responses?\s+(?:for|to)\s+(?:study|case)?\s*(\d{7})/);
     if (responsesMatch) {
-      const sid = responsesMatch[1] || this.extractStudyId(lower);
+      const sid = responsesMatch[1] || extractStudyId(lower);
       if (sid) { this.handleQueryAgentChat(`responses for study ${sid}`); return; }
     }
 
@@ -378,8 +376,6 @@ export class ChatEngineService implements OnDestroy {
 
     // Help
     if (lower.match(/^help$|what.*can.*you|what do you know|available commands|^commands$|what.*you.*do|capabilities/)) {
-    // Help (local)
-    if (lower.match(/^help$|what can you do|what do you know|available commands|^commands$/)) {
       this.handleHelp();
       return;
     }
@@ -469,34 +465,6 @@ export class ChatEngineService implements OnDestroy {
 
     this.appState.currentStudyId.set(studyId);
     this.appState.currentInviteCount.set(actualCount);
-
-    if (study.ownerRC !== this.appState.userName()) {
-      if (!this.appState.allowCrossRcSend()) {
-        this.addTyping();
-        setTimeout(() => {
-          this.removeTyping();
-          this.addBotMessage(
-            `<span style="color:var(--rose);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--rose);">warning</span> Cross-RC sends are disabled.</span> Study ${studyId} belongs to ${study.ownerRC}. Enable cross-RC sending in Settings to proceed.`,
-            undefined, 0
-          );
-        }, 1000);
-        return;
-      }
-
-      this.appState.chatState.set('awaiting_crossrc');
-      this.addTyping();
-      setTimeout(() => {
-        this.removeTyping();
-        this.addBotMessage(
-          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> This study is worked on by ${study.ownerRC}. Are you sure you want to send invites for this study?`,
-          [
-            { label: 'Yes, proceed', type: 'primary', action: 'proceed_crossrc' },
-            { label: 'Cancel', type: 'secondary', action: 'cancel' }
-          ], 0
-        );
-      }, 1000);
-      return;
-    }
 
     this.showSendConfirmation(studyId, actualCount);
   }
@@ -1158,7 +1126,6 @@ export class ChatEngineService implements OnDestroy {
         const allStudies = this.studyService.getAllStudies();
         Object.keys(allStudies).forEach(id => {
           const s = allStudies[id];
-          if (s.ownerRC !== this.appState.userName()) return;
           const remaining = s.totalRequired - s.alreadySent;
           const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
           if (remaining > 0) {
@@ -1217,7 +1184,6 @@ export class ChatEngineService implements OnDestroy {
 
       Object.keys(allStudies).forEach(id => {
         const s = allStudies[id];
-        if (s.ownerRC !== this.appState.userName()) return;
         const remaining = s.totalRequired - s.alreadySent;
         const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
         const icon = remaining === 0

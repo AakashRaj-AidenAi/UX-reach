@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 ALLOWED_USERS: list[dict] = [
     {"email": "aakash.raj@aidenai.com",    "name": "Aakash Raj",   "role": "admin"},
     {"email": "manaswitha111@gmail.com",   "name": "Manaswitha",   "role": "admin"},
-    {"email": "lohithakshvasa@gmail.com",  "name": "Lohithaksh",   "role": "admin"},
+    {"email": "lohithakshvasa@gmail.com",  "name": "Lohithaksh",   "role": "rc"},
     {"email": "sarah.chen@google.com",     "name": "Sarah Chen",   "role": "rc"},
 ]
 

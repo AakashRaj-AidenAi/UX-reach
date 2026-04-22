@@ -56,21 +56,15 @@ export class StudyService {
     return this.studies;
   }
 
-  getStudiesForRC(rcName: string): Record<string, Study> {
-    const result: Record<string, Study> = {};
-    for (const id of Object.keys(this.studies)) {
-      if (this.studies[id].ownerRC === rcName) {
-        result[id] = this.studies[id];
-      }
-    }
-    return result;
+  getStudiesForRC(_rcName: string): Record<string, Study> {
+    return { ...this.studies };
   }
 
-  getActiveStudiesForRC(rcName: string): Record<string, Study> {
+  getActiveStudiesForRC(_rcName: string): Record<string, Study> {
     const result: Record<string, Study> = {};
     for (const id of Object.keys(this.studies)) {
       const s = this.studies[id];
-      if (s.ownerRC === rcName && (s.totalRequired - s.alreadySent) > 0) {
+      if ((s.totalRequired - s.alreadySent) > 0) {
         result[id] = s;
       }
     }
