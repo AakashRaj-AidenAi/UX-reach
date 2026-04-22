@@ -1,11 +1,12 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ChatMessage } from '../../../models/chat.model';
+import { StudyProgressComponent } from './study-progress.component';
 
 @Component({
   selector: 'app-chat-message',
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, StudyProgressComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="chat-msg-wrapper" [ngClass]="{ 'user-msg': message.sender === 'user' }">
@@ -27,6 +28,14 @@ import { ChatMessage } from '../../../models/chat.model';
             <span></span>
           </div>
         } @else {
+          <!-- Agent badge -->
+          @if (message.sender === 'bot' && message.agent && agentLabel) {
+            <div class="agent-badge" [attr.data-agent]="message.agent">
+              <span class="material-symbols-outlined icon-sm" style="vertical-align:middle;">{{ agentIcon }}</span>
+              {{ agentLabel }}
+            </div>
+          }
+
           <!-- Sending progress bar -->
           @if (message.sendingProgress) {
             <div class="sending-progress">
@@ -51,6 +60,11 @@ import { ChatMessage } from '../../../models/chat.model';
                 </div>
               </div>
             </div>
+          }
+
+          <!-- Study progress funnel -->
+          @if (message.studyProgress) {
+            <app-study-progress [progress]="message.studyProgress" />
           }
 
           <!-- Message content -->
@@ -288,6 +302,30 @@ import { ChatMessage } from '../../../models/chat.model';
       from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    .agent-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      letter-spacing: 0.2px;
+    }
+    .agent-badge[data-agent="invite"] {
+      background: rgba(26, 115, 232, 0.08);
+      color: #1a73e8;
+    }
+    .agent-badge[data-agent="query"] {
+      background: rgba(124, 92, 217, 0.10);
+      color: #5e3fbd;
+    }
+    .agent-badge[data-agent="scheduler"] {
+      background: rgba(249, 171, 0, 0.12);
+      color: #b47500;
+    }
   `]
 })
 export class ChatMessageComponent {
@@ -298,6 +336,24 @@ export class ChatMessageComponent {
     if (!this.message.sendingProgress) return 0;
     const { sent, total } = this.message.sendingProgress;
     return total > 0 ? Math.round((sent / total) * 100) : 0;
+  }
+
+  get agentLabel(): string {
+    switch (this.message.agent) {
+      case 'invite': return 'Invite Agent';
+      case 'query': return 'Query Agent';
+      case 'scheduler': return 'Scheduler';
+      default: return '';
+    }
+  }
+
+  get agentIcon(): string {
+    switch (this.message.agent) {
+      case 'invite': return 'outgoing_mail';
+      case 'query': return 'insights';
+      case 'scheduler': return 'schedule';
+      default: return '';
+    }
   }
 
   onActionClick(action: string, payload?: any): void {

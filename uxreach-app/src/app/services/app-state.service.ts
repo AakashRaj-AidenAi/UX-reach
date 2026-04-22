@@ -1,6 +1,15 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { ChatState, SendQueueItem } from '../models/chat.model';
 import { FilterSet } from '../models/candidate.model';
+import { StudyProgress } from '../models/study-progress';
+
+export interface CachedQueryResponse {
+  studyId: string;
+  intent: string;
+  html?: string;
+  progress?: StudyProgress;
+  timestamp: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
@@ -17,6 +26,12 @@ export class AppStateService {
   readonly emailsSent = signal(0);
   readonly elapsedSeconds = signal(0);
   readonly allowCrossRcSend = signal(true);
+
+  // Bumped whenever study state changes (e.g. a send completes). Pickers watch it to re-fetch.
+  readonly studyListVersion = signal(0);
+
+  // Last successful Query Agent response per (studyId + intent), for offline fallback.
+  readonly queryCache = signal<Record<string, CachedQueryResponse>>({});
 
   // Multi-study queue
   readonly sendQueue = signal<SendQueueItem[]>([]);
@@ -46,5 +61,18 @@ export class AppStateService {
   resetQueue(): void {
     this.sendQueue.set([]);
     this.sendQueueIndex.set(0);
+  }
+
+  bumpStudyListVersion(): void {
+    this.studyListVersion.update(v => v + 1);
+  }
+
+  cacheQueryResponse(entry: CachedQueryResponse): void {
+    const key = `${entry.studyId}:${entry.intent}`;
+    this.queryCache.update(cache => ({ ...cache, [key]: entry }));
+  }
+
+  getCachedQueryResponse(studyId: string, intent: string): CachedQueryResponse | null {
+    return this.queryCache()[`${studyId}:${intent}`] ?? null;
   }
 }

@@ -1,7 +1,9 @@
 import { Injectable, inject, signal, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
+import { retry } from 'rxjs/operators';
 import { ChatMessage, MessageAction, SendQueueItem } from '../models/chat.model';
 import { FilterSet } from '../models/candidate.model';
+import { AgentType, determineAgent, extractStudyId } from '../models/agent-type';
 import { AppStateService } from './app-state.service';
 import { StudyService } from './study.service';
 import { AuditService } from './audit.service';
@@ -25,6 +27,10 @@ export class ChatEngineService implements OnDestroy {
   // Signals for picker visibility
   readonly showStudyPicker = signal(false);
   readonly showSchedulePicker = signal(false);
+  readonly pickerMode = signal<'invite' | 'progress'>('invite');
+
+  // Guard against the opening click also triggering outside-click close
+  justOpened = false;
 
   private subscriptions: Subscription[] = [];
 
@@ -65,7 +71,7 @@ export class ChatEngineService implements OnDestroy {
       [
         { label: 'Send invites now', type: 'primary', action: 'open_study_picker' },
         { label: 'Schedule invites', type: 'primary', action: 'open_schedule_picker' },
-        { label: 'Study progress', type: 'primary', action: 'suggest', payload: 'Study progress 1234567' },
+        { label: 'Study progress', type: 'primary', action: 'open_study_progress_picker' },
         { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
         { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Show today's summary" },
         { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
@@ -121,6 +127,13 @@ export class ChatEngineService implements OnDestroy {
       const studyId = scheduleMatch[2];
       const dateTimeStr = text.substring(lower.indexOf(studyId) + studyId.length).trim();
       this.handleScheduleFlow(studyId, count, dateTimeStr);
+      return;
+    }
+
+    // "Study progress: <id>" format (from study picker in progress mode)
+    const pickerProgressMatch = lower.match(/^study progress:\s*(\d{7})/);
+    if (pickerProgressMatch) {
+      this.handleQueryAgentChat(`study progress ${pickerProgressMatch[1]}`);
       return;
     }
 
@@ -365,18 +378,81 @@ export class ChatEngineService implements OnDestroy {
 
     // Help
     if (lower.match(/^help$|what.*can.*you|what do you know|available commands|^commands$|what.*you.*do|capabilities/)) {
+    // Help (local)
+    if (lower.match(/^help$|what can you do|what do you know|available commands|^commands$/)) {
       this.handleHelp();
       return;
     }
 
-    // Greeting
+    // Greeting (local)
     if (lower.match(/^(hi|hey|hello|howdy|good\s*(morning|afternoon|evening)|how are you|what'?s up|sup|yo)[\s!?]*$/)) {
       this.handleGreeting();
       return;
     }
 
-    // Fallback → send to backend (Gemini classifies and responds)
-    this.handleQueryAgentChat(text);
+    // ── Agent routing ──
+    // Non-local intents and free-text Q&A fall through to the Query Agent backend.
+    const routing = determineAgent(lower);
+    if (routing.agent === 'query') {
+      this.dispatchQueryAgent(lower, text, routing.intent);
+      return;
+    }
+
+    // Unrecognized invite/scheduler phrasing — surface hints.
+    this.addTyping();
+    setTimeout(() => {
+      this.removeTyping();
+      this.addBotMessage(
+        'I\'m not sure what you mean. Here\'s what I can help with:<br>' +
+        '&#x2022; <em>"send X invites for study 1234567"</em><br>' +
+        '&#x2022; <em>"send 5 invites for study 1234567 from Japan"</em><br>' +
+        '&#x2022; <em>"study progress 1234567"</em> &mdash; full participant funnel<br>' +
+        '&#x2022; <em>"who responded to study 1234567"</em><br>' +
+        '&#x2022; <em>"who needs a reminder for study 1234567"</em><br>' +
+        '&#x2022; <em>"how many invites are left?"</em><br>' +
+        'Or type <em>"help"</em> to see all commands.',
+        undefined, 0
+      );
+    }, 1000);
+  }
+
+  // ── QUERY AGENT DISPATCHER ──
+
+  private dispatchQueryAgent(lower: string, original: string, intent?: string): void {
+    const sid = extractStudyId(lower);
+
+    switch (intent) {
+      case 'progress':
+        if (sid) { this.handleStudyProgressQuery(sid); return; }
+        break;
+      case 'responses':
+        if (sid) { this.handleQueryAgentChat(`responses for study ${sid}`, sid, intent); return; }
+        break;
+      case 'bookings':
+        if (sid) { this.handleQueryAgentChat(`bookings for study ${sid}`, sid, intent); return; }
+        break;
+      case 'icf':
+        if (sid) { this.handleQueryAgentChat(`icf status for study ${sid}`, sid, intent); return; }
+        break;
+      case 'reminders':
+        if (sid) { this.handleQueryAgentChat(`who needs a reminder for study ${sid}`, sid, intent); return; }
+        break;
+      case 'confirmed':
+        if (sid) { this.handleQueryAgentChat(`how many confirmed for study ${sid}`, sid, intent); return; }
+        break;
+    }
+
+    // Known intent without a study id — ask the user to provide one.
+    if (intent && intent !== 'free_text' && !sid) {
+      this.addBotMessage(
+        'Which study? Please include a 7-digit study ID (e.g. <em>1234567</em>).',
+        undefined, 0, 'query'
+      );
+      return;
+    }
+
+    // Free-text Q&A — forward original prompt to the backend.
+    this.handleQueryAgentChat(original);
   }
 
   // ── INVITE FLOW ──
@@ -452,7 +528,7 @@ export class ChatEngineService implements OnDestroy {
       this.addBotMessage(html, [
         { label: 'Send', type: 'primary', action: 'send_now' },
         { label: 'Cancel', type: 'secondary', action: 'cancel' }
-      ], 0);
+      ], 0, 'invite');
     }, 1000);
   }
 
@@ -798,7 +874,7 @@ export class ChatEngineService implements OnDestroy {
     }
 
     this.appState.currentFilters.set(null);
-    this.addBotMessage(html, undefined, 0);
+    this.addBotMessage(html, undefined, 0, 'invite');
 
     if (queue.length <= 1) {
       // Single study — show summary
@@ -843,7 +919,7 @@ export class ChatEngineService implements OnDestroy {
     }
     this.addBotMessage(html, [
       { label: 'Send more invites', type: 'primary', action: 'open_study_picker' }
-    ], 0);
+    ], 0, 'invite');
   }
 
   // ── SEND MORE ──
@@ -906,7 +982,7 @@ export class ChatEngineService implements OnDestroy {
       this.addBotMessage(html, [
         { label: 'Cancel', type: 'danger', action: 'cancel_schedule', payload: jobIndex },
         { label: 'Confirm', type: 'primary', action: 'confirm_schedule', payload: jobIndex }
-      ], 0);
+      ], 0, 'scheduler');
     }, 1500);
   }
 
@@ -1166,18 +1242,70 @@ export class ChatEngineService implements OnDestroy {
 
   // ── QUERY AGENT (calls backend for participant data) ──
 
-  private extractStudyId(text: string): string | null {
-    const m = text.match(/(\d{7})/);
-    return m ? m[1] : null;
+  handleStudyProgressQuery(studyId: string): void {
+    this.addTyping();
+    this.api.getStudyProgress(studyId).pipe(
+      retry({ count: 1, delay: () => timer(2000) })
+    ).subscribe({
+      next: (progress) => {
+        this.removeTyping();
+        this.appState.cacheQueryResponse({
+          studyId,
+          intent: 'progress',
+          progress,
+          timestamp: Date.now()
+        });
+        this.messages.update(list => [...list, {
+          id: this.generateId(),
+          sender: 'bot',
+          html: '',
+          timestamp: new Date(),
+          studyProgress: progress,
+          agent: 'query',
+          actions: [
+            { label: `Who needs a reminder`, type: 'secondary', action: 'suggest', payload: `who needs a reminder for study ${studyId}` },
+            { label: `Send more invites`, type: 'primary', action: 'open_study_picker' }
+          ]
+        }]);
+      },
+      error: () => {
+        this.removeTyping();
+        const cached = this.appState.getCachedQueryResponse(studyId, 'progress');
+        if (cached?.progress) {
+          this.messages.update(list => [...list, {
+            id: this.generateId(),
+            sender: 'bot',
+            html: this.staleCacheBanner(cached.timestamp),
+            timestamp: new Date(),
+            studyProgress: cached.progress,
+            agent: 'query'
+          }]);
+          this.toastService.show('warning', 'Live status unavailable — showing last snapshot');
+          return;
+        }
+        // No cache — fall back to the Query Agent chat endpoint for a text-only answer.
+        this.handleQueryAgentChat(`study progress ${studyId}`, studyId, 'progress');
+      }
+    });
   }
 
-  handleQueryAgentChat(queryText: string): void {
+  handleQueryAgentChat(queryText: string, studyId?: string, intent?: string): void {
     this.addTyping();
     const userName = this.appState.userName();
 
-    this.api.sendMessage(queryText, userName).subscribe({
+    this.api.sendMessage(queryText, userName).pipe(
+      retry({ count: 1, delay: () => timer(2000) })
+    ).subscribe({
       next: (response) => {
         this.removeTyping();
+        if (studyId && intent) {
+          this.appState.cacheQueryResponse({
+            studyId,
+            intent,
+            html: response.html,
+            timestamp: Date.now()
+          });
+        }
         const actions: MessageAction[] = [];
         if (response.actions) {
           response.actions.forEach((a: any) => {
@@ -1189,17 +1317,31 @@ export class ChatEngineService implements OnDestroy {
             });
           });
         }
-        this.addBotMessage(response.html, actions.length > 0 ? actions : undefined, 0);
+        this.addBotMessage(response.html, actions.length > 0 ? actions : undefined, 0, 'query');
       },
       error: () => {
         this.removeTyping();
+        if (studyId && intent) {
+          const cached = this.appState.getCachedQueryResponse(studyId, intent);
+          if (cached?.html) {
+            this.addBotMessage(this.staleCacheBanner(cached.timestamp) + cached.html, undefined, 0, 'query');
+            this.toastService.show('warning', 'Live status unavailable — showing last snapshot');
+            return;
+          }
+        }
         this.addBotMessage(
           '<span style="color:var(--rose);">Could not reach the server.</span> Please check the backend is running on localhost:8000.',
-          undefined, 0
+          [{ label: 'Retry', type: 'secondary', action: 'suggest', payload: queryText }],
+          0, 'query'
         );
         this.toastService.show('error', 'Backend API unavailable');
       }
     });
+  }
+
+  private staleCacheBanner(timestamp: number): string {
+    const when = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `<div style="background:rgba(249,171,0,0.08);border:1px solid rgba(249,171,0,0.25);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:var(--text-dim);"><span class="material-symbols-outlined icon-sm icon-amber" style="vertical-align:middle;">wifi_off</span> Last updated ${when} — live status unavailable, showing cached snapshot.</div>`;
   }
 
   handleGreeting(): void {
@@ -1259,7 +1401,7 @@ export class ChatEngineService implements OnDestroy {
 
       this.addBotMessage(html, [
         { label: 'Try filtered send', type: 'primary', action: 'suggest', payload: 'Send 5 invites for study 1234567 from Japan' },
-        { label: 'Study progress', type: 'primary', action: 'suggest', payload: 'Study progress 1234567' },
+        { label: 'Study progress', type: 'primary', action: 'open_study_progress_picker' },
         { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
         { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
       ], 0);
@@ -1369,21 +1511,38 @@ export class ChatEngineService implements OnDestroy {
 
   openStudyPicker(): void {
     if (this.appState.chatState() !== 'idle') return;
+    this.pickerMode.set('invite');
     this.appState.chatState.set('study_picker_open');
     this.showStudyPicker.set(true);
+    this.flagJustOpened();
+  }
+
+  openStudyProgressPicker(): void {
+    if (this.appState.chatState() !== 'idle') return;
+    this.pickerMode.set('progress');
+    this.appState.chatState.set('study_picker_open');
+    this.showStudyPicker.set(true);
+    this.flagJustOpened();
   }
 
   cancelStudyPicker(): void {
     this.showStudyPicker.set(false);
+    this.pickerMode.set('invite');
     if (this.appState.chatState() === 'study_picker_open') {
       this.appState.chatState.set('idle');
     }
+  }
+
+  private flagJustOpened(): void {
+    this.justOpened = true;
+    setTimeout(() => { this.justOpened = false; }, 0);
   }
 
   openSchedulePicker(): void {
     if (this.appState.chatState() !== 'idle') return;
     this.appState.chatState.set('schedule_picker_open');
     this.showSchedulePicker.set(true);
+    this.flagJustOpened();
   }
 
   cancelSchedulePicker(): void {
@@ -1434,6 +1593,10 @@ export class ChatEngineService implements OnDestroy {
 
       case 'open_study_picker':
         this.openStudyPicker();
+        break;
+
+      case 'open_study_progress_picker':
+        this.openStudyProgressPicker();
         break;
 
       case 'open_schedule_picker':
@@ -1488,26 +1651,27 @@ export class ChatEngineService implements OnDestroy {
     this.messages.update(list => [...list, msg]);
   }
 
-  addBotMessage(html: string, actions?: MessageAction[], delay?: number): void {
+  addBotMessage(html: string, actions?: MessageAction[], delay?: number, agent?: AgentType): void {
     const actualDelay = delay ?? 0;
     if (actualDelay > 0) {
       this.addTyping();
       setTimeout(() => {
         this.removeTyping();
-        this.pushBotMessage(html, actions);
+        this.pushBotMessage(html, actions, agent);
       }, actualDelay);
     } else {
-      this.pushBotMessage(html, actions);
+      this.pushBotMessage(html, actions, agent);
     }
   }
 
-  private pushBotMessage(html: string, actions?: MessageAction[]): void {
+  private pushBotMessage(html: string, actions?: MessageAction[], agent?: AgentType): void {
     const msg: ChatMessage = {
       id: this.generateId(),
       sender: 'bot',
       html,
       timestamp: new Date(),
-      actions
+      actions,
+      agent
     };
     this.messages.update(list => [...list, msg]);
   }
