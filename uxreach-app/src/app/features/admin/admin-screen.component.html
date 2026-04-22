@@ -1,0 +1,93 @@
+<div class="admin-screen">
+
+  <div class="admin-header">
+    <h2>User Management</h2>
+    <p>Control who can log in to UXReach. Only users in this allowlist can authenticate.</p>
+  </div>
+
+  <!-- Add user form -->
+  <div class="admin-card">
+    <h3>Add user</h3>
+    <div class="add-form">
+      <input
+        class="input-field"
+        type="email"
+        placeholder="Email address"
+        [(ngModel)]="newEmail"
+      />
+      <input
+        class="input-field"
+        type="text"
+        placeholder="Full name"
+        [(ngModel)]="newName"
+      />
+      <select class="input-field select-role" [(ngModel)]="newRole">
+        <option value="rc">RC</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button
+        class="btn-add"
+        (click)="addUser()"
+        [disabled]="!newEmail.trim() || !newName.trim() || saving()"
+      >
+        @if (saving()) {
+          <span class="material-symbols-outlined spin" style="font-size:16px;">progress_activity</span>
+        } @else {
+          <span class="material-symbols-outlined" style="font-size:16px;">person_add</span>
+        }
+        Add
+      </button>
+    </div>
+  </div>
+
+  <!-- User list -->
+  <div class="admin-card">
+    <h3>Allowed users <span class="count-badge">{{ users().length }}</span></h3>
+
+    @if (loading()) {
+      <p class="muted">Loading...</p>
+    } @else if (users().length === 0) {
+      <p class="muted">No users in the allowlist.</p>
+    } @else {
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.email) {
+            <tr>
+              <td>
+                <div class="user-name-cell">
+                  <div class="avatar">{{ user.name[0] }}</div>
+                  {{ user.name }}
+                </div>
+              </td>
+              <td class="muted">{{ user.email }}</td>
+              <td>
+                <span class="role-badge" [class.admin]="user.role === 'admin'">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>
+                @if (user.email !== appState.userEmail()) {
+                  <button class="btn-remove" (click)="removeUser(user.email)">
+                    <span class="material-symbols-outlined" style="font-size:16px;">person_remove</span>
+                    Remove
+                  </button>
+                } @else {
+                  <span class="muted" style="font-size:12px;">You</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+</div>

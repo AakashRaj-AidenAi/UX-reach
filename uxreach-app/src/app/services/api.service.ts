@@ -6,6 +6,7 @@ import { AuditRun } from '../models/audit-run.model';
 import { ScheduledJob } from '../models/scheduled-job.model';
 import { Delegation } from '../models/delegation.model';
 import { SendingProgress } from '../models/chat.model';
+import { AllowedUser } from '../models/user.model';
 
 export interface ChatApiResponse {
   html: string;
@@ -149,6 +150,28 @@ export class ApiService {
 
   updatePreferences(prefs: any): Observable<any> {
     return this.http.put(`${this.baseUrl}/settings/preferences`, prefs);
+  }
+
+  // ── Auth ──
+
+  getAuthConfig(): Observable<{ googleClientId: string }> {
+    return this.http.get<{ googleClientId: string }>(`${this.baseUrl}/auth/config`);
+  }
+
+  verifyGoogleToken(credential: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/auth/google`, { credential });
+  }
+
+  getUsers(): Observable<AllowedUser[]> {
+    return this.http.get<AllowedUser[]>(`${this.baseUrl}/auth/users`);
+  }
+
+  addUser(email: string, name: string, role: string): Observable<AllowedUser> {
+    return this.http.post<AllowedUser>(`${this.baseUrl}/auth/users`, { email, name, role });
+  }
+
+  removeUser(email: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/auth/users/${encodeURIComponent(email)}`);
   }
 
   // ── Health ──

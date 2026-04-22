@@ -4,6 +4,16 @@ In-memory mock data store matching the Angular mock data.
 
 from datetime import datetime, timedelta
 
+# ── Allowed users (OAuth allowlist) ──────────────────────────────────────────
+# Add users here or via POST /api/auth/users.  role: "admin" | "rc"
+
+ALLOWED_USERS: list[dict] = [
+    {"email": "aakash.raj@aidenai.com",    "name": "Aakash Raj",   "role": "admin"},
+    {"email": "manaswitha111@gmail.com",   "name": "Manaswitha",   "role": "admin"},
+    {"email": "lohithakshvasa@gmail.com",  "name": "Lohithaksh",   "role": "rc"},
+    {"email": "sarah.chen@google.com",     "name": "Sarah Chen",   "role": "rc"},
+]
+
 # ── Studies (keyed by study ID) ──
 
 STUDIES: dict[str, dict] = {

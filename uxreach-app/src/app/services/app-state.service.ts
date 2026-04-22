@@ -5,7 +5,11 @@ import { FilterSet } from '../models/candidate.model';
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
   readonly loggedIn = signal(false);
-  readonly userName = signal('Sarah Chen');
+  readonly userName = signal('');
+  readonly userEmail = signal('');
+  readonly userPicture = signal('');
+  readonly userRole = signal('rc');
+  readonly loginError = signal('');
   readonly currentScreen = signal('chat');
   readonly chatState = signal<ChatState>('idle');
   readonly currentStudyId = signal<string | null>(null);
