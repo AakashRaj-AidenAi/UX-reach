@@ -6,9 +6,11 @@ import {
   ElementRef,
   AfterViewChecked,
   ChangeDetectionStrategy,
-  HostListener
+  HostListener,
+  signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ChatEngineService } from '../../services/chat-engine.service';
 import { AppStateService } from '../../services/app-state.service';
 import { ChatHealthStripComponent } from './components/chat-health-strip.component';
@@ -16,17 +18,20 @@ import { ChatMessageComponent } from './components/chat-message.component';
 import { ChatInputBarComponent } from './components/chat-input-bar.component';
 import { StudyPickerComponent } from './components/study-picker.component';
 import { SchedulePickerComponent } from './components/schedule-picker.component';
+import { ChatHistorySidebarComponent } from './components/chat-history-sidebar.component';
 
 @Component({
   selector: 'app-chat-screen',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ChatHealthStripComponent,
     ChatMessageComponent,
     ChatInputBarComponent,
     StudyPickerComponent,
-    SchedulePickerComponent
+    SchedulePickerComponent,
+    ChatHistorySidebarComponent
   ],
   changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: './chat-screen.component.html',
@@ -37,12 +42,71 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   protected readonly appState = inject(AppStateService);
   readonly messages = this.chatEngine.messages;
 
+  protected readonly sidebarOpen = signal(false);
+  protected searchQuery = '';
+
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
 
   private shouldScroll = true;
 
   ngOnInit(): void {
     this.chatEngine.initChat();
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update(v => !v);
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
+  }
+
+  onNewChat(): void {
+    this.chatEngine.newConversation();
+    this.searchQuery = '';
+  }
+
+  onSelectConversation(id: string): void {
+    this.chatEngine.selectConversation(id);
+    this.searchQuery = '';
+    this.shouldScroll = true;
+  }
+
+  onDeleteConversation(id: string): void {
+    this.chatEngine.deleteConversation(id);
+  }
+
+  onClearAll(): void {
+    this.chatEngine.clearAllConversations();
+    this.searchQuery = '';
+  }
+
+  messageMatchesSearch(html: string): boolean {
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const text = (div.textContent ?? '').toLowerCase();
+    return text.includes(q);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const inEditable = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+    // Cmd/Ctrl+Shift+O → toggle sidebar
+    if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
+      event.preventDefault();
+      this.toggleSidebar();
+      return;
+    }
+    // Esc → close sidebar / open pickers
+    if (event.key === 'Escape' && !inEditable) {
+      if (this.sidebarOpen()) { this.sidebarOpen.set(false); return; }
+      if (this.chatEngine.showStudyPicker()) { this.chatEngine.cancelStudyPicker(); return; }
+      if (this.chatEngine.showSchedulePicker()) { this.chatEngine.cancelSchedulePicker(); return; }
+    }
   }
 
   ngAfterViewChecked(): void {

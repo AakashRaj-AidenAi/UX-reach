@@ -2,12 +2,23 @@ import { Injectable, inject, computed, signal } from '@angular/core';
 import { AuditRun, AuditSortKey } from '../models/audit-run.model';
 import { AUDIT_RUNS } from '../mock-data/audit-runs.data';
 import { ApiService } from './api.service';
+import { GuardrailCategory } from '../models/guardrail-rule';
+
+export interface RefusalEntry {
+  id: string;
+  timestamp: string;
+  category: GuardrailCategory;
+  ruleId: string;
+  prompt: string;
+  userName: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuditService {
   private readonly api = inject(ApiService);
 
   readonly runs = signal<AuditRun[]>([...AUDIT_RUNS]);
+  readonly refusals = signal<RefusalEntry[]>([]);
   readonly sortKey = signal<AuditSortKey>('date');
   readonly sortAsc = signal(false);
 
@@ -62,5 +73,17 @@ export class AuditService {
 
   getRunsForStudy(studyId: string): AuditRun[] {
     return this.runs().filter(r => r.studyId === studyId);
+  }
+
+  recordRefusal(category: GuardrailCategory, ruleId: string, prompt: string, userName: string): void {
+    const entry: RefusalEntry = {
+      id: 'ref-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 7),
+      timestamp: new Date().toISOString(),
+      category,
+      ruleId,
+      prompt: prompt.length > 240 ? prompt.slice(0, 240) + '…' : prompt,
+      userName
+    };
+    this.refusals.update(list => [entry, ...list]);
   }
 }

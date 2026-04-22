@@ -1,5 +1,16 @@
-import { Component, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Output,
+  Input,
+  EventEmitter,
+  ChangeDetectionStrategy,
+  HostListener,
+  ViewChild,
+  ElementRef,
+  inject
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ChatEngineService } from '../../../services/chat-engine.service';
 
 @Component({
   selector: 'app-chat-input-bar',
@@ -8,14 +19,16 @@ import { FormsModule } from '@angular/forms';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="chat-input-bar">
-      <input
+      <textarea
+        #inputField
         class="chat-input-field"
-        type="text"
-        placeholder="Type a command... (e.g., 'send 10 invites for study 1234567' or 'today&apos;s summary')"
+        rows="1"
+        placeholder="Type a command... (Enter to send, Shift+Enter for newline, ↑ for last)"
         [(ngModel)]="text"
-        (keydown.enter)="send()"
-      />
-      <button class="chat-send-btn" (click)="send()" [disabled]="!text.trim()">
+        (keydown)="onKeydown($event)"
+        (input)="autoResize()"
+      ></textarea>
+      <button class="chat-send-btn" (click)="send()" [disabled]="!text.trim()" title="Send (Enter)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
         </svg>
@@ -29,20 +42,24 @@ import { FormsModule } from '@angular/forms';
       border-top: 1px solid var(--card-border);
       display: flex;
       gap: 10px;
-      align-items: center;
+      align-items: flex-end;
     }
 
     .chat-input-field {
       flex: 1;
       padding: 10px 20px;
       border: 1px solid var(--card-border);
-      border-radius: 24px;
+      border-radius: 22px;
       font-size: 14px;
       color: var(--text);
       background: var(--bg);
       outline: none;
       font-family: 'Google Sans', 'Roboto', sans-serif;
-      height: 44px;
+      min-height: 44px;
+      max-height: 160px;
+      resize: none;
+      line-height: 22px;
+      overflow-y: auto;
     }
 
     .chat-input-field:focus {
@@ -82,14 +99,56 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class ChatInputBarComponent {
+  private readonly chatEngine = inject(ChatEngineService);
+
   @Output() messageSent = new EventEmitter<string>();
+  @ViewChild('inputField') private inputField!: ElementRef<HTMLTextAreaElement>;
 
   text = '';
+
+  onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      this.send();
+      return;
+    }
+    if (event.key === 'ArrowUp' && this.text.trim().length === 0) {
+      // Recall the last user message for editing.
+      const messages = this.chatEngine.messages();
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].sender === 'user') {
+          const div = document.createElement('div');
+          div.innerHTML = messages[i].html;
+          this.text = (div.textContent ?? '').trim();
+          event.preventDefault();
+          setTimeout(() => this.autoResize(), 0);
+          return;
+        }
+      }
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    // Cmd/Ctrl+K → focus the input from anywhere in the chat screen.
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.inputField?.nativeElement.focus();
+    }
+  }
+
+  autoResize(): void {
+    const el = this.inputField?.nativeElement;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
 
   send(): void {
     const trimmed = this.text.trim();
     if (!trimmed) return;
     this.messageSent.emit(trimmed);
     this.text = '';
+    setTimeout(() => this.autoResize(), 0);
   }
 }
