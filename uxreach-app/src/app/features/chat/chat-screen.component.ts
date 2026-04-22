@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatEngineService } from '../../services/chat-engine.service';
+import { AppStateService } from '../../services/app-state.service';
 import { ChatHealthStripComponent } from './components/chat-health-strip.component';
 import { ChatMessageComponent } from './components/chat-message.component';
 import { ChatInputBarComponent } from './components/chat-input-bar.component';
@@ -33,6 +34,7 @@ import { SchedulePickerComponent } from './components/schedule-picker.component'
 })
 export class ChatScreenComponent implements OnInit, AfterViewChecked {
   protected readonly chatEngine = inject(ChatEngineService);
+  protected readonly appState = inject(AppStateService);
   readonly messages = this.chatEngine.messages;
 
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
@@ -84,10 +86,27 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    // Close pickers when clicking outside
+    if (this.chatEngine.justOpened) return;
+
     const target = event.target as HTMLElement;
-    if (this.chatEngine.showStudyPicker() && !target.closest('app-study-picker') && !target.closest('.chat-suggestion-btn')) {
-      // small delay to avoid race condition
+    if (!target) return;
+
+    if (
+      this.chatEngine.showStudyPicker() &&
+      !target.closest('app-study-picker') &&
+      !target.closest('.msg-btn') &&
+      !target.closest('.chat-suggestion-btn')
+    ) {
+      this.chatEngine.cancelStudyPicker();
+    }
+
+    if (
+      this.chatEngine.showSchedulePicker() &&
+      !target.closest('app-schedule-picker') &&
+      !target.closest('.msg-btn') &&
+      !target.closest('.chat-suggestion-btn')
+    ) {
+      this.chatEngine.cancelSchedulePicker();
     }
   }
 

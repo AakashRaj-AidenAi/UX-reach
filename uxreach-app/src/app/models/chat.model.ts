@@ -1,3 +1,6 @@
+import { StudyProgress } from './study-progress';
+import { AgentType } from './agent-type';
+
 export type ChatState =
   | 'idle'
   | 'awaiting_confirm'
@@ -25,6 +28,8 @@ export interface ChatMessage {
   actions?: MessageAction[];
   isTyping?: boolean;
   sendingProgress?: SendingProgress | null;
+  studyProgress?: StudyProgress | null;
+  agent?: AgentType;
 }
 
 export interface SendingProgress {

@@ -25,6 +25,8 @@
   @if (chatEngine.showStudyPicker()) {
     <div class="picker-overlay">
       <app-study-picker
+        [mode]="chatEngine.pickerMode()"
+        [refreshKey]="appState.studyListVersion()"
         (submit)="onStudyPickerSubmit($event)"
         (cancel)="onStudyPickerCancel()"
       />

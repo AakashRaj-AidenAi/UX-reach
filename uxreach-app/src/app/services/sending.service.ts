@@ -75,6 +75,7 @@ export class SendingService {
 
             this.studyService.updateStudySent(studyId, progress.sent);
             this.recordAuditRun(studyId, progress.sent, durationStr);
+            this.appState.bumpStudyListVersion();
 
             const queue = this.appState.sendQueue();
             const queueIdx = this.appState.sendQueueIndex();
@@ -119,6 +120,7 @@ export class SendingService {
 
         this.studyService.updateStudySent(studyId, total);
         this.recordAuditRun(studyId, total, durationStr);
+        this.appState.bumpStudyListVersion();
 
         const queue = this.appState.sendQueue();
         const queueIdx = this.appState.sendQueueIndex();
@@ -175,6 +177,7 @@ export class SendingService {
     if (sent > 0) {
       this.studyService.updateStudySent(studyId, sent);
       this.recordAuditRun(studyId, sent, durationStr);
+      this.appState.bumpStudyListVersion();
     }
 
     const wasQueued = this.appState.sendQueue().length > 1;

@@ -6,6 +6,8 @@ import { AuditRun } from '../models/audit-run.model';
 import { ScheduledJob } from '../models/scheduled-job.model';
 import { Delegation } from '../models/delegation.model';
 import { SendingProgress } from '../models/chat.model';
+export type { StudyProgress } from '../models/study-progress';
+import type { StudyProgress } from '../models/study-progress';
 
 export interface ChatApiResponse {
   html: string;
@@ -24,20 +26,6 @@ export interface Participant {
   icfSigned: boolean;
   needsReminder: boolean;
   daysSinceInvite: number;
-}
-
-export interface StudyProgress {
-  studyId: string;
-  studyName: string;
-  researcher: string;
-  totalInvited: number;
-  booked: number;
-  icfSigned: number;
-  confirmed: number;
-  noResponse: number;
-  declined: number;
-  pendingIcf: number;
-  needsAttention: string[];
 }
 
 @Injectable({ providedIn: 'root' })
