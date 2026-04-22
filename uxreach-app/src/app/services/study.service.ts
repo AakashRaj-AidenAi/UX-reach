@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Study, StudyMap } from '../models/study.model';
 import { Candidate, FilterSet, FilterBreakdown } from '../models/candidate.model';
+import { StudyProgress } from '../models/study-progress';
 import { STUDIES } from '../mock-data/studies.data';
 import { SHORTLISTING_POOLS, COUNTRY_ALIASES, CUSTOMER_TYPE_ALIASES } from '../mock-data/candidates.data';
 import { ApiService } from './api.service';
@@ -50,6 +51,58 @@ export class StudyService {
 
   getStudy(id: string): Study | undefined {
     return this.studies[id];
+  }
+
+  /**
+   * Derive a plausible participant funnel from local study state when the backend
+   * is unavailable. Used by chat + dashboard for demo/offline resilience.
+   */
+  synthesizeProgress(id: string): StudyProgress | null {
+    const study = this.studies[id];
+    if (!study) return null;
+
+    const invited = Math.max(study.alreadySent, 0);
+    if (invited === 0) {
+      return {
+        studyId: id,
+        studyName: study.name,
+        researcher: study.researcher,
+        totalInvited: 0,
+        booked: 0,
+        icfSigned: 0,
+        confirmed: 0,
+        noResponse: 0,
+        declined: 0,
+        pendingIcf: 0,
+        needsAttention: []
+      };
+    }
+
+    const responded  = Math.round(invited * 0.60);
+    const booked     = Math.round(invited * 0.45);
+    const icfSigned  = Math.round(invited * 0.32);
+    const confirmed  = Math.round(invited * 0.25);
+    const noResponse = Math.max(invited - responded, 0);
+    const declined   = Math.max(responded - booked, 0);
+    const pendingIcf = Math.max(booked - icfSigned, 0);
+
+    const needsAttention: string[] = [];
+    if (pendingIcf > 0) needsAttention.push(`${pendingIcf} pending ICF`);
+    if (noResponse > Math.round(invited * 0.3)) needsAttention.push(`${noResponse} no response — consider reminders`);
+
+    return {
+      studyId: id,
+      studyName: study.name,
+      researcher: study.researcher,
+      totalInvited: invited,
+      booked,
+      icfSigned,
+      confirmed,
+      noResponse,
+      declined,
+      pendingIcf,
+      needsAttention
+    };
   }
 
   getAllStudies(): StudyMap {

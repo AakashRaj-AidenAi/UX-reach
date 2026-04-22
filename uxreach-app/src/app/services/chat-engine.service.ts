@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, OnDestroy } from '@angular/core';
+import { Injectable, effect, inject, signal, OnDestroy } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import { retry } from 'rxjs/operators';
 import { ChatMessage, MessageAction, SendQueueItem } from '../models/chat.model';
@@ -11,6 +11,8 @@ import { SendingService } from './sending.service';
 import { SchedulerService } from './scheduler.service';
 import { ToastService } from './toast.service';
 import { ApiService } from './api.service';
+import { GuardrailsService } from './guardrails.service';
+import { ChatHistoryService } from './chat-history.service';
 
 @Injectable({ providedIn: 'root' })
 export class ChatEngineService implements OnDestroy {
@@ -21,6 +23,9 @@ export class ChatEngineService implements OnDestroy {
   private readonly schedulerService = inject(SchedulerService);
   private readonly toastService = inject(ToastService);
   private readonly api = inject(ApiService);
+  private readonly guardrails = inject(GuardrailsService);
+  private readonly history = inject(ChatHistoryService);
+  private suppressPersist = false;
 
   readonly messages = signal<ChatMessage[]>([]);
 
@@ -35,6 +40,15 @@ export class ChatEngineService implements OnDestroy {
   private subscriptions: Subscription[] = [];
 
   constructor() {
+    // Persist message changes into the active conversation.
+    effect(() => {
+      const msgs = this.messages();
+      if (this.suppressPersist) return;
+      if (this.history.activeId()) {
+        this.history.updateActiveMessages(msgs);
+      }
+    });
+
     this.subscriptions.push(
       this.sendingService.onEmailTick$.subscribe(({ sent, total }) => {
         this.updateSendingProgress(sent, total);
@@ -65,6 +79,19 @@ export class ChatEngineService implements OnDestroy {
   // ── INIT ──
 
   initChat(): void {
+    // If there's a restored conversation with messages, load it without emitting a fresh welcome.
+    const active = this.history.activeConversation();
+    if (active && active.messages.length > 0) {
+      this.suppressPersist = true;
+      this.messages.set(active.messages);
+      this.suppressPersist = false;
+      return;
+    }
+
+    // Otherwise, start a fresh conversation and show the welcome card.
+    if (!active) {
+      this.history.startNewConversation();
+    }
     this.messages.set([]);
     this.addBotMessage(
       'Hello! I can help you send invites, track participant responses, check ICF status, and more.',
@@ -80,10 +107,65 @@ export class ChatEngineService implements OnDestroy {
     );
   }
 
+  newConversation(): void {
+    this.history.startNewConversation();
+    this.suppressPersist = true;
+    this.messages.set([]);
+    this.suppressPersist = false;
+    this.initChat();
+  }
+
+  selectConversation(id: string): void {
+    const conv = this.history.selectConversation(id);
+    if (!conv) return;
+    this.suppressPersist = true;
+    this.messages.set(conv.messages);
+    this.suppressPersist = false;
+  }
+
+  deleteConversation(id: string): void {
+    this.history.deleteConversation(id);
+    const active = this.history.activeConversation();
+    this.suppressPersist = true;
+    this.messages.set(active?.messages ?? []);
+    this.suppressPersist = false;
+    if (!active) this.initChat();
+  }
+
+  clearAllConversations(): void {
+    this.history.clearAll();
+    this.suppressPersist = true;
+    this.messages.set([]);
+    this.suppressPersist = false;
+    this.initChat();
+  }
+
   // ── COMMAND PARSER ──
 
   processCommand(text: string): void {
     const lower = text.toLowerCase();
+
+    // ── Guardrail gate ──
+    // Runs before any state-specific handler so refusals are deterministic
+    // regardless of backend availability or current chat state.
+    const decision = this.guardrails.check(text);
+    if (!decision.allowed) {
+      this.auditService.recordRefusal(
+        decision.category,
+        decision.id,
+        text,
+        this.appState.userName()
+      );
+      this.addTyping();
+      setTimeout(() => {
+        this.removeTyping();
+        this.addBotMessage(
+          `<span class="material-symbols-outlined icon-sm" style="vertical-align:middle;color:var(--amber);">block</span> ${decision.refusal}`,
+          undefined, 0, 'query'
+        );
+      }, 400);
+      return;
+    }
 
     // Study picker trigger
     if (lower.match(/^send invites?$|^choose studies?$|^select studies?$|^pick studies?$/)) {
@@ -133,7 +215,7 @@ export class ChatEngineService implements OnDestroy {
     // "Study progress: <id>" format (from study picker in progress mode)
     const pickerProgressMatch = lower.match(/^study progress:\s*(\d{7})/);
     if (pickerProgressMatch) {
-      this.handleQueryAgentChat(`study progress ${pickerProgressMatch[1]}`);
+      this.handleStudyProgressQuery(pickerProgressMatch[1]);
       return;
     }
 
@@ -1101,7 +1183,24 @@ export class ChatEngineService implements OnDestroy {
           this.toastService.show('warning', 'Live status unavailable — showing last snapshot');
           return;
         }
-        // No cache — fall back to the Query Agent chat endpoint for a text-only answer.
+        // No cache — synthesize a plausible funnel from local study state so the UI stays useful offline.
+        const synthesized = this.studyService.synthesizeProgress(studyId);
+        if (synthesized) {
+          this.messages.update(list => [...list, {
+            id: this.generateId(),
+            sender: 'bot',
+            html: this.offlineSyntheticBanner(),
+            timestamp: new Date(),
+            studyProgress: synthesized,
+            agent: 'query',
+            actions: [
+              { label: `Who needs a reminder`, type: 'secondary', action: 'suggest', payload: `who needs a reminder for study ${studyId}` },
+              { label: `Send more invites`, type: 'primary', action: 'open_study_picker' }
+            ]
+          }]);
+          return;
+        }
+        // Study id unknown — fall back to the Query Agent chat endpoint for a text-only answer.
         this.handleQueryAgentChat(`study progress ${studyId}`, studyId, 'progress');
       }
     });
@@ -1160,6 +1259,10 @@ export class ChatEngineService implements OnDestroy {
   private staleCacheBanner(timestamp: number): string {
     const when = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return `<div style="background:rgba(249,171,0,0.08);border:1px solid rgba(249,171,0,0.25);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:var(--text-dim);"><span class="material-symbols-outlined icon-sm icon-amber" style="vertical-align:middle;">wifi_off</span> Last updated ${when} — live status unavailable, showing cached snapshot.</div>`;
+  }
+
+  private offlineSyntheticBanner(): string {
+    return `<div style="background:rgba(249,171,0,0.08);border:1px solid rgba(249,171,0,0.25);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:var(--text-dim);"><span class="material-symbols-outlined icon-sm icon-amber" style="vertical-align:middle;">wifi_off</span> Backend unavailable — showing a synthesized funnel from local study state.</div>`;
   }
 
   handleGreeting(): void {
