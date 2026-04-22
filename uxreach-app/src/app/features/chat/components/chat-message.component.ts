@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ChatMessage } from '../../../models/chat.model';
 import { StudyProgressComponent } from './study-progress.component';
+import { ToastService } from '../../../services/toast.service';
 
 @Component({
   selector: 'app-chat-message',
@@ -69,7 +70,24 @@ import { StudyProgressComponent } from './study-progress.component';
 
           <!-- Message content -->
           @if (message.html) {
-            <div class="content" [innerHTML]="message.html"></div>
+            <div class="content" [innerHTML]="highlightedHtml"></div>
+          }
+
+          <!-- Message footer: timestamp + actions -->
+          @if (message.sender === 'bot' && !message.isTyping) {
+            <div class="msg-footer">
+              <span class="msg-timestamp" [attr.title]="absoluteTime">{{ relativeTime }}</span>
+              @if (message.html) {
+                <button class="msg-copy-btn" (click)="onCopy()" title="Copy to clipboard">
+                  <span class="material-symbols-outlined icon-sm">content_copy</span>
+                </button>
+              }
+            </div>
+          }
+          @if (message.sender === 'user') {
+            <div class="msg-footer msg-footer-user">
+              <span class="msg-timestamp" [attr.title]="absoluteTime">{{ relativeTime }}</span>
+            </div>
           }
 
           <!-- Action buttons -->
@@ -326,10 +344,40 @@ import { StudyProgressComponent } from './study-progress.component';
       background: rgba(249, 171, 0, 0.12);
       color: #b47500;
     }
+
+    .msg-footer {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 6px;
+    }
+    .msg-footer-user { justify-content: flex-end; }
+    .msg-timestamp {
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: 0.2px;
+    }
+    .msg-copy-btn {
+      background: transparent; border: none;
+      color: var(--text-faint); cursor: pointer;
+      padding: 2px 4px; border-radius: 4px;
+      opacity: 0; transition: opacity 0.15s ease, color 0.15s ease;
+      display: inline-flex; align-items: center;
+    }
+    .chat-msg-content:hover .msg-copy-btn { opacity: 1; }
+    .msg-copy-btn:hover { color: var(--blue); background: rgba(26,115,232,0.08); }
+
+    :host ::ng-deep mark.search-hit {
+      background: rgba(249, 171, 0, 0.35);
+      color: inherit;
+      padding: 0 1px;
+      border-radius: 2px;
+    }
   `]
 })
 export class ChatMessageComponent {
+  private readonly toast = inject(ToastService);
+
   @Input({ required: true }) message!: ChatMessage;
+  @Input() searchQuery = '';
   @Output() actionClicked = new EventEmitter<{ action: string; payload?: any }>();
 
   get progressPercent(): number {
@@ -356,7 +404,52 @@ export class ChatMessageComponent {
     }
   }
 
+  get relativeTime(): string {
+    const d = this.message.timestamp instanceof Date
+      ? this.message.timestamp
+      : new Date(this.message.timestamp);
+    const diff = Date.now() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  get absoluteTime(): string {
+    const d = this.message.timestamp instanceof Date
+      ? this.message.timestamp
+      : new Date(this.message.timestamp);
+    return d.toLocaleString();
+  }
+
+  get highlightedHtml(): string {
+    const html = this.message.html ?? '';
+    const q = this.searchQuery.trim();
+    if (!q) return html;
+    // Only wrap matches that lie in text nodes, not inside tag attributes.
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(>[^<]*)(' + escaped + ')', 'gi');
+    return html.replace(re, (_m, before, match) => `${before}<mark class="search-hit">${match}</mark>`);
+  }
+
   onActionClick(action: string, payload?: any): void {
     this.actionClicked.emit({ action, payload });
+  }
+
+  onCopy(): void {
+    const html = this.message.html ?? '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const text = (div.textContent ?? '').replace(/\s+\n/g, '\n').trim();
+    if (!text || !navigator.clipboard) {
+      this.toast.show('warning', 'Copy unavailable');
+      return;
+    }
+    navigator.clipboard.writeText(text).then(
+      () => this.toast.show('success', 'Copied to clipboard'),
+      () => this.toast.show('warning', 'Copy failed')
+    );
   }
 }
