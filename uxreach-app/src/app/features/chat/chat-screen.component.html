@@ -2,14 +2,6 @@
   <!-- Header -->
   <div class="chat-screen-header">
     <div class="chat-header-left">
-      <div>
-        <div class="chat-screen-title">UXReach Assistant</div>
-        <div class="chat-screen-subtitle">
-          <span class="pulse-dot" style="width:6px;height:6px;"></span>
-          Online
-        </div>
-      </div>
-
       <app-chat-switcher
         [requestOpen]="switcherRequestOpen()"
         (newChat)="onNewChat()"

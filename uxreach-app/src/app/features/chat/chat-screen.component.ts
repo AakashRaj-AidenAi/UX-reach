@@ -63,12 +63,17 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
       if (pending.action === 'send_invite') {
         if (pending.studyId && pending.count != null) {
           this.chatEngine.handleInviteFlow(pending.studyId, pending.count);
+        } else if (pending.studyId) {
+          this.chatEngine.handleInviteCountPrompt(pending.studyId);
         } else {
           this.chatEngine.openStudyPicker();
         }
       } else if (pending.action === 'schedule_invite') {
         if (pending.studyId && pending.count != null) {
           this.chatEngine.addUserMessage(`Schedule ${pending.count} invites for study ${pending.studyId}`);
+          this.chatEngine.openSchedulePicker();
+        } else if (pending.studyId) {
+          this.chatEngine.addUserMessage(`Schedule invites for study ${pending.studyId}`);
           this.chatEngine.openSchedulePicker();
         } else {
           this.chatEngine.openSchedulePicker();

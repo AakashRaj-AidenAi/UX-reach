@@ -1,13 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { StudyService } from '../../../services/study.service';
 import { AuditService } from '../../../services/audit.service';
 import { AppStateService } from '../../../services/app-state.service';
 import { ApiService, StudyProgress } from '../../../services/api.service';
-import { ToastService } from '../../../services/toast.service';
-import { SendingService } from '../../../services/sending.service';
-import { SchedulerService } from '../../../services/scheduler.service';
 
 interface PendingStudy {
   id: string;
@@ -31,7 +28,7 @@ interface PendingStudy {
 @Component({
   selector: 'app-dashboard-screen',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './dashboard-screen.component.html',
   styleUrl: './dashboard-screen.component.scss'
 })
@@ -40,9 +37,7 @@ export class DashboardScreenComponent {
   private readonly auditService = inject(AuditService);
   protected readonly appState = inject(AppStateService);
   private readonly api = inject(ApiService);
-  private readonly toastService = inject(ToastService);
-  private readonly sendingService = inject(SendingService);
-  private readonly schedulerService = inject(SchedulerService);
+  private readonly router = inject(Router);
 
   protected pendingStudies: PendingStudy[] = [];
   protected totalPendingInvites = 0;
@@ -50,14 +45,6 @@ export class DashboardScreenComponent {
   protected totalP0Ready = 0;
   protected loading = true;
 
-  // ── Modal state ──
-  protected modalStudy: PendingStudy | null = null;
-  protected modalMode: 'send' | 'schedule' | 'sending' | null = null;
-  protected modalCount = 10;
-  protected modalScheduleDate = '';
-  protected modalScheduleTime = '09:00';
-  protected modalSendPercent = 0;
-  protected modalSendComplete = false;
 
   constructor() {
     this.refreshData();
@@ -156,68 +143,14 @@ export class DashboardScreenComponent {
     study.expanded = !study.expanded;
   }
 
-  protected openSendModal(study: PendingStudy): void {
-    this.modalStudy = study;
-    this.modalCount = Math.min(10, study.remaining);
-    this.modalMode = 'send';
-    this.modalSendPercent = 0;
-    this.modalSendComplete = false;
+  protected goToSend(study: PendingStudy): void {
+    this.appState.pendingChatAction.set({ action: 'send_invite', studyId: study.id });
+    this.router.navigate(['/chat']);
   }
 
-  protected openScheduleModal(study: PendingStudy): void {
-    this.modalStudy = study;
-    this.modalCount = Math.min(10, study.remaining);
-    this.modalMode = 'schedule';
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    this.modalScheduleDate = tomorrow.toISOString().split('T')[0];
-    this.modalScheduleTime = '09:00';
-  }
-
-  protected closeModal(): void {
-    this.modalStudy = null;
-    this.modalMode = null;
-    this.modalSendComplete = false;
-  }
-
-  protected setQuickCount(n: number): void {
-    this.modalCount = n;
-  }
-
-  protected confirmSend(): void {
-    if (!this.modalStudy) return;
-    const study = this.modalStudy;
-    const count = Math.min(this.modalCount, study.remaining);
-    this.modalMode = 'sending';
-    this.modalSendPercent = 0;
-    this.modalSendComplete = false;
-
-    const sub = this.sendingService.onEmailTick$.subscribe(({ sent, total }) => {
-      this.modalSendPercent = total > 0 ? Math.round((sent / total) * 100) : 0;
-    });
-
-    const doneSub = this.sendingService.onComplete$.subscribe(result => {
-      sub.unsubscribe();
-      doneSub.unsubscribe();
-      this.modalSendPercent = 100;
-      this.modalSendComplete = true;
-      this.toastService.show('success', `${result.sent} invites sent for Study ${result.studyId}`);
-      setTimeout(() => {
-        this.closeModal();
-        this.refreshData();
-      }, 1800);
-    });
-
-    this.sendingService.startSending(study.id, count);
-  }
-
-  protected confirmSchedule(): void {
-    if (!this.modalStudy) return;
-    const study = this.modalStudy;
-    const dateTimeStr = `${this.modalScheduleDate} at ${this.modalScheduleTime}`;
-    this.schedulerService.addJob(study.id, study.name, this.modalCount, dateTimeStr);
-    this.toastService.show('success', `Scheduled ${this.modalCount} invites for Study ${study.id} on ${dateTimeStr}`);
-    this.closeModal();
+  protected goToSchedule(study: PendingStudy): void {
+    this.appState.pendingChatAction.set({ action: 'schedule_invite', studyId: study.id });
+    this.router.navigate(['/chat']);
   }
 
   protected getCurrentStudyName(): string {

@@ -36,23 +36,23 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
     </div>
   `,
   styles: [`
-    .chat-input-bar {
-      padding: 12px 24px 16px;
-      background: var(--card);
-      border-top: 1px solid var(--card-border);
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
+    :host {
+      display: block;
+      width: 100%;
+
+      padding: 12px 10px;
+      box-sizing: border-box;
     }
 
     .chat-input-field {
-      flex: 1;
+      width: 100%;
+      box-sizing: border-box;
       padding: 10px 20px;
       border: 1px solid var(--card-border);
       border-radius: 22px;
       font-size: 14px;
       color: var(--text);
-      background: var(--bg);
+      background: var(--card);
       outline: none;
       font-family: 'Google Sans', 'Roboto', sans-serif;
       min-height: 44px;
@@ -71,6 +71,12 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
       color: var(--text-faint);
     }
 
+    .chat-input-bar {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
     .chat-send-btn {
       width: 40px;
       height: 40px;
@@ -79,7 +85,6 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
       border: none;
       border-radius: 50%;
       color: #fff;
-      font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -96,6 +101,7 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
       opacity: 0.38;
       cursor: not-allowed;
     }
+
   `]
 })
 export class ChatInputBarComponent {
