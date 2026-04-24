@@ -1,6 +1,6 @@
 """
 UXReach Invite Email Agent - FastAPI Backend
-Run: uvicorn main:app --reload --port 8000
+Run: uvicorn main:app --reload --port 8080
 """
 
 from fastapi import FastAPI

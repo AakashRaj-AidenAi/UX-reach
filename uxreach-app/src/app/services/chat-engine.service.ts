@@ -1405,7 +1405,7 @@ export class ChatEngineService implements OnDestroy {
           }
         }
         this.addBotMessage(
-          '<span style="color:var(--rose);">Could not reach the server.</span> Please check the backend is running on localhost:8000.',
+          '<span style="color:var(--rose);">Could not reach the server.</span> Please check the backend is running on localhost:8080.',
           [{ label: 'Retry', type: 'secondary', action: 'suggest', payload: queryText }],
           0, 'query'
         );
