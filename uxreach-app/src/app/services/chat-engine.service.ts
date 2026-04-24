@@ -67,7 +67,16 @@ export class ChatEngineService implements OnDestroy {
           if (result.queuePosition && result.queuePosition > 0) {
             msg += `<br><span style="font-size:12px;color:var(--text-muted);">${result.queuePosition} remaining ${result.queuePosition === 1 ? 'study' : 'studies'} in queue were cancelled.</span>`;
           }
-          this.addBotMessage(msg);
+          if (this.isInSendingConv()) {
+            this.addBotMessage(msg);
+          } else {
+            const sendConvId = this.appState.sendingConversationId();
+            if (sendConvId) {
+              this.history.appendToConversation(sendConvId, [{
+                id: this.generateId(), sender: 'bot', html: msg, timestamp: new Date()
+              } as ChatMessage]);
+            }
+          }
           this.toastService.show('warning', `Send stopped at ${result.sent}/${result.total} emails`);
         }
       })
@@ -573,6 +582,27 @@ export class ChatEngineService implements OnDestroy {
   // ── INVITE FLOW ──
 
   handleInviteFlow(studyId: string, count: number): void {
+    // Block if a send is already in progress
+    if (this.appState.chatState() === 'sending') {
+      if (this.appState.currentStudyId() === studyId) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `Invites for Study <strong>${studyId}</strong> are currently being sent. Please wait for the batch to finish before sending more.`,
+          undefined, 0
+        );
+        return;
+      }
+      if (!this.isInSendingConv()) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `A batch send for Study <strong>${this.appState.currentStudyId()}</strong> is in progress in another chat. ` +
+          `Switch to that chat to monitor it, or wait for it to complete before starting a new batch.`,
+          undefined, 0
+        );
+        return;
+      }
+    }
+
     this.appState.lastMentionedStudyId.set(studyId);
     const study = this.studyService.getStudy(studyId);
     if (!study) {
@@ -627,6 +657,26 @@ export class ChatEngineService implements OnDestroy {
   // ── FILTERED INVITE FLOW ──
 
   handleFilteredInviteFlow(studyId: string, count: number, filters: FilterSet): void {
+    if (this.appState.chatState() === 'sending') {
+      if (this.appState.currentStudyId() === studyId) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `Invites for Study <strong>${studyId}</strong> are currently being sent. Please wait for the batch to finish.`,
+          undefined, 0
+        );
+        return;
+      }
+      if (!this.isInSendingConv()) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `A batch send for Study <strong>${this.appState.currentStudyId()}</strong> is in progress in another chat. ` +
+          `Switch to that chat to monitor it, or wait for it to complete.`,
+          undefined, 0
+        );
+        return;
+      }
+    }
+
     const study = this.studyService.getStudy(studyId);
     if (!study) {
       if (this.studyService.isOwnedByOther(studyId)) {
@@ -721,10 +771,27 @@ export class ChatEngineService implements OnDestroy {
   // ── MULTI-STUDY ──
 
   handleMultiStudyCommand(segments: SendQueueItem[]): void {
+    // Block entirely if a send is running in a different chat
+    if (this.appState.chatState() === 'sending' && !this.isInSendingConv()) {
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+        `A batch send for Study <strong>${this.appState.currentStudyId()}</strong> is in progress in another chat. ` +
+        `Switch to that chat to monitor it, or wait for it to complete before starting a new batch.`,
+        undefined, 0
+      );
+      return;
+    }
+
+    const sendingStudyId = this.appState.chatState() === 'sending' ? this.appState.currentStudyId() : null;
     const queue: SendQueueItem[] = [];
     const unknown: string[] = [];
+    const skippedInProgress: string[] = [];
 
     segments.forEach(seg => {
+      if (sendingStudyId && seg.studyId === sendingStudyId) {
+        skippedInProgress.push(seg.studyId);
+        return;
+      }
       const study = this.studyService.getStudy(seg.studyId);
       if (!study) { unknown.push(seg.studyId); return; }
       const remaining = study.totalRequired - study.alreadySent;
@@ -732,6 +799,13 @@ export class ChatEngineService implements OnDestroy {
       if (actualCount > 0) queue.push({ studyId: seg.studyId, count: actualCount, studyName: study.name });
     });
 
+    if (skippedInProgress.length > 0) {
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+        `Study <strong>${skippedInProgress.join(', ')}</strong> is already being sent — skipping it from this batch.`,
+        undefined, 0
+      );
+    }
     if (unknown.length > 0 && queue.length === 0) {
       this.addBotMessage(`<span style="color:var(--rose);">None of the specified studies were found.</span> Please verify the study IDs and try again.`, undefined, 0);
       return;
@@ -803,11 +877,19 @@ export class ChatEngineService implements OnDestroy {
     this.appState.chatState.set('sending');
 
     if (queue.length > 1 && idx > 0) {
-      this.addBotMessage(
+      const nextHtml =
         `<span style="font-size:12px;color:var(--text-muted);">Study ${idx + 1} of ${queue.length}</span><br>` +
-        `Starting: <strong>${item.studyName}</strong> — ${item.count} invites`,
-        undefined, 0
-      );
+        `Starting: <strong>${item.studyName}</strong> — ${item.count} invites`;
+      if (this.isInSendingConv()) {
+        this.addBotMessage(nextHtml, undefined, 0);
+      } else {
+        const sendConvId = this.appState.sendingConversationId();
+        if (sendConvId) {
+          this.history.appendToConversation(sendConvId, [{
+            id: this.generateId(), sender: 'bot', html: nextHtml, timestamp: new Date()
+          } as ChatMessage]);
+        }
+      }
       setTimeout(() => this.startSendingProgress(), 600);
     } else {
       this.startSendingProgress();
@@ -848,12 +930,18 @@ export class ChatEngineService implements OnDestroy {
           .map(([key]) => DEP_LABELS[key] ?? key);
         if (downDeps.length > 0) {
           const names = downDeps.join(', ');
-          this.addBotMessage(
+          const depHtml =
             `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> ` +
             `<strong>Dependency alert:</strong> ${names} ${downDeps.length === 1 ? 'is' : 'are'} currently unavailable. ` +
-            `The invite send may not complete successfully.`,
-            undefined, 0
-          );
+            `The invite send may not complete successfully.`;
+          if (this.isInSendingConv()) {
+            this.addBotMessage(depHtml, undefined, 0);
+          } else {
+            const sendConvId = this.appState.sendingConversationId();
+            if (sendConvId) {
+              this.history.appendToConversation(sendConvId, [{ id: this.generateId(), sender: 'bot', html: depHtml, timestamp: new Date() } as ChatMessage]);
+            }
+          }
           this.toastService.show('warning', `Dependency alert: ${names} unavailable`);
         }
       }
@@ -878,11 +966,21 @@ export class ChatEngineService implements OnDestroy {
         queueTotal: queue.length > 1 ? queue.length : undefined
       }
     };
-    this.messages.update(list => [...list, msg]);
+    if (this.isInSendingConv()) {
+      // User is still in the original chat — show progress inline.
+      this.messages.update(list => [...list, msg]);
+    } else {
+      // User switched away — append progress to the original sending conversation.
+      const sendConvId = this.appState.sendingConversationId()!;
+      this.history.appendToConversation(sendConvId, [msg]);
+    }
 
-    // Record which conversation owns this send. If the user switches chats
-    // before it completes, callbacks will target this conversation directly.
-    this.appState.sendingConversationId.set(this.history.activeId());
+    // Only set the sending conversation on the FIRST study in a batch.
+    // For queue items 2+ the user may have already switched chats; keep the original ID
+    // so all completion callbacks continue routing to the right conversation.
+    if (!this.appState.sendingConversationId()) {
+      this.appState.sendingConversationId.set(this.history.activeId());
+    }
 
     this.sendingService.startSending(studyId, count);
   }
