@@ -20,6 +20,14 @@ export interface MessageAction {
   payload?: any;
 }
 
+export interface StudyNote {
+  studyId: string;
+  studyName: string;
+  title: string;     // editable: defaults to "April 24, 2026"
+  content: string;   // editable textarea with the summary lines
+  posted: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   sender: MessageSender;
@@ -30,6 +38,7 @@ export interface ChatMessage {
   sendingProgress?: SendingProgress | null;
   studyProgress?: StudyProgress | null;
   agent?: AgentType;
+  studyNotes?: StudyNote[];
 }
 
 export interface SendingProgress {

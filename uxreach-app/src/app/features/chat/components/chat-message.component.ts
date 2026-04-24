@@ -1,13 +1,14 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { ChatMessage } from '../../../models/chat.model';
+import { ChatMessage, StudyNote } from '../../../models/chat.model';
 import { StudyProgressComponent } from './study-progress.component';
+import { StudyNotesEditorComponent } from './study-notes-editor.component';
 import { ToastService } from '../../../services/toast.service';
 
 @Component({
   selector: 'app-chat-message',
   standalone: true,
-  imports: [NgClass, StudyProgressComponent],
+  imports: [NgClass, StudyProgressComponent, StudyNotesEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="chat-msg-wrapper" [ngClass]="{ 'user-msg': message.sender === 'user' }">
@@ -74,6 +75,15 @@ import { ToastService } from '../../../services/toast.service';
           <!-- Message content -->
           @if (message.html) {
             <div class="content" [innerHTML]="highlightedHtml"></div>
+          }
+
+          <!-- Study notes editor (EOD / daily summary) -->
+          @if (message.studyNotes && message.studyNotes.length > 0) {
+            <app-study-notes-editor
+              [notes]="message.studyNotes"
+              (postOneNote)="onPostOneNote($event)"
+              (postAllNotes)="onPostAllNotes($event)"
+            />
           }
 
           <!-- Message footer: timestamp + actions -->
@@ -446,6 +456,14 @@ export class ChatMessageComponent {
 
   onActionClick(action: string, payload?: any): void {
     this.actionClicked.emit({ action, payload });
+  }
+
+  onPostOneNote(note: StudyNote): void {
+    this.actionClicked.emit({ action: 'post_eod_one', payload: note });
+  }
+
+  onPostAllNotes(notes: StudyNote[]): void {
+    this.actionClicked.emit({ action: 'post_eod_all', payload: notes });
   }
 
   onCopy(): void {

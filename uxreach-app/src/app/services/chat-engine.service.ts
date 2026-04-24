@@ -1,7 +1,7 @@
 import { Injectable, effect, inject, signal, OnDestroy } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import { retry } from 'rxjs/operators';
-import { ChatMessage, MessageAction, SendQueueItem } from '../models/chat.model';
+import { ChatMessage, MessageAction, SendQueueItem, StudyNote } from '../models/chat.model';
 import { FilterSet } from '../models/candidate.model';
 import { AgentType, determineAgent, extractStudyId } from '../models/agent-type';
 import { AppStateService } from './app-state.service';
@@ -1135,42 +1135,7 @@ export class ChatEngineService implements OnDestroy {
   }
 
   handleDailySummary(): void {
-    this.addTyping();
-    setTimeout(() => {
-      this.removeTyping();
-      const today = new Date().toISOString().split('T')[0];
-      const todayRuns = this.auditService.runs().filter(r => r.date === today);
-
-      let html: string;
-      if (todayRuns.length === 0) {
-        const allRuns = this.auditService.runs();
-        const latestDate = allRuns.length > 0 ? allRuns[0].date : null;
-        if (latestDate) {
-          const latestRuns = allRuns.filter(r => r.date === latestDate);
-          const dateDisplay = new Date(latestDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-          html = `<strong>Latest activity — ${dateDisplay}</strong><br>`;
-          let totalSent = 0;
-          latestRuns.forEach(r => {
-            html += `&#x2022; Study ${r.studyId}: ${r.sent} sent, ${r.failed} failed<br>`;
-            totalSent += r.sent;
-          });
-          html += `Total: ${totalSent} sent`;
-        } else {
-          html = 'No runs recorded yet.';
-        }
-      } else {
-        const dateDisplay = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        html = `<strong>Today — ${dateDisplay}</strong><br>`;
-        let totalSent = 0;
-        todayRuns.forEach(r => {
-          html += `&#x2022; Study ${r.studyId}: ${r.sent} sent, ${r.failed} failed<br>`;
-          totalSent += r.sent;
-        });
-        html += `Total: ${totalSent} sent today`;
-      }
-
-      this.addBotMessage(html, undefined, 0);
-    }, 1500);
+    this.handleEodUpdate();
   }
 
   handlePendingStudies(): void {
@@ -1542,33 +1507,55 @@ export class ChatEngineService implements OnDestroy {
       const userName = this.appState.userName();
       const myStudies = Object.entries(allStudies).filter(([, s]) => s.ownerRC === userName);
 
-      let html = '<strong>EOD Update — ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</strong><br>';
-      html += '<span style="font-size:12px;color:var(--text-muted);">Here\'s a draft of your end-of-day update:</span><br><br>';
-      html += '<table class="msg-table">';
-      html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Sent</td><td style="font-weight:600;">Remaining</td></tr>';
+      const studyNotes: StudyNote[] = myStudies.map(([id, s]) => this.buildStudyNote(id, s));
 
-      let totalSent = 0;
-      let totalRemaining = 0;
+      const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const html =
+        `<strong>EOD Update — ${dateStr}</strong><br>` +
+        `<span style="font-size:12px;color:var(--text-muted);">` +
+        `Here are the draft notes for each of your studies. Review and edit if needed, then post to Salesforce.` +
+        `</span>`;
 
-      myStudies.forEach(([id, s]) => {
-        const remaining = s.totalRequired - s.alreadySent;
-        totalSent += s.alreadySent;
-        totalRemaining += remaining;
-        const statusIcon = remaining === 0
-          ? '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span>'
-          : '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">hourglass_empty</span>';
-        html += `<tr><td>${statusIcon} Study ${id}<br><span style="font-size:11px;color:var(--text-faint);">${s.name}</span></td><td>${s.alreadySent}/${s.totalRequired}</td><td>${remaining > 0 ? '<strong>' + remaining + '</strong>' : '<span style="color:var(--green);">Done</span>'}</td></tr>`;
-      });
-
-      html += `<tr style="border-top:1px solid var(--card-border);"><td><strong>Total</strong></td><td><strong>${totalSent}</strong> sent</td><td><strong>${totalRemaining}</strong> remaining</td></tr>`;
-      html += '</table>';
-      html += '<br><span style="font-size:12px;color:var(--text-muted);">This update would be posted to your Salesforce cases and shared with the UXR leads and Pod leads. (POC: not sending)</span>';
-
-      this.addBotMessage(html, [
-        { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' },
-        { label: 'Pending studies', type: 'secondary', action: 'suggest', payload: 'Pending studies' }
-      ], 0);
+      this.pushBotMessageWithStudyNotes(html, studyNotes);
     }, 1200);
+  }
+
+  private buildStudyNote(studyId: string, study: { name: string; p0Ready: number; p0NewlyMarked: number; newResponses: number }): StudyNote {
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const p0Total = study.p0Ready;
+    const invitesSent = study.p0NewlyMarked;
+    const booked = Math.min(study.newResponses, Math.max(1, Math.floor(invitesSent * 0.4)));
+    const cancelled = p0Total > 5 ? 1 : 0;
+    const rescheduled = p0Total > 8 ? 1 : 0;
+    const psCompleted = Math.floor(p0Total * 0.7);
+    const psInvited = invitesSent > 0 ? Math.min(2, invitesSent) : 0;
+    const psCancelled = psCompleted > 4 ? 1 : 0;
+    const psRescheduled = psCompleted > 5 ? 1 : 0;
+
+    const content = [
+      `${p0Total} P0s shortlisted so far`,
+      `${invitesSent} Invite emails sent today`,
+      `${booked} Participants booked appointments`,
+      `${cancelled} appointment${cancelled !== 1 ? 's' : ''} cancelled`,
+      `${rescheduled} appointment${rescheduled !== 1 ? 's' : ''} rescheduled`,
+      `${psCompleted} Pre-screening interviews completed`,
+      `${psInvited} Participants invited for Pre-screening`,
+      `${psCancelled} Pre-screening appointment${psCancelled !== 1 ? 's' : ''} cancelled`,
+      `${psRescheduled} Pre-screening appointment${psRescheduled !== 1 ? 's' : ''} rescheduled`,
+    ].join('\n');
+
+    return { studyId, studyName: study.name, title: dateStr, content, posted: false };
+  }
+
+  private pushBotMessageWithStudyNotes(html: string, studyNotes: StudyNote[]): void {
+    const msg: ChatMessage = {
+      id: this.generateId(),
+      sender: 'bot',
+      html,
+      timestamp: new Date(),
+      studyNotes
+    };
+    this.messages.update(list => [...list, msg]);
   }
 
   handleCandidateReplyDraft(text: string): void {
@@ -1801,6 +1788,32 @@ export class ChatEngineService implements OnDestroy {
         this.toastService.show('success', 'Schedule confirmed!');
         this.disableActionsOnLastBotMessage();
         break;
+
+      case 'post_eod_one':
+        if (payload && payload.studyId) {
+          this.toastService.show('success', `Note posted for Study ${payload.studyId}`);
+          this.addBotMessage(
+            `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
+            `Note posted to Salesforce for <strong>${payload.studyName ?? 'Study ' + payload.studyId}</strong>. ` +
+            `<span style="font-size:12px;color:var(--text-muted);">(POC)</span>`,
+            undefined, 0
+          );
+        }
+        break;
+
+      case 'post_eod_all': {
+        const notes = Array.isArray(payload) ? payload : [];
+        const count = notes.length;
+        this.toastService.show('success', `All ${count} notes posted to Salesforce`);
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
+          `All <strong>${count}</strong> notes posted to Salesforce. UXRs and Pod Leads have been notified. ` +
+          `<span style="font-size:12px;color:var(--text-muted);">(POC)</span>`,
+          [{ label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }],
+          0
+        );
+        break;
+      }
 
       default:
         if (actionId.startsWith('select_study_')) {

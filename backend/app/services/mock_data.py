@@ -400,6 +400,62 @@ PARTICIPANTS: dict[str, list[dict]] = {
     ],
 }
 
+# ── UXR → RC shortlisting events (UXR randomly selects P0 candidates and notifies RC) ──
+# Simulates the workflow where UXR shortlists P0s, then RC sends invites.
+
+UXR_SHORTLISTING_EVENTS: list[dict] = [
+    {
+        "event_id": "UXR-EVT-001",
+        "study_id": "1234567",
+        "study_name": "Global Ads Experience Survey",
+        "uxr_name": "Sarah Johnson",
+        "date": _today,
+        "p0_newly_shortlisted": 5,
+        "p0_total_shortlisted": 15,
+        "sent_to_rc": "Sarah Chen",
+        "notified_at": "09:45",
+    },
+    {
+        "event_id": "UXR-EVT-002",
+        "study_id": "3456789",
+        "study_name": "Search UX Satisfaction Study",
+        "uxr_name": "Priya Nair",
+        "date": _today,
+        "p0_newly_shortlisted": 3,
+        "p0_total_shortlisted": 8,
+        "sent_to_rc": "Lohithaksh",
+        "notified_at": "10:15",
+    },
+    {
+        "event_id": "UXR-EVT-003",
+        "study_id": "7890123",
+        "study_name": "Chrome Browser Usability Study",
+        "uxr_name": "Neha Gupta",
+        "date": _today,
+        "p0_newly_shortlisted": 4,
+        "p0_total_shortlisted": 7,
+        "sent_to_rc": "Aakash",
+        "notified_at": "11:00",
+    },
+]
+
+# ── Daily activity aggregate used for EOD Salesforce note generation ──
+# These numbers reflect the full day: UXR shortlisting, RC invite sends,
+# participant booking/cancellation/rescheduling, and pre-screening activity.
+
+DAILY_ACTIVITY: dict = {
+    "date": _today,
+    "p0_shortlisted_total": 15,
+    "invites_sent_today": 10,
+    "appointments_booked": 3,
+    "appointments_cancelled": 1,
+    "appointments_rescheduled": 1,
+    "prescreening_interviews_completed": 10,
+    "prescreening_invited": 2,
+    "prescreening_cancelled": 1,
+    "prescreening_rescheduled": 1,
+}
+
 # ── Counter for generating unique IDs ──
 
 _counter: int = 0

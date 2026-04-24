@@ -129,6 +129,7 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   ngAfterViewChecked(): void {
     if (this.shouldScroll) {
       this.scrollToBottom();
+      this.shouldScroll = false;
     }
   }
 

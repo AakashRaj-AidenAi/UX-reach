@@ -94,6 +94,8 @@ SUPPORTED INTENTS
 - status_query      → status, overview, update of a specific study
 - daily_summary     → today's summary, what happened today, daily recap
 - eod_update        → end-of-day update, EOD, EOD summary, daily update draft
+- post_eod_note     → post/confirm EOD note to Salesforce, "looks good post it", "confirm post", "post daily update"
+- edit_eod_note     → edit EOD draft, "edit this summary", "I want to make changes", "modify the draft"
 - pending_studies   → which studies need invites, what's pending, outstanding studies
 - failure_report    → failures, errors, what went wrong, failed sends
 - invites_remaining → how many left, remaining invites, how much more to send
@@ -161,6 +163,11 @@ EXAMPLES (varied phrasings — learn from these)
 "give me a sumary of today"                    → {"intent":"daily_summary","study_id":null,"count":null,"scheduled_time":null}
 "show me my EOD update"                        → {"intent":"eod_update","study_id":null,"count":null,"scheduled_time":null}
 "end of day summary"                           → {"intent":"eod_update","study_id":null,"count":null,"scheduled_time":null}
+"looks good post it"                           → {"intent":"post_eod_note","study_id":null,"count":null,"scheduled_time":null}
+"post eod to salesforce"                       → {"intent":"post_eod_note","study_id":null,"count":null,"scheduled_time":null}
+"confirm and post daily update"                → {"intent":"post_eod_note","study_id":null,"count":null,"scheduled_time":null}
+"edit eod draft"                               → {"intent":"edit_eod_note","study_id":null,"count":null,"scheduled_time":null}
+"I want to edit the summary"                   → {"intent":"edit_eod_note","study_id":null,"count":null,"scheduled_time":null}
 "which studies are pending"                    → {"intent":"pending_studies","study_id":null,"count":null,"scheduled_time":null}
 "what studies need invites"                    → {"intent":"pending_studies","study_id":null,"count":null,"scheduled_time":null}
 "any errors or failures"                       → {"intent":"failure_report","study_id":null,"count":null,"scheduled_time":null}
@@ -279,7 +286,17 @@ def _regex_parse(text: str) -> ParsedCommand:
         return ParsedCommand(intent="daily_summary", raw_text=text)
 
     if re.search(r"\beod\b|end.?of.?day|eod update", lower):
+        if re.search(r"\bpost\b|\bconfirm\b|\blooks good\b|\bsend it\b", lower):
+            return ParsedCommand(intent="post_eod_note", raw_text=text)
+        if re.search(r"\bedit\b|\bchange\b|\bmodif\b", lower):
+            return ParsedCommand(intent="edit_eod_note", raw_text=text)
         return ParsedCommand(intent="eod_update", raw_text=text)
+
+    if re.search(r"\bpost\b.*\b(salesforce|daily|note)\b|\blooks good.*post\b|\bconfirm.*post\b", lower):
+        return ParsedCommand(intent="post_eod_note", raw_text=text)
+
+    if re.search(r"\bedit\b.*\b(eod|draft|summary|note)\b|\bmodif\b.*\b(eod|draft|summary)\b", lower):
+        return ParsedCommand(intent="edit_eod_note", raw_text=text)
 
     if re.search(r"pending|outstanding|need.*invit|which.*studies", lower):
         return ParsedCommand(intent="pending_studies", raw_text=text)
