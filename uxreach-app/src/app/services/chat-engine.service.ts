@@ -93,18 +93,28 @@ export class ChatEngineService implements OnDestroy {
       this.history.startNewConversation();
     }
     this.messages.set([]);
-    this.addBotMessage(
-      'Hello! I can help you send invites, track participant responses, check ICF status, and more.',
-      [
-        { label: 'Send invites now', type: 'primary', action: 'open_study_picker' },
-        { label: 'Schedule invites', type: 'primary', action: 'open_schedule_picker' },
-        { label: 'Study progress', type: 'primary', action: 'open_study_progress_picker' },
-        { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
-        { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Show today's summary" },
-        { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
-      ],
-      0
-    );
+
+    const fallbackButtons: MessageAction[] = [
+      { label: 'Send invites now', type: 'primary', action: 'open_study_picker' },
+      { label: 'Schedule invites', type: 'primary', action: 'open_schedule_picker' },
+      { label: 'Study progress', type: 'primary', action: 'open_study_progress_picker' },
+      { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
+      { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Show today's summary" },
+      { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
+    ];
+
+    this.api.getWelcomeConfig().subscribe({
+      next: (config) => {
+        this.addBotMessage(config.message, (config.buttons as MessageAction[]) ?? fallbackButtons, 0);
+      },
+      error: () => {
+        this.addBotMessage(
+          'Hello! I can help you send invites, track participant responses, check ICF status, and more.',
+          fallbackButtons,
+          0
+        );
+      }
+    });
   }
 
   newConversation(): void {

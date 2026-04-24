@@ -330,6 +330,22 @@ DELEGATIONS: list[dict] = []
 
 SEND_STATE: dict[str, dict] = {}
 
+# ── Welcome screen config (message + initial quick-action buttons) ──
+# Edit WELCOME_CONFIG["message"] to change the greeting text shown on first load.
+# Edit WELCOME_CONFIG["buttons"] to change the six contextual action buttons.
+
+WELCOME_CONFIG: dict = {
+    "message": "Hello! I can help you send invites, track participant responses, check ICF status, and more.",
+    "buttons": [
+        {"label": "Send invites now",   "type": "primary",   "action": "open_study_picker"},
+        {"label": "Schedule invites",   "type": "primary",   "action": "open_schedule_picker"},
+        {"label": "Study progress",     "type": "primary",   "action": "open_study_progress_picker"},
+        {"label": "Invites remaining",  "type": "secondary", "action": "suggest", "payload": "How many invites are left?"},
+        {"label": "Today's summary",    "type": "secondary", "action": "suggest", "payload": "Show today's summary"},
+        {"label": "My studies",         "type": "secondary", "action": "suggest", "payload": "My studies"},
+    ],
+}
+
 # ── Preferences ──
 
 PREFERENCES: dict = {

@@ -60,6 +60,9 @@ import { ToastService } from '../../../services/toast.service';
                   [style.width.%]="progressPercent">
                 </div>
               </div>
+              @if (!message.sendingProgress.isComplete) {
+                <p class="free-to-close-hint">You're free to close this window — the batch will keep running in the background.</p>
+              }
             </div>
           }
 
@@ -241,6 +244,13 @@ import { ToastService } from '../../../services/toast.service';
       &.complete {
         background: var(--green);
       }
+    }
+
+    .free-to-close-hint {
+      margin: 8px 0 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Action buttons */

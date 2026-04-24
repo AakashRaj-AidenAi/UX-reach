@@ -140,6 +140,14 @@ export class ApiService {
     return this.http.put(`${this.baseUrl}/settings/preferences`, prefs);
   }
 
+  getWelcomeConfig(): Observable<{ message: string; buttons: any[] }> {
+    return this.http.get<{ message: string; buttons: any[] }>(`${this.baseUrl}/settings/welcome`);
+  }
+
+  updateWelcomeConfig(config: { message?: string; buttons?: any[] }): Observable<any> {
+    return this.http.put(`${this.baseUrl}/settings/welcome`, config);
+  }
+
   // ── Auth ──
 
   getAuthConfig(): Observable<{ googleClientId: string }> {
