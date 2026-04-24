@@ -59,7 +59,9 @@ export class ChatEngineService implements OnDestroy {
       this.sendingService.onComplete$.subscribe(result => {
         if (result.completed) {
           this.showCompletionMessage(result.studyId, result.sent, result.total, result.durationStr);
-          this.toastService.show('success', `All ${result.total} invites sent successfully for Study ${result.studyId}`);
+          if (this.isInSendingConv()) {
+            this.toastService.show('success', `All ${result.total} invites sent successfully for Study ${result.studyId}`);
+          }
         } else {
           let msg = `<strong style="color:var(--amber);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> Send stopped.</strong> ${result.sent}/${result.total} emails were sent. Already-sent emails will NOT be recalled.<br><span class="msg-hint">Parent case notes updated for ${result.sent} sent emails.</span>`;
           if (result.queuePosition && result.queuePosition > 0) {
@@ -878,6 +880,10 @@ export class ChatEngineService implements OnDestroy {
     };
     this.messages.update(list => [...list, msg]);
 
+    // Record which conversation owns this send. If the user switches chats
+    // before it completes, callbacks will target this conversation directly.
+    this.appState.sendingConversationId.set(this.history.activeId());
+
     this.sendingService.startSending(studyId, count);
   }
 
@@ -897,7 +903,13 @@ export class ChatEngineService implements OnDestroy {
     }, 800);
   }
 
+  private isInSendingConv(): boolean {
+    const sendConvId = this.appState.sendingConversationId();
+    return !sendConvId || sendConvId === this.history.activeId();
+  }
+
   private updateSendingProgress(sent: number, total: number): void {
+    if (!this.isInSendingConv()) return; // user switched away — don't touch this chat
     const elapsed = this.appState.elapsedSeconds();
     this.messages.update(list => {
       const updated = [...list];
@@ -922,6 +934,8 @@ export class ChatEngineService implements OnDestroy {
   }
 
   private showCompletionMessage(studyId: string, sent: number, total: number, durationStr: string): void {
+    const sendConvId = this.appState.sendingConversationId();
+    const inSendingConv = this.isInSendingConv();
     const study = this.studyService.getStudy(studyId);
     const totalSent = study ? study.alreadySent : sent;
     const totalRequired = study ? study.totalRequired : total;
@@ -929,26 +943,6 @@ export class ChatEngineService implements OnDestroy {
     const queue = this.appState.sendQueue();
     const queueIdx = this.appState.sendQueueIndex();
     const hasMore = queue.length > 0 && (queueIdx + 1 < queue.length);
-
-    // Mark progress message as complete
-    this.messages.update(list => {
-      const updated = [...list];
-      for (let i = updated.length - 1; i >= 0; i--) {
-        if (updated[i].sendingProgress) {
-          updated[i] = {
-            ...updated[i],
-            actions: [],
-            sendingProgress: {
-              ...updated[i].sendingProgress!,
-              isComplete: true,
-              durationStr
-            }
-          };
-          break;
-        }
-      }
-      return updated;
-    });
 
     let html = `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ${sent}/${total} sent — ${durationStr}`;
     if (queue.length > 1) {
@@ -968,39 +962,84 @@ export class ChatEngineService implements OnDestroy {
     }
 
     this.appState.currentFilters.set(null);
-    this.addBotMessage(html, undefined, 0, 'invite');
 
-    if (queue.length <= 1) {
-      // Single study — show summary
-      setTimeout(() => {
-        this.addTyping();
-        setTimeout(() => {
-          this.removeTyping();
-          this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
-        }, 600);
-      }, 800);
-    } else {
-      // Multi-study queue
-      this.appState.sendQueueIndex.update(i => i + 1);
-      if (this.appState.sendQueueIndex() < queue.length) {
+    if (inSendingConv) {
+      // Mark progress message as complete in the active view
+      this.messages.update(list => {
+        const updated = [...list];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].sendingProgress) {
+            updated[i] = {
+              ...updated[i],
+              actions: [],
+              sendingProgress: { ...updated[i].sendingProgress!, isComplete: true, durationStr }
+            };
+            break;
+          }
+        }
+        return updated;
+      });
+
+      this.addBotMessage(html, undefined, 0, 'invite');
+
+      if (queue.length <= 1) {
         setTimeout(() => {
           this.addTyping();
           setTimeout(() => {
             this.removeTyping();
-            this.processNextInQueue();
-          }, 700);
-        }, 1200);
+            this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
+          }, 600);
+        }, 800);
       } else {
+        this.appState.sendQueueIndex.update(i => i + 1);
+        if (this.appState.sendQueueIndex() < queue.length) {
+          setTimeout(() => {
+            this.addTyping();
+            setTimeout(() => {
+              this.removeTyping();
+              this.processNextInQueue();
+            }, 700);
+          }, 1200);
+        } else {
+          setTimeout(() => {
+            const completedQueue = [...queue];
+            this.appState.resetQueue();
+            this.showSendSummary(completedQueue);
+          }, 1000);
+        }
+      }
+    } else {
+      // User switched to a different chat — route results to the original conversation
+      if (sendConvId) {
+        this.history.markProgressComplete(sendConvId, durationStr);
+        const completionMsg: ChatMessage = {
+          id: this.generateId(), sender: 'bot', html, timestamp: new Date(), agent: 'invite'
+        };
+        this.history.appendToConversation(sendConvId, [completionMsg]);
+      }
+      this.toastService.show('success', `${sent}/${total} invites sent! Switch back to the original chat to see the summary.`);
+
+      if (queue.length <= 1) {
         setTimeout(() => {
-          const completedQueue = [...queue];
-          this.appState.resetQueue();
-          this.showSendSummary(completedQueue);
-        }, 1000);
+          this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
+        }, 800);
+      } else {
+        this.appState.sendQueueIndex.update(i => i + 1);
+        if (this.appState.sendQueueIndex() < queue.length) {
+          setTimeout(() => { this.processNextInQueue(); }, 1200);
+        } else {
+          setTimeout(() => {
+            const completedQueue = [...queue];
+            this.appState.resetQueue();
+            this.showSendSummary(completedQueue);
+          }, 1000);
+        }
       }
     }
   }
 
   private showSendSummary(items: SendQueueItem[]): void {
+    const sendConvId = this.appState.sendingConversationId();
     const totalSent = items.reduce((s, i) => s + i.count, 0);
     let html = '<strong><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">celebration</span> All done! Here\'s your send summary:</strong><br><br>';
     html += '<table class="msg-table">';
@@ -1011,9 +1050,19 @@ export class ChatEngineService implements OnDestroy {
     if (items.length > 1) {
       html += `<br><strong>${totalSent}</strong> invites sent across <strong>${items.length}</strong> studies.`;
     }
-    this.addBotMessage(html, [
-      { label: 'Send more invites', type: 'primary', action: 'open_study_picker' }
-    ], 0, 'invite');
+    const actions: MessageAction[] = [{ label: 'Send more invites', type: 'primary', action: 'open_study_picker' }];
+
+    if (this.isInSendingConv()) {
+      this.addBotMessage(html, actions, 0, 'invite');
+    } else {
+      // User is in a different chat — silently append summary to the original conversation
+      if (sendConvId) {
+        const summaryMsg: ChatMessage = {
+          id: this.generateId(), sender: 'bot', html, timestamp: new Date(), actions, agent: 'invite'
+        };
+        this.history.appendToConversation(sendConvId, [summaryMsg]);
+      }
+    }
   }
 
   // ── SEND MORE ──
