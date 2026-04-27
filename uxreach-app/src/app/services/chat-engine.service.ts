@@ -143,6 +143,12 @@ export class ChatEngineService implements OnDestroy {
     const hasUserMessage = activeMessages.some(m => m.sender === 'user');
     if (!hasUserMessage) return;
 
+    // Flush any unsaved messages to the current chat before switching. The Angular effect
+    // batches signal writes and may not have run yet, so we synchronously persist here to
+    // avoid losing messages that were added (e.g. send-completion callbacks) just before
+    // the user clicked "New Chat".
+    this.history.updateActiveMessages(this.messages().filter(m => !m.isTyping));
+
     this.history.startNewConversation();
     this.suppressPersist = true;
     this.messages.set([]);
@@ -151,6 +157,9 @@ export class ChatEngineService implements OnDestroy {
   }
 
   selectConversation(id: string): void {
+    // Flush the current chat's messages before switching away, for the same reason as above.
+    this.history.updateActiveMessages(this.messages().filter(m => !m.isTyping));
+
     const conv = this.history.selectConversation(id);
     if (!conv) return;
     this.suppressPersist = true;
@@ -1091,9 +1100,10 @@ export class ChatEngineService implements OnDestroy {
 
       if (queue.length <= 1) {
         setTimeout(() => {
-          this.addTyping();
+          // Re-check: user may have switched chats in the ~800 ms since completion fired.
+          if (this.isInSendingConv()) this.addTyping();
           setTimeout(() => {
-            this.removeTyping();
+            if (this.isInSendingConv()) this.removeTyping();
             this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
           }, 600);
         }, 800);
@@ -1101,9 +1111,10 @@ export class ChatEngineService implements OnDestroy {
         this.appState.sendQueueIndex.update(i => i + 1);
         if (this.appState.sendQueueIndex() < queue.length) {
           setTimeout(() => {
-            this.addTyping();
+            // Re-check: user may have switched chats during the inter-study delay.
+            if (this.isInSendingConv()) this.addTyping();
             setTimeout(() => {
-              this.removeTyping();
+              if (this.isInSendingConv()) this.removeTyping();
               this.processNextInQueue();
             }, 700);
           }, 1200);
