@@ -29,6 +29,15 @@ export class ChatEngineService implements OnDestroy {
 
   readonly messages = signal<ChatMessage[]>([]);
 
+  // Populated when a 'suggest' button or picker submit fires — input bar watches this to prefill
+  private suggestCount = 0;
+  readonly inputDraft = signal<{ text: string; n: number }>({ text: '', n: 0 });
+
+  suggestInput(text: string): void {
+    this.suggestCount++;
+    this.inputDraft.set({ text, n: this.suggestCount });
+  }
+
   // Signals for picker visibility
   readonly showStudyPicker = signal(false);
   readonly showSchedulePicker = signal(false);
@@ -1866,8 +1875,7 @@ export class ChatEngineService implements OnDestroy {
     switch (actionId) {
       case 'suggest':
         if (typeof payload === 'string') {
-          this.addUserMessage(payload);
-          this.processCommand(payload);
+          this.suggestInput(payload);
         }
         break;
 

@@ -4,10 +4,12 @@ import {
   Input,
   EventEmitter,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   HostListener,
   ViewChild,
   ElementRef,
-  inject
+  inject,
+  effect
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChatEngineService } from '../../../services/chat-engine.service';
@@ -100,11 +102,26 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
 })
 export class ChatInputBarComponent {
   private readonly chatEngine = inject(ChatEngineService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Output() messageSent = new EventEmitter<string>();
   @ViewChild('inputField') private inputField!: ElementRef<HTMLTextAreaElement>;
 
   text = '';
+
+  constructor() {
+    effect(() => {
+      const { text } = this.chatEngine.inputDraft();
+      if (text) {
+        this.text = text;
+        this.cdr.markForCheck();
+        setTimeout(() => {
+          this.autoResize();
+          this.inputField?.nativeElement.focus();
+        }, 0);
+      }
+    });
+  }
 
   onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
