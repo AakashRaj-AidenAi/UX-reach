@@ -180,7 +180,7 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/health/dependencies`).pipe(
       catchError(() => of({
         salesforce: { status: 'unknown', label: 'SF' },
-        gemini: { status: 'unknown', label: 'Gemini' },
+        vertex_ai: { status: 'unknown', label: 'Vertex AI' },
         shortlisting: { status: 'unknown', label: 'Shortlisting' }
       }))
     );

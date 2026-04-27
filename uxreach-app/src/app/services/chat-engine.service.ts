@@ -838,7 +838,7 @@ export class ChatEngineService implements OnDestroy {
       salesforce: 'Salesforce',
       shortlisting_app: 'Shortlisting App',
       cloud_sql: 'Cloud SQL',
-      gemini: 'Gemini'
+      vertex_ai: 'Vertex AI'
     };
     this.api.getDependencies().subscribe({
       next: (healthData) => {
