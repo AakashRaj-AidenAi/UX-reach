@@ -4,4 +4,4 @@ __pycache__/
 *.pyo
 
 # Service account credentials
-backend/*.json
+tough-zoo-475011-s6-1d16097b5082.json

@@ -27,9 +27,11 @@ def dependency_status():
                 "latency_ms": 45,
                 "last_check": datetime.now().isoformat(),
             },
-            "gemini": {
-                "status": "connected" if (os.getenv("GEMINI_API_KEY", "") not in ("", "your_gemini_api_key_here")) else "not_configured",
-                "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
+            "vertex_ai": {
+                "status": "connected" if (os.getenv("VERTEX_PROJECT", "") not in ("", "your-gcp-project-id")) else "not_configured",
+                "model": os.getenv("VERTEX_MODEL", "gemini-2.0-flash"),
+                "project": os.getenv("VERTEX_PROJECT", ""),
+                "location": os.getenv("VERTEX_LOCATION", "us-central1"),
                 "latency_ms": 120,
                 "last_check": datetime.now().isoformat(),
             },

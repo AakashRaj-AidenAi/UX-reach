@@ -1,7 +1,7 @@
 """
 Intent classifier for UXReach chat.
-Primary: Gemini Flash (structured JSON output).
-Fallback: regex-based parser (used when Gemini is unavailable or key not set).
+Primary: Vertex AI Generative Model (structured JSON output).
+Fallback: regex-based parser (used when Vertex AI is unavailable or not configured).
 """
 
 import os
@@ -16,30 +16,26 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".en
 
 logger = logging.getLogger(__name__)
 
-# ── Gemini client (lazy-initialised) ─────────────────────────────────────────
+# ── Vertex AI client (lazy-initialised) ──────────────────────────────────────
 
-_gemini_client = None
-_gemini_model_loaded = None  # track which model the client was built for
+_vertex_client = None
 
 
-def _get_gemini_client():
-    global _gemini_client, _gemini_model_loaded
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    if not api_key or api_key == "your_gemini_api_key_here":
+def _get_vertex_client():
+    global _vertex_client
+    project = os.getenv("VERTEX_PROJECT", "")
+    location = os.getenv("VERTEX_LOCATION", "us-central1")
+    if not project or project == "your-gcp-project-id":
         return None
-    # Rebuild if model changed (e.g. env var updated at runtime)
-    if _gemini_client is not None and _gemini_model_loaded == model_name:
-        return _gemini_client
+    if _vertex_client is not None:
+        return _vertex_client
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        _gemini_client = genai.GenerativeModel(model_name)
-        _gemini_model_loaded = model_name
-        logger.info(f"Gemini client initialised with model: {model_name}")
-        return _gemini_client
+        from google import genai
+        _vertex_client = genai.Client(vertexai=True, project=project, location=location)
+        logger.info(f"Vertex AI client initialised (project={project}, location={location})")
+        return _vertex_client
     except Exception as exc:
-        logger.warning(f"Gemini init failed: {exc}")
+        logger.warning(f"Vertex AI init failed: {exc}")
         return None
 
 
@@ -55,7 +51,7 @@ class ParsedCommand:
     params: dict = field(default_factory=dict)
 
 
-# ── Gemini prompt ─────────────────────────────────────────────────────────────
+# ── Classification prompt ─────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = """\
 You are an intent classifier for UXReach, a UX Research outreach platform used by
@@ -209,8 +205,8 @@ Now classify this message:
 """
 
 
-def _parse_gemini_response(raw: str, original_text: str) -> ParsedCommand:
-    """Parse Gemini JSON output into a ParsedCommand."""
+def _parse_vertex_response(raw: str, original_text: str) -> ParsedCommand:
+    """Parse Vertex AI JSON output into a ParsedCommand."""
     raw = raw.strip()
     # Strip accidental markdown fences
     if raw.startswith("```"):
@@ -225,20 +221,21 @@ def _parse_gemini_response(raw: str, original_text: str) -> ParsedCommand:
             raw_text=original_text,
         )
     except json.JSONDecodeError as exc:
-        logger.warning(f"Gemini JSON parse error: {exc} — raw: {raw!r}")
+        logger.warning(f"Vertex AI JSON parse error: {exc} — raw: {raw!r}")
         return _regex_parse(original_text)
 
 
-def _classify_with_gemini(text: str) -> ParsedCommand | None:
-    """Call Gemini and return a ParsedCommand, or None on failure."""
-    client = _get_gemini_client()
+def _classify_with_vertex(text: str) -> ParsedCommand | None:
+    """Call Vertex AI and return a ParsedCommand, or None on failure."""
+    client = _get_vertex_client()
     if client is None:
         return None
+    model_name = os.getenv("VERTEX_MODEL", "gemini-2.0-flash-001")
     try:
-        response = client.generate_content(_SYSTEM_PROMPT + text)
-        return _parse_gemini_response(response.text, text)
+        response = client.models.generate_content(model=model_name, contents=_SYSTEM_PROMPT + text)
+        return _parse_vertex_response(response.text, text)
     except Exception as exc:
-        logger.warning(f"Gemini classification failed: {exc}")
+        logger.warning(f"Vertex AI classification failed: {exc}")
         return None
 
 
@@ -265,11 +262,14 @@ def _regex_parse(text: str) -> ParsedCommand:
     # send_invite — with or without study_id
     invite_re = re.compile(
         r"(?:send|shoot|fire|dispatch|push)\s+(?:out\s+)?(?:(\d+)\s+)?(?:invite[s]?|invitations?|email[s]?)\s*"
-        r"(?:(?:for|to|on)\s+)?(?:case|study|st|#)?\s*(\d{7})?", re.IGNORECASE)
+        r"(?:(?:for|to|on)\s+)?(?:the\s+)?(?:case|study|st|#)?\s*(\d{7})?", re.IGNORECASE)
     m = invite_re.search(lower)
     if m and (m.group(1) or m.group(2) or re.search(r"send.*invit|invit.*send", lower)):
+        # also pick up any 7-digit number in the text if the regex didn't capture it
+        sid_m = re.search(r"\b(\d{7})\b", lower)
+        study_id = m.group(2) if m.group(2) else (sid_m.group(1) if sid_m else None)
         return ParsedCommand(intent="send_invite",
-                             study_id=m.group(2) if m else None,
+                             study_id=study_id,
                              count=int(m.group(1)) if m and m.group(1) else None,
                              raw_text=text)
 
@@ -417,10 +417,21 @@ def _emergency_fallback(text: str) -> ParsedCommand:
 
 
 def parse_command(text: str) -> ParsedCommand:
-    """Classify via Gemini. Falls back to emergency keyword matching only if Gemini is down."""
-    result = _classify_with_gemini(text)
-    if result is not None:
-        logger.info(f"Gemini classified '{text}' → {result.intent}")
-        return result
-    logger.warning(f"Gemini unavailable — emergency fallback for '{text}'")
+    """
+    Classify intent in two steps:
+    1. Regex — instant, no API call, handles well-known patterns.
+    2. Vertex AI — called only when regex returns 'unknown' (natural language, ambiguous phrasing).
+    3. Emergency fallback — used only if Vertex AI is unreachable.
+    """
+    regex_result = _regex_parse(text)
+    if regex_result.intent != "unknown":
+        logger.info(f"Regex classified '{text}' → {regex_result.intent}")
+        return regex_result
+
+    ai_result = _classify_with_vertex(text)
+    if ai_result is not None:
+        logger.info(f"Vertex AI classified '{text}' → {ai_result.intent}")
+        return ai_result
+
+    logger.warning(f"Vertex AI unavailable — emergency fallback for '{text}'")
     return _emergency_fallback(text)
