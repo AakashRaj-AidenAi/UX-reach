@@ -5,7 +5,6 @@ import {
   ViewChild,
   ElementRef,
   AfterViewChecked,
-  ChangeDetectionStrategy,
   HostListener,
   signal
 } from '@angular/core';
@@ -33,7 +32,6 @@ import { ChatSwitcherComponent } from './components/chat-switcher.component';
     SchedulePickerComponent,
     ChatSwitcherComponent
   ],
-  changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: './chat-screen.component.html',
   styleUrl: './chat-screen.component.scss'
 })
@@ -137,9 +135,7 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   onStudyPickerSubmit(commandText: string): void {
     this.chatEngine.cancelStudyPicker();
-    this.shouldScroll = true;
-    this.chatEngine.addUserMessage(commandText);
-    this.chatEngine.processCommand(commandText);
+    this.chatEngine.suggestInput(commandText);
   }
 
   onStudyPickerCancel(): void {
@@ -148,9 +144,7 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   onSchedulePickerSubmit(commandText: string): void {
     this.chatEngine.cancelSchedulePicker();
-    this.shouldScroll = true;
-    this.chatEngine.addUserMessage(commandText);
-    this.chatEngine.processCommand(commandText);
+    this.chatEngine.suggestInput(commandText);
   }
 
   onSchedulePickerCancel(): void {

@@ -2,18 +2,19 @@ import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { ScheduledJob } from '../models/scheduled-job.model';
 import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
+import { StudyService } from './study.service';
 
 @Injectable({ providedIn: 'root' })
 export class SchedulerService implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly toastService = inject(ToastService);
+  private readonly studyService = inject(StudyService);
 
   readonly jobs = signal<ScheduledJob[]>([]);
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.fetchJobs();
-    // Poll every 30 seconds to pick up status changes from the backend scheduler
     this.pollTimer = setInterval(() => this.pollForUpdates(), 30_000);
   }
 
@@ -32,26 +33,43 @@ export class SchedulerService implements OnDestroy {
     const prevJobs = this.jobs();
     this.api.getScheduledJobs().subscribe({
       next: (fresh) => {
-        // Detect jobs that just completed or failed
+        let studyRefreshNeeded = false;
+
         for (const updated of fresh) {
           const prev = prevJobs.find(
             j => j.studyId === updated.studyId &&
                  j.scheduledTime === updated.scheduledTime &&
                  j.count === updated.count
           );
-          if (prev?.status === 'scheduled' && updated.status === 'completed') {
+
+          if (prev?.status === 'scheduled' && updated.status === 'running') {
+            this.toastService.show(
+              'info',
+              `Scheduled send started: ${updated.count} invites for Study ${updated.studyId}`
+            );
+          }
+
+          if ((prev?.status === 'scheduled' || prev?.status === 'running') && updated.status === 'completed') {
             this.toastService.show(
               'success',
               `Scheduled send complete: ${updated.count} invites sent for Study ${updated.studyId}`
             );
-          } else if (prev?.status === 'scheduled' && updated.status === 'failed') {
+            studyRefreshNeeded = true;
+          }
+
+          if ((prev?.status === 'scheduled' || prev?.status === 'running') && updated.status === 'failed') {
             this.toastService.show(
               'error',
               `Scheduled send failed for Study ${updated.studyId}`
             );
           }
         }
+
         this.jobs.set(fresh);
+
+        if (studyRefreshNeeded) {
+          this.studyService.fetchStudies();
+        }
       },
       error: () => {}
     });
