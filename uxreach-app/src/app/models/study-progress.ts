@@ -2,6 +2,7 @@ export interface StudyProgress {
   studyId: string;
   studyName: string;
   researcher: string;
+  // Invite funnel
   totalInvited: number;
   booked: number;
   icfSigned: number;
@@ -10,6 +11,15 @@ export interface StudyProgress {
   declined: number;
   pendingIcf: number;
   needsAttention: string[];
+  // EOD / activity stats — same source as today's summary
+  p0Ready?: number;
+  invitesSentToday?: number;
+  appointmentsCancelled?: number;
+  appointmentsRescheduled?: number;
+  psCompleted?: number;
+  psInvited?: number;
+  psCancelled?: number;
+  psRescheduled?: number;
 }
 
 export interface FunnelStage {

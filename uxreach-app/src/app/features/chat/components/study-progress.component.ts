@@ -17,6 +17,7 @@ import { StudyProgress, FunnelStage, buildFunnel } from '../../../models/study-p
         <div class="study-progress-sub">UXR: {{ progress.researcher }}</div>
       </div>
 
+      <!-- Invite funnel -->
       <div class="funnel">
         @for (stage of stages; track stage.key) {
           <div class="funnel-row" [attr.data-tone]="stage.tone">
@@ -28,6 +29,55 @@ import { StudyProgress, FunnelStage, buildFunnel } from '../../../models/study-p
           </div>
         }
       </div>
+
+      <!-- Today's activity — same data as EOD summary -->
+      @if (hasActivityData) {
+        <div class="activity-section">
+          <div class="activity-title">
+            <span class="material-symbols-outlined icon-sm" style="vertical-align:middle;color:var(--text-muted);">today</span>
+            Today's Activity
+          </div>
+          <div class="activity-grid">
+            <div class="act-row">
+              <span class="act-label">P0s shortlisted</span>
+              <span class="act-val">{{ progress.p0Ready }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Invites sent today</span>
+              <span class="act-val">{{ progress.invitesSentToday }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Appointments booked</span>
+              <span class="act-val">{{ progress.booked }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Appointments cancelled</span>
+              <span class="act-val" [class.act-val-warn]="(progress.appointmentsCancelled ?? 0) > 0">{{ progress.appointmentsCancelled ?? 0 }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Appointments rescheduled</span>
+              <span class="act-val">{{ progress.appointmentsRescheduled ?? 0 }}</span>
+            </div>
+            <div class="act-divider"></div>
+            <div class="act-row">
+              <span class="act-label">Pre-screening completed</span>
+              <span class="act-val">{{ progress.psCompleted ?? 0 }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Invited for pre-screening</span>
+              <span class="act-val">{{ progress.psInvited ?? 0 }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Pre-screening cancelled</span>
+              <span class="act-val" [class.act-val-warn]="(progress.psCancelled ?? 0) > 0">{{ progress.psCancelled ?? 0 }}</span>
+            </div>
+            <div class="act-row">
+              <span class="act-label">Pre-screening rescheduled</span>
+              <span class="act-val">{{ progress.psRescheduled ?? 0 }}</span>
+            </div>
+          </div>
+        </div>
+      }
 
       @if (progress.needsAttention && progress.needsAttention.length > 0) {
         <div class="funnel-needs-attention">
@@ -84,6 +134,51 @@ import { StudyProgress, FunnelStage, buildFunnel } from '../../../models/study-p
       border-top: 1px dashed var(--card-border);
       font-size: 12px; color: var(--text-dim);
     }
+
+    .activity-section {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .activity-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 8px;
+    }
+
+    .activity-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .act-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .act-label { color: var(--text-dim); }
+
+    .act-val {
+      font-weight: 500;
+      color: var(--text);
+      min-width: 24px;
+      text-align: right;
+    }
+
+    .act-val-warn { color: var(--amber); }
+
+    .act-divider {
+      height: 1px;
+      background: var(--card-border);
+      margin: 4px 0;
+    }
   `]
 })
 export class StudyProgressComponent {
@@ -91,5 +186,9 @@ export class StudyProgressComponent {
 
   get stages(): FunnelStage[] {
     return buildFunnel(this.progress);
+  }
+
+  get hasActivityData(): boolean {
+    return this.progress.p0Ready != null;
   }
 }
