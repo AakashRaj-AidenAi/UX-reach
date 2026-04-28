@@ -3,16 +3,88 @@
     <div class="screen-header-row">
       <div>
         <h1 class="screen-title">Audit Trail</h1>
-        <p class="screen-subtitle">Complete history of all invite runs with anonymized data</p>
+        <p class="screen-subtitle">Complete history of all invite runs</p>
       </div>
-      @if (hasActiveFilters()) {
-        <button class="clear-btn" (click)="clearFilters()">
-          <span class="material-symbols-outlined icon-sm">filter_alt_off</span>
-          Clear filters
+
+      <div class="audit-toolbar">
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Search runs, studies, RC…"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)" />
+        </div>
+
+        <!-- Filter button -->
+        <button class="toolbar-btn" [class.toolbar-btn-active]="filterModalOpen() || hasActiveFilters()" (click)="toggleFilterModal()">
+          <span class="material-symbols-outlined icon-sm">tune</span>
+          Filters
+          @if (activeFilterCount() > 0) {
+            <span class="filter-badge">{{ activeFilterCount() }}</span>
+          }
         </button>
-      }
+
+        <!-- Clear filters -->
+        @if (hasActiveFilters()) {
+          <button class="toolbar-btn clear-btn" (click)="clearFilters()">
+            <span class="material-symbols-outlined icon-sm">filter_alt_off</span>
+          </button>
+        }
+      </div>
     </div>
   </header>
+
+  <!-- Filter modal -->
+  @if (filterModalOpen()) {
+    <div class="filter-modal-backdrop" (click)="closeFilterModal()"></div>
+    <div class="filter-modal">
+      <div class="filter-modal-header">
+        <span class="filter-modal-title">Filter runs</span>
+        <button class="filter-modal-close" (click)="closeFilterModal()">
+          <span class="material-symbols-outlined icon-sm">close</span>
+        </button>
+      </div>
+
+      <div class="filter-modal-body">
+        <div class="filter-field">
+          <label class="filter-label">Status</label>
+          <select class="filter-select" [value]="filters().status" (change)="setFilter('status', $any($event.target).value)">
+            <option value="">All statuses</option>
+            <option value="completed">Completed</option>
+            <option value="sending">Sending</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label class="filter-label">On Time (SLA)</label>
+          <select class="filter-select" [value]="filters().sla" (change)="setFilter('sla', $any($event.target).value)">
+            <option value="">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label class="filter-label">Date</label>
+          <input class="filter-input" type="date" [value]="filters().date" (change)="setFilter('date', $any($event.target).value)" />
+        </div>
+
+        <div class="filter-field">
+          <label class="filter-label">RC</label>
+          <input class="filter-input" type="text" placeholder="e.g. Sarah Chen" [value]="filters().rc" (input)="setFilter('rc', $any($event.target).value)" />
+        </div>
+      </div>
+
+      <div class="filter-modal-footer">
+        <button class="filter-clear-btn" (click)="clearFilters()">Clear all</button>
+        <button class="filter-apply-btn" (click)="closeFilterModal()">Apply</button>
+      </div>
+    </div>
+  }
 
   <div class="table-wrapper card">
     <table class="audit-table">
@@ -21,30 +93,6 @@
           @for (col of columns; track col.key) {
             <th (click)="sort(col.key)" class="sortable-header">
               {{ col.label }}<span class="sort-arrow material-symbols-outlined icon-sm">{{ getSortIcon(col.key) }}</span>
-            </th>
-          }
-        </tr>
-        <tr class="filter-row">
-          @for (col of columns; track col.key) {
-            <th class="filter-cell">
-              @if (col.filterType === 'select') {
-                <select
-                  class="filter-select"
-                  [class.filter-active]="getFilterValue(col.key) !== ''"
-                  [value]="getFilterValue(col.key)"
-                  (change)="setFilter(col.key, $any($event.target).value)">
-                  @for (opt of col.options; track opt.value) {
-                    <option [value]="opt.value">{{ opt.label }}</option>
-                  }
-                </select>
-              } @else {
-                <input
-                  type="text"
-                  class="filter-input"
-                  placeholder="Filter…"
-                  [value]="getFilterValue(col.key)"
-                  (input)="setFilter(col.key, $any($event.target).value)" />
-              }
             </th>
           }
         </tr>
@@ -59,9 +107,7 @@
             <td>{{ run.rc }}</td>
             <td>{{ run.sent }}</td>
             <td [class.failed-cell]="run.failed > 0">{{ run.failed }}</td>
-            <td>
-              <app-status-badge [status]="run.status" />
-            </td>
+            <td><app-status-badge [status]="run.status" /></td>
             <td class="mono">{{ run.duration }}</td>
             <td>
               @if (run.sla === true) {
@@ -76,7 +122,7 @@
         } @empty {
           <tr>
             <td colspan="10" class="empty-row">
-              @if (hasActiveFilters()) {
+              @if (hasActiveFilters() || searchQuery()) {
                 No runs match the current filters.
               } @else {
                 No audit runs recorded yet.
