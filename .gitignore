@@ -3,5 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Service account credentials
+# Credentials — never commit these
+.env
+*.env
 tough-zoo-475011-s6-1d16097b5082.json
