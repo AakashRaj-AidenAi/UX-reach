@@ -327,6 +327,89 @@ _three_days_ago = (_now - timedelta(days=3)).strftime("%Y-%m-%d")
 _four_days_ago = (_now - timedelta(days=4)).strftime("%Y-%m-%d")
 _five_days_ago = (_now - timedelta(days=5)).strftime("%Y-%m-%d")
 
+_DATES = [_five_days_ago, _four_days_ago, _three_days_ago, _two_days_ago, _yesterday, _today]
+_SLOTS = ["09:00", "10:00", "11:00", "11:30", "14:00", "15:00", "16:00"]
+
+
+def _make_participants(
+    study_id: str,
+    confirmed: int,
+    booked: int,
+    no_response: int,
+    declined: int,
+    invited: int,
+) -> list[dict]:
+    """Generate a realistic participant list for a study."""
+    result = []
+    num = 1
+    slot_idx = 0
+
+    for i in range(confirmed):
+        inv_d = _DATES[i % 3]          # 5, 4, 3 days ago
+        res_d = _DATES[(i % 3) + 1]   # 4, 3, 2 days ago
+        slot_date = f"2026-04-{22 + (i % 8):02d}"
+        slot = f"{slot_date} {_SLOTS[slot_idx % len(_SLOTS)]}"
+        slot_idx += 1
+        result.append({
+            "id": f"P-{study_id}-{num:02d}", "study_id": study_id,
+            "name": f"Participant #{num:02d}", "status": "confirmed",
+            "invited_date": inv_d, "response_date": res_d,
+            "booked_slot": slot, "icf_signed": True,
+            "needs_reminder": False, "days_since_invite": 5 - (i % 3),
+        })
+        num += 1
+
+    for i in range(booked):
+        inv_d = _DATES[2 + (i % 3)]   # 3, 2, 1 days ago
+        res_d = _DATES[3 + (i % 3)]   # 2, 1, 0 days ago
+        slot_date = f"2026-04-{27 + (i % 5):02d}"
+        slot = f"{slot_date} {_SLOTS[slot_idx % len(_SLOTS)]}"
+        slot_idx += 1
+        needs_r = i % 3 != 2
+        result.append({
+            "id": f"P-{study_id}-{num:02d}", "study_id": study_id,
+            "name": f"Participant #{num:02d}", "status": "booked",
+            "invited_date": inv_d, "response_date": res_d,
+            "booked_slot": slot, "icf_signed": False,
+            "needs_reminder": needs_r, "days_since_invite": 3 - (i % 3),
+        })
+        num += 1
+
+    for i in range(no_response):
+        inv_d = _DATES[i % 4]
+        result.append({
+            "id": f"P-{study_id}-{num:02d}", "study_id": study_id,
+            "name": f"Participant #{num:02d}", "status": "no_response",
+            "invited_date": inv_d, "response_date": None,
+            "booked_slot": None, "icf_signed": False,
+            "needs_reminder": True, "days_since_invite": 5 - (i % 4),
+        })
+        num += 1
+
+    for i in range(declined):
+        inv_d = _DATES[i % 3]
+        res_d = _DATES[(i % 3) + 1]
+        result.append({
+            "id": f"P-{study_id}-{num:02d}", "study_id": study_id,
+            "name": f"Participant #{num:02d}", "status": "declined",
+            "invited_date": inv_d, "response_date": res_d,
+            "booked_slot": None, "icf_signed": False,
+            "needs_reminder": False, "days_since_invite": 5 - (i % 3),
+        })
+        num += 1
+
+    for _ in range(invited):
+        result.append({
+            "id": f"P-{study_id}-{num:02d}", "study_id": study_id,
+            "name": f"Participant #{num:02d}", "status": "invited",
+            "invited_date": _today, "response_date": None,
+            "booked_slot": None, "icf_signed": False,
+            "needs_reminder": False, "days_since_invite": 0,
+        })
+        num += 1
+
+    return result
+
 PARTICIPANTS: dict[str, list[dict]] = {
     "1234567": [
         # 6 confirmed (booked + ICF signed)
@@ -449,6 +532,45 @@ PARTICIPANTS: dict[str, list[dict]] = {
         # 1 recently invited
         {"id": "P-6802457-05", "study_id": "6802457", "name": "Participant #05", "status": "invited", "invited_date": _today, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 0},
     ],
+
+    # ── Sarah Chen – YouTube Premium UX Research (0 sent, fresh study) ──
+    "2345678": _make_participants("2345678", confirmed=0, booked=0, no_response=0, declined=0, invited=3),
+
+    # ── Lohithaksh's studies ──
+    # Search UX Satisfaction Study – 20 sent
+    "3456789": _make_participants("3456789", confirmed=8, booked=4, no_response=4, declined=3, invited=2),
+    # Maps Navigation Feedback – 0 sent, fresh
+    "4567890": _make_participants("4567890", confirmed=0, booked=0, no_response=0, declined=0, invited=2),
+    # Google Pay Checkout Flow – 10 sent
+    "5678901": _make_participants("5678901", confirmed=4, booked=2, no_response=2, declined=2, invited=1),
+    # Gmail Compose Experience Study – 0 sent, fresh
+    "5789012": _make_participants("5789012", confirmed=0, booked=0, no_response=0, declined=0, invited=2),
+    # Google Drive Mobile UX Research – 18 sent
+    "5890123": _make_participants("5890123", confirmed=7, booked=3, no_response=4, declined=3, invited=2),
+    # Pixel Camera AI Features Study – 30 sent
+    "5901234": _make_participants("5901234", confirmed=12, booked=5, no_response=6, declined=5, invited=2),
+
+    # ── Aakash's studies ──
+    # Chrome Browser Usability Study – 12 sent
+    "7890123": _make_participants("7890123", confirmed=5, booked=3, no_response=2, declined=2, invited=1),
+    # Google Workspace Productivity Research – 0 sent, fresh
+    "8901234": _make_participants("8901234", confirmed=0, booked=0, no_response=0, declined=0, invited=3),
+    # Android Settings UX Review – 8 sent
+    "9012345": _make_participants("9012345", confirmed=3, booked=2, no_response=2, declined=1, invited=1),
+
+    # ── Manaswitha's studies ──
+    # YouTube Shorts Engagement Research – 0 sent, fresh
+    "2468013": _make_participants("2468013", confirmed=0, booked=0, no_response=0, declined=0, invited=2),
+    # Android Auto Interface Study – 0 sent, fresh
+    "4680235": _make_participants("4680235", confirmed=0, booked=0, no_response=0, declined=0, invited=2),
+
+    # ── Shubham's studies ──
+    # Google Meet Accessibility Study – 5 sent
+    "9123456": _make_participants("9123456", confirmed=2, booked=1, no_response=1, declined=1, invited=1),
+    # Drive File Sharing UX Research – 0 sent, fresh
+    "9234567": _make_participants("9234567", confirmed=0, booked=0, no_response=0, declined=0, invited=2),
+    # Google Photos Smart Features Study – 14 sent
+    "9345678": _make_participants("9345678", confirmed=6, booked=3, no_response=3, declined=2, invited=1),
 }
 
 # ── UXR → RC shortlisting events (UXR randomly selects P0 candidates and notifies RC) ──
