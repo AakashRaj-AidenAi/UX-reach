@@ -1,7 +1,17 @@
 <div class="audit-screen">
   <header class="screen-header">
-    <h1 class="screen-title">Audit Trail</h1>
-    <p class="screen-subtitle">Complete history of all invite runs with anonymized data</p>
+    <div class="screen-header-row">
+      <div>
+        <h1 class="screen-title">Audit Trail</h1>
+        <p class="screen-subtitle">Complete history of all invite runs with anonymized data</p>
+      </div>
+      @if (hasActiveFilters()) {
+        <button class="clear-btn" (click)="clearFilters()">
+          <span class="material-symbols-outlined icon-sm">filter_alt_off</span>
+          Clear filters
+        </button>
+      }
+    </div>
   </header>
 
   <div class="table-wrapper card">
@@ -14,9 +24,33 @@
             </th>
           }
         </tr>
+        <tr class="filter-row">
+          @for (col of columns; track col.key) {
+            <th class="filter-cell">
+              @if (col.filterType === 'select') {
+                <select
+                  class="filter-select"
+                  [class.filter-active]="getFilterValue(col.key) !== ''"
+                  [value]="getFilterValue(col.key)"
+                  (change)="setFilter(col.key, $any($event.target).value)">
+                  @for (opt of col.options; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              } @else {
+                <input
+                  type="text"
+                  class="filter-input"
+                  placeholder="Filter…"
+                  [value]="getFilterValue(col.key)"
+                  (input)="setFilter(col.key, $any($event.target).value)" />
+              }
+            </th>
+          }
+        </tr>
       </thead>
       <tbody>
-        @for (run of auditService.sortedRuns(); track run.id) {
+        @for (run of filteredRuns(); track run.id) {
           <tr>
             <td class="mono">{{ run.id }}</td>
             <td>{{ run.studyId }}</td>
@@ -41,7 +75,13 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="10" class="empty-row">No audit runs recorded yet.</td>
+            <td colspan="10" class="empty-row">
+              @if (hasActiveFilters()) {
+                No runs match the current filters.
+              } @else {
+                No audit runs recorded yet.
+              }
+            </td>
           </tr>
         }
       </tbody>
