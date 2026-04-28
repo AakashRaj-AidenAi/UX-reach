@@ -18,6 +18,9 @@ class Study(BaseModel):
     new_responses: int = 0
     p0_ready: int = 0
     p0_newly_marked: int = 0
+    # Salesforce metadata (optional — populated when data comes from SF)
+    sf_case_id: str | None = None
+    sf_case_number: str | None = None
 
     @computed_field
     @property

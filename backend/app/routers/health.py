@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from fastapi import APIRouter
+from app.services import salesforce_service
 
 router = APIRouter(prefix="/api/health", tags=["health"])
 
@@ -22,11 +23,7 @@ def dependency_status():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "dependencies": {
-            "salesforce": {
-                "status": "connected",
-                "latency_ms": 45,
-                "last_check": datetime.now().isoformat(),
-            },
+            "salesforce": salesforce_service.check_connection(),
             "vertex_ai": {
                 "status": "connected" if (os.getenv("VERTEX_PROJECT", "") not in ("", "your-gcp-project-id")) else "not_configured",
                 "model": os.getenv("VERTEX_MODEL", "gemini-2.0-flash"),
