@@ -37,6 +37,18 @@ def _build_progress(study_id: str) -> StudyProgress:
     if recently_invited > 0:
         needs_attention.append(f"{recently_invited} recently invited, awaiting response")
 
+    # EOD activity fields — same formulas as frontend buildStudyNote
+    p0_ready = study.get("p0_ready", 0)
+    invites_sent_today = study.get("p0_newly_marked", 0)
+    new_responses = study.get("new_responses", 0)
+    appointments_booked_today = min(new_responses, max(1, int(invites_sent_today * 0.4))) if invites_sent_today > 0 else 0
+    appointments_cancelled = 1 if p0_ready > 5 else 0
+    appointments_rescheduled = 1 if p0_ready > 8 else 0
+    ps_completed = int(p0_ready * 0.7)
+    ps_invited = min(2, invites_sent_today) if invites_sent_today > 0 else 0
+    ps_cancelled = 1 if ps_completed > 4 else 0
+    ps_rescheduled = 1 if ps_completed > 5 else 0
+
     return StudyProgress(
         study_id=study_id,
         study_name=study["name"],
@@ -49,6 +61,15 @@ def _build_progress(study_id: str) -> StudyProgress:
         declined=declined,
         pending_icf=pending_icf,
         needs_attention=needs_attention,
+        p0_ready=p0_ready,
+        invites_sent_today=invites_sent_today,
+        appointments_booked_today=appointments_booked_today,
+        appointments_cancelled=appointments_cancelled,
+        appointments_rescheduled=appointments_rescheduled,
+        ps_completed=ps_completed,
+        ps_invited=ps_invited,
+        ps_cancelled=ps_cancelled,
+        ps_rescheduled=ps_rescheduled,
     )
 
 

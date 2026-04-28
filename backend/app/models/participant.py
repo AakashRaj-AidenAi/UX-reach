@@ -37,3 +37,13 @@ class StudyProgress(BaseModel):
     declined: int
     pending_icf: int  # booked but not signed
     needs_attention: list[str]  # list of issues like "3 haven't responded in 48h"
+    # EOD activity fields (mirrors buildStudyNote formulas)
+    p0_ready: int = 0
+    invites_sent_today: int = 0
+    appointments_booked_today: int = 0
+    appointments_cancelled: int = 0
+    appointments_rescheduled: int = 0
+    ps_completed: int = 0
+    ps_invited: int = 0
+    ps_cancelled: int = 0
+    ps_rescheduled: int = 0

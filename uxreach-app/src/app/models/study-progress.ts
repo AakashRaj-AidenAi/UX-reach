@@ -2,7 +2,6 @@ export interface StudyProgress {
   studyId: string;
   studyName: string;
   researcher: string;
-  // Invite funnel
   totalInvited: number;
   booked: number;
   icfSigned: number;
@@ -11,9 +10,10 @@ export interface StudyProgress {
   declined: number;
   pendingIcf: number;
   needsAttention: string[];
-  // EOD / activity stats — same source as today's summary
+  // EOD activity fields — populated from backend or synthesizeProgress
   p0Ready?: number;
   invitesSentToday?: number;
+  appointmentsBookedToday?: number;
   appointmentsCancelled?: number;
   appointmentsRescheduled?: number;
   psCompleted?: number;

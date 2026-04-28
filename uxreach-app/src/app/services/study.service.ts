@@ -73,32 +73,45 @@ export class StudyService {
     if (!study) return null;
 
     const invited = Math.max(study.alreadySent, 0);
-    const p0Total  = study.p0Ready ?? 0;
-    const invitesSent = study.p0NewlyMarked ?? 0;
+    if (invited === 0) {
+      return {
+        studyId: id,
+        studyName: study.name,
+        researcher: study.researcher,
+        totalInvited: 0,
+        booked: 0,
+        icfSigned: 0,
+        confirmed: 0,
+        noResponse: 0,
+        declined: 0,
+        pendingIcf: 0,
+        needsAttention: []
+      };
+    }
 
-    // Use the same formula as buildStudyNote so both views show identical numbers
-    const booked  = invited > 0
-      ? Math.min(study.newResponses, Math.max(1, Math.floor(invitesSent * 0.4)))
-      : 0;
-    const responded  = Math.max(booked, Math.round(invited * 0.55));
-    const icfSigned  = Math.round(booked * 0.70);
-    const confirmed  = Math.round(icfSigned * 0.85);
+    const responded  = Math.round(invited * 0.60);
+    const booked     = Math.round(invited * 0.45);
+    const icfSigned  = Math.round(invited * 0.32);
+    const confirmed  = Math.round(invited * 0.25);
     const noResponse = Math.max(invited - responded, 0);
     const declined   = Math.max(responded - booked, 0);
     const pendingIcf = Math.max(booked - icfSigned, 0);
 
-    // Appointment & pre-screening stats — identical to buildStudyNote formulas
-    const appointmentsCancelled    = p0Total > 5 ? 1 : 0;
-    const appointmentsRescheduled  = p0Total > 8 ? 1 : 0;
-    const psCompleted   = Math.floor(p0Total * 0.7);
-    const psInvited     = invitesSent > 0 ? Math.min(2, invitesSent) : 0;
-    const psCancelled   = psCompleted > 4 ? 1 : 0;
-    const psRescheduled = psCompleted > 5 ? 1 : 0;
-
     const needsAttention: string[] = [];
     if (pendingIcf > 0) needsAttention.push(`${pendingIcf} pending ICF`);
     if (noResponse > Math.round(invited * 0.3)) needsAttention.push(`${noResponse} no response — consider reminders`);
-    if (appointmentsCancelled > 0) needsAttention.push(`${appointmentsCancelled} appointment${appointmentsCancelled !== 1 ? 's' : ''} cancelled`);
+
+    // EOD activity — same formulas as buildStudyNote
+    const p0Total = study.p0Ready;
+    const invitesSentToday = study.p0NewlyMarked;
+    const appointmentsBookedToday = invitesSentToday > 0
+      ? Math.min(study.newResponses, Math.max(1, Math.floor(invitesSentToday * 0.4))) : 0;
+    const appointmentsCancelled = p0Total > 5 ? 1 : 0;
+    const appointmentsRescheduled = p0Total > 8 ? 1 : 0;
+    const psCompleted = Math.floor(p0Total * 0.7);
+    const psInvited = invitesSentToday > 0 ? Math.min(2, invitesSentToday) : 0;
+    const psCancelled = psCompleted > 4 ? 1 : 0;
+    const psRescheduled = psCompleted > 5 ? 1 : 0;
 
     return {
       studyId: id,
@@ -113,13 +126,14 @@ export class StudyService {
       pendingIcf,
       needsAttention,
       p0Ready: p0Total,
-      invitesSentToday: invitesSent,
+      invitesSentToday,
+      appointmentsBookedToday,
       appointmentsCancelled,
       appointmentsRescheduled,
       psCompleted,
       psInvited,
       psCancelled,
-      psRescheduled
+      psRescheduled,
     };
   }
 

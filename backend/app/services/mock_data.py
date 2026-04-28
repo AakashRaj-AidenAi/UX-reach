@@ -361,6 +361,94 @@ PARTICIPANTS: dict[str, list[dict]] = {
         # 1 declined
         {"id": "P-6789012-05", "study_id": "6789012", "name": "Participant #05", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
     ],
+
+    # ── Manaswitha's participants ──
+
+    "1357924": [
+        # 5 confirmed
+        {"id": "P-1357924-01", "study_id": "1357924", "name": "Participant #01", "status": "confirmed", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": "2026-04-23 10:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 5},
+        {"id": "P-1357924-02", "study_id": "1357924", "name": "Participant #02", "status": "confirmed", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": "2026-04-23 11:30", "icf_signed": True, "needs_reminder": False, "days_since_invite": 5},
+        {"id": "P-1357924-03", "study_id": "1357924", "name": "Participant #03", "status": "confirmed", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": "2026-04-24 09:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-1357924-04", "study_id": "1357924", "name": "Participant #04", "status": "confirmed", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": "2026-04-24 14:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-1357924-05", "study_id": "1357924", "name": "Participant #05", "status": "confirmed", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-25 10:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 3},
+        # 4 booked, ICF pending
+        {"id": "P-1357924-06", "study_id": "1357924", "name": "Participant #06", "status": "booked", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-26 09:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        {"id": "P-1357924-07", "study_id": "1357924", "name": "Participant #07", "status": "booked", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-27 11:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 2},
+        {"id": "P-1357924-08", "study_id": "1357924", "name": "Participant #08", "status": "booked", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-28 10:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 2},
+        {"id": "P-1357924-09", "study_id": "1357924", "name": "Participant #09", "status": "booked", "invited_date": _yesterday, "response_date": _today, "booked_slot": "2026-04-29 14:00", "icf_signed": False, "needs_reminder": False, "days_since_invite": 1},
+        # 4 no response (>48h)
+        {"id": "P-1357924-10", "study_id": "1357924", "name": "Participant #10", "status": "no_response", "invited_date": _five_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 5},
+        {"id": "P-1357924-11", "study_id": "1357924", "name": "Participant #11", "status": "no_response", "invited_date": _four_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 4},
+        {"id": "P-1357924-12", "study_id": "1357924", "name": "Participant #12", "status": "no_response", "invited_date": _three_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        {"id": "P-1357924-13", "study_id": "1357924", "name": "Participant #13", "status": "no_response", "invited_date": _three_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        # 3 declined
+        {"id": "P-1357924-14", "study_id": "1357924", "name": "Participant #14", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-1357924-15", "study_id": "1357924", "name": "Participant #15", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-1357924-16", "study_id": "1357924", "name": "Participant #16", "status": "declined", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 5},
+        # 2 recently invited (today)
+        {"id": "P-1357924-17", "study_id": "1357924", "name": "Participant #17", "status": "invited", "invited_date": _today, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 0},
+        {"id": "P-1357924-18", "study_id": "1357924", "name": "Participant #18", "status": "invited", "invited_date": _today, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 0},
+    ],
+
+    "3579124": [
+        # 3 confirmed
+        {"id": "P-3579124-01", "study_id": "3579124", "name": "Participant #01", "status": "confirmed", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": "2026-04-23 09:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 5},
+        {"id": "P-3579124-02", "study_id": "3579124", "name": "Participant #02", "status": "confirmed", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": "2026-04-24 11:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-3579124-03", "study_id": "3579124", "name": "Participant #03", "status": "confirmed", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-26 14:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 3},
+        # 3 booked, ICF pending
+        {"id": "P-3579124-04", "study_id": "3579124", "name": "Participant #04", "status": "booked", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-27 10:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        {"id": "P-3579124-05", "study_id": "3579124", "name": "Participant #05", "status": "booked", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-28 09:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 2},
+        {"id": "P-3579124-06", "study_id": "3579124", "name": "Participant #06", "status": "booked", "invited_date": _yesterday, "response_date": _today, "booked_slot": "2026-04-29 11:00", "icf_signed": False, "needs_reminder": False, "days_since_invite": 1},
+        # 2 no response
+        {"id": "P-3579124-07", "study_id": "3579124", "name": "Participant #07", "status": "no_response", "invited_date": _four_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 4},
+        {"id": "P-3579124-08", "study_id": "3579124", "name": "Participant #08", "status": "no_response", "invited_date": _three_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        # 2 declined
+        {"id": "P-3579124-09", "study_id": "3579124", "name": "Participant #09", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-3579124-10", "study_id": "3579124", "name": "Participant #10", "status": "declined", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 5},
+    ],
+
+    "5791346": [
+        # 8 confirmed
+        {"id": "P-5791346-01", "study_id": "5791346", "name": "Participant #01", "status": "confirmed", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": "2026-04-23 09:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 5},
+        {"id": "P-5791346-02", "study_id": "5791346", "name": "Participant #02", "status": "confirmed", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": "2026-04-23 11:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 5},
+        {"id": "P-5791346-03", "study_id": "5791346", "name": "Participant #03", "status": "confirmed", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": "2026-04-24 10:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-5791346-04", "study_id": "5791346", "name": "Participant #04", "status": "confirmed", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": "2026-04-24 14:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-5791346-05", "study_id": "5791346", "name": "Participant #05", "status": "confirmed", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-25 09:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 3},
+        {"id": "P-5791346-06", "study_id": "5791346", "name": "Participant #06", "status": "confirmed", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-25 11:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 3},
+        {"id": "P-5791346-07", "study_id": "5791346", "name": "Participant #07", "status": "confirmed", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-26 10:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 2},
+        {"id": "P-5791346-08", "study_id": "5791346", "name": "Participant #08", "status": "confirmed", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-26 14:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 2},
+        # 5 booked, ICF pending
+        {"id": "P-5791346-09", "study_id": "5791346", "name": "Participant #09", "status": "booked", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-27 09:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 2},
+        {"id": "P-5791346-10", "study_id": "5791346", "name": "Participant #10", "status": "booked", "invited_date": _yesterday, "response_date": _today, "booked_slot": "2026-04-28 10:00", "icf_signed": False, "needs_reminder": False, "days_since_invite": 1},
+        {"id": "P-5791346-11", "study_id": "5791346", "name": "Participant #11", "status": "booked", "invited_date": _yesterday, "response_date": _today, "booked_slot": "2026-04-28 14:00", "icf_signed": False, "needs_reminder": False, "days_since_invite": 1},
+        {"id": "P-5791346-12", "study_id": "5791346", "name": "Participant #12", "status": "booked", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-29 09:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 2},
+        {"id": "P-5791346-13", "study_id": "5791346", "name": "Participant #13", "status": "booked", "invited_date": _three_days_ago, "response_date": _two_days_ago, "booked_slot": "2026-04-29 11:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        # 4 no response
+        {"id": "P-5791346-14", "study_id": "5791346", "name": "Participant #14", "status": "no_response", "invited_date": _five_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 5},
+        {"id": "P-5791346-15", "study_id": "5791346", "name": "Participant #15", "status": "no_response", "invited_date": _four_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 4},
+        {"id": "P-5791346-16", "study_id": "5791346", "name": "Participant #16", "status": "no_response", "invited_date": _three_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        {"id": "P-5791346-17", "study_id": "5791346", "name": "Participant #17", "status": "no_response", "invited_date": _three_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        # 3 declined
+        {"id": "P-5791346-18", "study_id": "5791346", "name": "Participant #18", "status": "declined", "invited_date": _five_days_ago, "response_date": _four_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 5},
+        {"id": "P-5791346-19", "study_id": "5791346", "name": "Participant #19", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
+        {"id": "P-5791346-20", "study_id": "5791346", "name": "Participant #20", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
+        # 2 recently invited
+        {"id": "P-5791346-21", "study_id": "5791346", "name": "Participant #21", "status": "invited", "invited_date": _today, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 0},
+        {"id": "P-5791346-22", "study_id": "5791346", "name": "Participant #22", "status": "invited", "invited_date": _today, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 0},
+    ],
+
+    "6802457": [
+        # 1 confirmed
+        {"id": "P-6802457-01", "study_id": "6802457", "name": "Participant #01", "status": "confirmed", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": "2026-04-25 10:00", "icf_signed": True, "needs_reminder": False, "days_since_invite": 4},
+        # 1 booked, ICF pending
+        {"id": "P-6802457-02", "study_id": "6802457", "name": "Participant #02", "status": "booked", "invited_date": _two_days_ago, "response_date": _yesterday, "booked_slot": "2026-04-28 11:00", "icf_signed": False, "needs_reminder": True, "days_since_invite": 2},
+        # 1 no response
+        {"id": "P-6802457-03", "study_id": "6802457", "name": "Participant #03", "status": "no_response", "invited_date": _three_days_ago, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": True, "days_since_invite": 3},
+        # 1 declined
+        {"id": "P-6802457-04", "study_id": "6802457", "name": "Participant #04", "status": "declined", "invited_date": _four_days_ago, "response_date": _three_days_ago, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 4},
+        # 1 recently invited
+        {"id": "P-6802457-05", "study_id": "6802457", "name": "Participant #05", "status": "invited", "invited_date": _today, "response_date": None, "booked_slot": None, "icf_signed": False, "needs_reminder": False, "days_since_invite": 0},
+    ],
 }
 
 # ── UXR → RC shortlisting events (UXR randomly selects P0 candidates and notifies RC) ──
