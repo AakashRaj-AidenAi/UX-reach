@@ -4,5 +4,5 @@ export interface ScheduledJob {
   count: number;
   scheduledTime: string;
   createdAt: string;
-  status: 'scheduled' | 'cancelled' | 'completed';
+  status: 'scheduled' | 'cancelled' | 'completed' | 'failed' | 'running';
 }

@@ -3,15 +3,27 @@ UXReach Invite Email Agent - FastAPI Backend
 Run: uvicorn main:app --reload --port 8080
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import studies, chat, sending, audit, settings, health, participants, auth
+from app.services import scheduler_service
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler_service.start()
+    yield
+    scheduler_service.stop()
+
 
 app = FastAPI(
     title="UXReach Invite Email Agent API",
     description="AI-powered candidate invitation workflow automation for Google UX Ads",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS middleware — allow Angular dev server and any origin for development

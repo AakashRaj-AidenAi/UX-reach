@@ -60,7 +60,7 @@ def schedule_send(req: ScheduleRequest):
 
 @router.get("/scheduled", response_model=list[ScheduledJob])
 def list_scheduled():
-    return [ScheduledJob(**j) for j in SCHEDULED_JOBS if j["status"] == "scheduled"]
+    return [ScheduledJob(**j) for j in SCHEDULED_JOBS]
 
 
 @router.delete("/scheduled/{index}")

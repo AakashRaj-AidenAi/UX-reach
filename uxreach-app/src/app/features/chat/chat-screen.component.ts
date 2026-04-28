@@ -61,18 +61,9 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
     setTimeout(() => {
       if (pending.action === 'send_invite') {
-        if (pending.studyId && pending.count != null) {
-          this.chatEngine.handleInviteFlow(pending.studyId, pending.count);
-        } else {
-          this.chatEngine.openStudyPicker();
-        }
+        this.chatEngine.openStudyPicker(pending.studyId, pending.count ?? undefined);
       } else if (pending.action === 'schedule_invite') {
-        if (pending.studyId && pending.count != null) {
-          this.chatEngine.addUserMessage(`Schedule ${pending.count} invites for study ${pending.studyId}`);
-          this.chatEngine.openSchedulePicker();
-        } else {
-          this.chatEngine.openSchedulePicker();
-        }
+        this.chatEngine.openSchedulePicker(pending.studyId, pending.count ?? undefined);
       }
     }, 300);
   }
@@ -146,7 +137,9 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   onStudyPickerSubmit(commandText: string): void {
     this.chatEngine.cancelStudyPicker();
-    this.chatEngine.suggestInput(commandText);
+    this.shouldScroll = true;
+    this.chatEngine.addUserMessage(commandText);
+    this.chatEngine.processCommand(commandText);
   }
 
   onStudyPickerCancel(): void {
@@ -155,7 +148,9 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   onSchedulePickerSubmit(commandText: string): void {
     this.chatEngine.cancelSchedulePicker();
-    this.chatEngine.suggestInput(commandText);
+    this.shouldScroll = true;
+    this.chatEngine.addUserMessage(commandText);
+    this.chatEngine.processCommand(commandText);
   }
 
   onSchedulePickerCancel(): void {

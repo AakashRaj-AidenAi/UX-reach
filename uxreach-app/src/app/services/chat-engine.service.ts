@@ -42,6 +42,10 @@ export class ChatEngineService implements OnDestroy {
   readonly showStudyPicker = signal(false);
   readonly showSchedulePicker = signal(false);
   readonly pickerMode = signal<'invite' | 'progress'>('invite');
+  readonly schedulePickerStudyId = signal<string | null>(null);
+  readonly schedulePickerCount = signal<number | null>(null);
+  readonly studyPickerStudyId = signal<string | null>(null);
+  readonly studyPickerCount = signal<number | null>(null);
 
   // Guard against the opening click also triggering outside-click close
   justOpened = false;
@@ -99,6 +103,8 @@ export class ChatEngineService implements OnDestroy {
   // ── INIT ──
 
   initChat(): void {
+    this.inputDraft.set({ text: '', n: ++this.suggestCount });
+
     // If there's a restored conversation with messages, load it without emitting a fresh welcome.
     const active = this.history.activeConversation();
     if (active && active.messages.length > 0) {
@@ -1837,8 +1843,10 @@ export class ChatEngineService implements OnDestroy {
 
   // ── PICKER CONTROL ──
 
-  openStudyPicker(): void {
+  openStudyPicker(studyId?: string, count?: number): void {
     if (this.appState.chatState() !== 'idle') return;
+    this.studyPickerStudyId.set(studyId ?? null);
+    this.studyPickerCount.set(count ?? null);
     this.pickerMode.set('invite');
     this.appState.chatState.set('study_picker_open');
     this.showStudyPicker.set(true);
@@ -1855,6 +1863,8 @@ export class ChatEngineService implements OnDestroy {
 
   cancelStudyPicker(): void {
     this.showStudyPicker.set(false);
+    this.studyPickerStudyId.set(null);
+    this.studyPickerCount.set(null);
     this.pickerMode.set('invite');
     if (this.appState.chatState() === 'study_picker_open') {
       this.appState.chatState.set('idle');
@@ -1866,8 +1876,10 @@ export class ChatEngineService implements OnDestroy {
     setTimeout(() => { this.justOpened = false; }, 0);
   }
 
-  openSchedulePicker(): void {
+  openSchedulePicker(studyId?: string, count?: number): void {
     if (this.appState.chatState() !== 'idle') return;
+    this.schedulePickerStudyId.set(studyId ?? null);
+    this.schedulePickerCount.set(count ?? null);
     this.appState.chatState.set('schedule_picker_open');
     this.showSchedulePicker.set(true);
     this.flagJustOpened();
@@ -1875,6 +1887,8 @@ export class ChatEngineService implements OnDestroy {
 
   cancelSchedulePicker(): void {
     this.showSchedulePicker.set(false);
+    this.schedulePickerStudyId.set(null);
+    this.schedulePickerCount.set(null);
     if (this.appState.chatState() === 'schedule_picker_open') {
       this.appState.chatState.set('idle');
     }
@@ -1886,7 +1900,8 @@ export class ChatEngineService implements OnDestroy {
     switch (actionId) {
       case 'suggest':
         if (typeof payload === 'string') {
-          this.suggestInput(payload);
+          this.addUserMessage(payload);
+          this.processCommand(payload);
         }
         break;
 

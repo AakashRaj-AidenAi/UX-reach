@@ -1,4 +1,4 @@
-import { Component, inject, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StudyService } from '../../../services/study.service';
@@ -23,7 +23,7 @@ interface PickerStudy {
       <div class="study-picker-dropdown-header">
         <div>
           <div class="study-picker-dropdown-title"><span class="material-symbols-outlined icon-blue" style="vertical-align:middle;">calendar_today</span> Schedule invites</div>
-          <div class="study-picker-dropdown-sub">Select studies, set invite count, and choose when to send.</div>
+          <div class="study-picker-dropdown-sub">{{ preselectedStudyId ? 'Set invite count and choose when to send.' : 'Select studies, set invite count, and choose when to send.' }}</div>
         </div>
         <button class="study-picker-close-btn" (click)="onCancel()" title="Close"><span class="material-symbols-outlined icon-sm">close</span></button>
       </div>
@@ -31,7 +31,7 @@ interface PickerStudy {
       @for (item of studies; track item.id) {
         <div class="study-picker-item" [class.selected]="item.selected">
           <label class="study-picker-label" (click)="$event.stopPropagation()">
-            <input type="checkbox" [(ngModel)]="item.selected" (ngModelChange)="onToggle()">
+            <input type="checkbox" [(ngModel)]="item.selected" (ngModelChange)="onToggle()" [style.display]="preselectedStudyId ? 'none' : ''">
             <div class="study-picker-info">
               <div class="study-picker-name">{{ item.study.name }}</div>
               <div class="study-picker-meta">#{{ item.id }} &middot; {{ item.remaining }} remaining &middot; Last: {{ item.study.lastRun || 'Never' }}</div>
@@ -42,7 +42,7 @@ interface PickerStudy {
                 <span>{{ item.study.alreadySent }}/{{ item.study.totalRequired }} sent</span>
               </div>
             </div>
-            <div class="study-picker-count-wrap" [style.display]="item.selected ? 'flex' : 'none'">
+            <div class="study-picker-count-wrap" [style.display]="item.selected || preselectedStudyId ? 'flex' : 'none'">
               <input
                 type="number"
                 class="study-picker-count-input"
@@ -95,6 +95,9 @@ export class SchedulePickerComponent implements OnInit {
   private readonly studyService = inject(StudyService);
   private readonly appState = inject(AppStateService);
 
+  @Input() preselectedStudyId: string | null = null;
+  @Input() preselectedCount: number | null = null;
+
   @Output() submit = new EventEmitter<string>();
   @Output() cancel = new EventEmitter<void>();
 
@@ -118,18 +121,25 @@ export class SchedulePickerComponent implements OnInit {
     this.todayStr = now.toISOString().split('T')[0];
     this.schedDate = tomorrow.toISOString().split('T')[0];
 
-    this.studies = Object.keys(active).map(id => {
+    const allStudies = Object.keys(active).map(id => {
       const s = active[id];
       const remaining = s.totalRequired - s.alreadySent;
+      const isPreselected = this.preselectedStudyId === id;
       return {
         id,
         study: s,
         remaining,
         percent: Math.round((s.alreadySent / s.totalRequired) * 100),
-        selected: false,
-        count: Math.min(remaining, 10)
+        selected: isPreselected,
+        count: isPreselected && this.preselectedCount != null
+          ? Math.min(this.preselectedCount, remaining)
+          : Math.min(remaining, 10)
       };
     });
+
+    this.studies = this.preselectedStudyId
+      ? allStudies.filter(s => s.id === this.preselectedStudyId)
+      : allStudies;
   }
 
   onToggle(): void {

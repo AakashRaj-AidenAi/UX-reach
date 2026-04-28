@@ -27,7 +27,7 @@ interface PickerStudy {
             {{ mode === 'progress' ? 'Study progress' : 'Send invites' }}
           </div>
           <div class="study-picker-dropdown-sub">
-            {{ mode === 'progress' ? 'Pick a study to see its participant funnel.' : 'Select studies and enter the number of invites for each.' }}
+            {{ mode === 'progress' ? 'Pick a study to see its participant funnel.' : preselectedStudyId ? 'Enter the number of invites to send.' : 'Select studies and enter the number of invites for each.' }}
           </div>
         </div>
         <button class="study-picker-close-btn" (click)="onCancel()" title="Close"><span class="material-symbols-outlined icon-sm">close</span></button>
@@ -40,7 +40,8 @@ interface PickerStudy {
               [type]="mode === 'progress' ? 'radio' : 'checkbox'"
               name="study-picker-selection"
               [checked]="item.selected"
-              (change)="onSelectionChange(item, $event)">
+              (change)="onSelectionChange(item, $event)"
+              [style.display]="preselectedStudyId ? 'none' : ''">
             <div class="study-picker-info">
               <div class="study-picker-name">{{ item.study.name }}</div>
               <div class="study-picker-meta">#{{ item.id }} &middot; {{ item.remaining }} remaining &middot; Last: {{ item.study.lastRun || 'Never' }}</div>
@@ -52,7 +53,7 @@ interface PickerStudy {
               </div>
             </div>
             @if (mode === 'invite') {
-              <div class="study-picker-count-wrap" [style.display]="item.selected ? 'flex' : 'none'">
+              <div class="study-picker-count-wrap" [style.display]="item.selected || preselectedStudyId ? 'flex' : 'none'">
                 <input
                   type="number"
                   class="study-picker-count-input"
@@ -102,6 +103,8 @@ export class StudyPickerComponent implements OnInit, OnChanges {
 
   @Input() mode: 'invite' | 'progress' = 'invite';
   @Input() refreshKey = 0;
+  @Input() preselectedStudyId: string | null = null;
+  @Input() preselectedCount: number | null = null;
   @Output() submit = new EventEmitter<string>();
   @Output() cancel = new EventEmitter<void>();
 
@@ -139,19 +142,26 @@ export class StudyPickerComponent implements OnInit, OnChanges {
     // Preserve selection state across refreshes
     const priorSelection = new Map(this.studies.map(s => [s.id, { selected: s.selected, count: s.count }]));
 
-    this.studies = Object.keys(source).map(id => {
+    const allStudies = Object.keys(source).map(id => {
       const s = source[id];
       const remaining = s.totalRequired - s.alreadySent;
       const prior = priorSelection.get(id);
+      const isPreselected = this.preselectedStudyId === id;
       return {
         id,
         study: s,
         remaining,
         percent: Math.round((s.alreadySent / s.totalRequired) * 100),
-        selected: prior?.selected ?? false,
-        count: prior ? Math.min(prior.count, Math.max(remaining, 1)) : Math.min(Math.max(remaining, 1), 10)
+        selected: isPreselected || (prior?.selected ?? false),
+        count: isPreselected && this.preselectedCount != null
+          ? Math.min(this.preselectedCount, Math.max(remaining, 1))
+          : prior ? Math.min(prior.count, Math.max(remaining, 1)) : Math.min(Math.max(remaining, 1), 10)
       };
     });
+
+    this.studies = this.preselectedStudyId
+      ? allStudies.filter(s => s.id === this.preselectedStudyId)
+      : allStudies;
   }
 
   onSelectionChange(item: PickerStudy, event: Event): void {
