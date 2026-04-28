@@ -43,7 +43,7 @@
     <div class="dash-stat-card">
       <div class="dash-stat-icon green"><span class="material-symbols-outlined">check_circle</span></div>
       <div class="dash-stat-body">
-        <div class="dash-stat-label">P0s Ready to Schedule</div>
+        <div class="dash-stat-label">P0's Ready to Schedule</div>
         <div class="dash-stat-value">{{ totalP0Ready }}</div>
         <div class="dash-stat-sub">newly marked by UXR</div>
       </div>
@@ -65,7 +65,7 @@
           <th>Study</th>
           <th>Invites needed</th>
           <th>Last run</th>
-          <th style="text-align:center;"></th>
+          <th style="width:10%;white-space:nowrap;text-align:center;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -102,7 +102,7 @@
                 <span style="color:var(--text-faint)">Never sent</span>
               }
             </td>
-            <td>
+            <td style="text-align:center;">
               <div class="dash-action-btns">
                 <button class="dash-send-btn" (click)="openSendModal(study)">Send invites</button>
                 <button class="dash-schedule-btn" (click)="openScheduleModal(study)">Schedule</button>

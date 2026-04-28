@@ -279,44 +279,7 @@ STUDIES: dict[str, dict] = {
 
 # ── Audit Runs ──
 
-AUDIT_RUNS: list[dict] = [
-    {
-        "id": "RUN-0412-001",
-        "study_id": "1234567",
-        "study_name": "Global Ads Experience Survey",
-        "date": "2026-04-12",
-        "rc": "Sarah Chen",
-        "sent": 10,
-        "failed": 0,
-        "status": "completed",
-        "duration": "4m 12s",
-        "sla": True,
-    },
-    {
-        "id": "RUN-0408-001",
-        "study_id": "6789012",
-        "study_name": "Assistant Voice Interface Study",
-        "date": "2026-04-08",
-        "rc": "Sarah Chen",
-        "sent": 5,
-        "failed": 0,
-        "status": "completed",
-        "duration": "2m 10s",
-        "sla": True,
-    },
-    {
-        "id": "RUN-0405-001",
-        "study_id": "1234567",
-        "study_name": "Global Ads Experience Survey",
-        "date": "2026-04-05",
-        "rc": "Sarah Chen",
-        "sent": 5,
-        "failed": 0,
-        "status": "completed",
-        "duration": "1m 20s",
-        "sla": True,
-    },
-]
+AUDIT_RUNS: list[dict] = []
 
 # ── Scheduled Jobs (empty initially) ──
 

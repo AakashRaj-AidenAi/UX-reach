@@ -44,6 +44,7 @@ def verify_google_token(credential: str) -> Optional[dict]:
             credential,
             google_requests.Request(),
             client_id,
+            clock_skew_in_seconds=10,
         )
         return {
             "email": idinfo.get("email", ""),
