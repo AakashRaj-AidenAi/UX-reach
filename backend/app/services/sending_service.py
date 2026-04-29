@@ -66,7 +66,7 @@ async def _simulate_sending(session_id: str) -> None:
         now = datetime.now()
         last_run = now.strftime("%b %d")
 
-        # Update in-memory mock data
+        # Update in-memory mock data (or derive cumulative total from SF for SF-only studies)
         study_data = STUDIES.get(state["study_id"])
         if study_data:
             study_data["already_sent"] = min(
@@ -76,7 +76,10 @@ async def _simulate_sending(session_id: str) -> None:
             study_data["last_run"] = last_run
             new_already_sent = study_data["already_sent"]
         else:
-            new_already_sent = state["emails_sent"]
+            sf_study = salesforce_service.get_study(state["study_id"])
+            prior = sf_study["already_sent"] if sf_study else 0
+            total_req = sf_study["total_required"] if sf_study else state["emails_sent"]
+            new_already_sent = min(prior + state["emails_sent"], total_req)
 
         # Push to Salesforce in background thread to avoid blocking event loop
         await asyncio.to_thread(
@@ -111,12 +114,19 @@ async def start_send(study_id: str, count: int, user_name: str = "Sarah Chen") -
     session_id = next_id("SES")
 
     study_data = STUDIES.get(study_id)
-    study_name = study_data["name"] if study_data else "Unknown"
-
-    # Cap count at remaining
     if study_data:
+        study_name = study_data["name"]
         remaining = study_data["total_required"] - study_data["already_sent"]
         count = min(count, remaining)
+    else:
+        # SF-only study — fetch live data for name and remaining cap
+        sf_study = salesforce_service.get_study(study_id)
+        if sf_study:
+            study_name = sf_study["name"]
+            remaining = sf_study["total_required"] - sf_study["already_sent"]
+            count = min(count, remaining)
+        else:
+            study_name = "Unknown"
 
     SEND_STATE[session_id] = {
         "session_id": session_id,
@@ -158,9 +168,8 @@ def stop_send(session_id: str) -> dict | None:
     state["elapsed_seconds"] = int(time.time() - state["start_time"])
     last_run = datetime.now().strftime("%b %d")
 
-    # Update in-memory mock data for partial sends
+    # Update in-memory mock data for partial sends (or derive from SF for SF-only studies)
     study_data = STUDIES.get(state["study_id"])
-    new_already_sent = state["emails_sent"]
     if study_data and state["emails_sent"] > 0:
         study_data["already_sent"] = min(
             study_data["already_sent"] + state["emails_sent"],
@@ -168,6 +177,13 @@ def stop_send(session_id: str) -> dict | None:
         )
         study_data["last_run"] = last_run
         new_already_sent = study_data["already_sent"]
+    elif not study_data and state["emails_sent"] > 0:
+        sf_study = salesforce_service.get_study(state["study_id"])
+        prior = sf_study["already_sent"] if sf_study else 0
+        total_req = sf_study["total_required"] if sf_study else state["emails_sent"]
+        new_already_sent = min(prior + state["emails_sent"], total_req)
+    else:
+        new_already_sent = state["emails_sent"]
 
     # Push partial send to Salesforce synchronously (stop is a sync function)
     if state["emails_sent"] > 0:

@@ -53,7 +53,7 @@ async def _run_loop() -> None:
                 for _ in range(120):  # max 60s wait
                     await asyncio.sleep(0.5)
                     progress = sending_service.get_send_progress(session_id)
-                    if progress and progress.get("status") in ("completed", "stopped"):
+                    if progress and progress.get("is_complete"):
                         break
 
                 job["status"] = "completed"

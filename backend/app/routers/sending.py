@@ -8,18 +8,26 @@ from app.models.chat import (
     ScheduleRequest,
     ScheduledJob,
 )
-from app.services import sending_service
+from app.services import sending_service, salesforce_service
 from app.services.mock_data import SCHEDULED_JOBS, STUDIES
 
 router = APIRouter(prefix="/api/send", tags=["sending"])
 
 
+def _resolve_study(study_id: str) -> dict:
+    """Return study dict from mock or SF; raise 404 if not found in either."""
+    study = STUDIES.get(study_id)
+    if study:
+        return study
+    sf = salesforce_service.get_study(study_id)
+    if sf:
+        return sf
+    raise HTTPException(status_code=404, detail=f"Study {study_id} not found")
+
+
 @router.post("/start")
 async def start_sending(req: SendRequest):
-    study = STUDIES.get(req.study_id)
-    if study is None:
-        raise HTTPException(status_code=404, detail=f"Study {req.study_id} not found")
-
+    _resolve_study(req.study_id)
     session_id = await sending_service.start_send(req.study_id, req.count, req.user_name)
     return {"sessionId": session_id, "studyId": req.study_id, "count": req.count}
 
@@ -42,9 +50,7 @@ def stop_sending(session_id: str):
 
 @router.post("/schedule")
 def schedule_send(req: ScheduleRequest):
-    study = STUDIES.get(req.study_id)
-    if study is None:
-        raise HTTPException(status_code=404, detail=f"Study {req.study_id} not found")
+    study = _resolve_study(req.study_id)
 
     job = {
         "study_id": req.study_id,
