@@ -63,6 +63,10 @@ export class ApiService {
     return this.http.get<StudyProgress>(`${this.baseUrl}/studies/${studyId}/progress`);
   }
 
+  postStudyNote(studyId: string, content: string, title: string = ''): Observable<any> {
+    return this.http.post(`${this.baseUrl}/studies/${studyId}/note`, { content, title });
+  }
+
   getParticipantsNeedingReminder(studyId: string): Observable<Participant[]> {
     return this.http.get<Participant[]>(`${this.baseUrl}/studies/${studyId}/participants/needs-reminder`);
   }

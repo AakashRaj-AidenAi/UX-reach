@@ -1,293 +1,294 @@
 """
-Salesforce integration service.
+Salesforce integration service — uses UXR custom objects.
 
-Studies  → SF Cases  (Origin = 'UX Research')
-EOD notes → SF CaseComments on the corresponding Case
-
-All study metadata is stored as JSON in Case.Description so no custom
-SF fields are required on a Developer Edition org.
+Objects:
+  UXR_Study__c         — research studies
+  UXR_Participant__c   — participants (lookup → Study)
+  UXR_Audit_Run__c     — audit/invite run history (lookup → Study)
+  UXR_Scheduled_Job__c — scheduled send jobs (lookup → Study)
 """
 
-import json
 import logging
 import os
 from datetime import datetime
 
+import requests as _requests
+
 logger = logging.getLogger(__name__)
 
-SF_ORIGIN = "UX Research"
+API_VERSION = "59.0"
 
 # ── lazy singleton ─────────────────────────────────────────────────────────────
 
-_sf_client = None
-_sf_error: str | None = None
+_access_token:  str | None = None
+_instance_url:  str | None = None
+_sf_error:      str | None = None
+_session:       _requests.Session | None = None
 
 
-def _connect():
-    """
-    Try OAuth2 password grant first (works when SOAP login is disabled).
-    Falls back to SOAP login if no Connected App credentials are configured.
-    """
-    global _sf_client, _sf_error
-    try:
-        from simple_salesforce import Salesforce  # type: ignore
-    except ImportError:
-        _sf_error = "simple-salesforce not installed"
-        logger.warning(_sf_error)
-        return
+def _connect() -> None:
+    global _access_token, _instance_url, _sf_error, _session
 
-    username       = os.getenv("SF_USERNAME")
-    password       = os.getenv("SF_PASSWORD")
-    token          = os.getenv("SF_SECURITY_TOKEN", "")
-    domain         = os.getenv("SF_DOMAIN", "login")
-    consumer_key   = os.getenv("SF_CONSUMER_KEY")
+    consumer_key    = os.getenv("SF_CONSUMER_KEY")
     consumer_secret = os.getenv("SF_CONSUMER_SECRET")
+    instance_env    = os.getenv("SF_INSTANCE_URL", "").rstrip("/")
 
-    if not all([username, password]):
-        _sf_error = "SF credentials not configured"
+    if not all([consumer_key, consumer_secret]):
+        _sf_error = "SF_CONSUMER_KEY and SF_CONSUMER_SECRET are required"
         logger.warning(_sf_error)
         return
 
+    api_base  = instance_env.replace("lightning.force.com", "my.salesforce.com")
+    token_url = f"{api_base}/services/oauth2/token" if api_base else "https://login.salesforce.com/services/oauth2/token"
+
     try:
-        if consumer_key and consumer_secret:
-            # Try client_credentials first (works on Agentforce/OrgFarm orgs)
-            # Fall back to password grant if that fails
-            import requests as _requests
-            login_url = f"https://{domain}.salesforce.com/services/oauth2/token"
+        resp = _requests.post(token_url, data={
+            "grant_type":    "client_credentials",
+            "client_id":     consumer_key,
+            "client_secret": consumer_secret,
+        }, timeout=15)
 
-            resp = _requests.post(login_url, data={
-                "grant_type":    "client_credentials",
-                "client_id":     consumer_key,
-                "client_secret": consumer_secret,
-            }, timeout=15)
+        if not resp.ok:
+            raise Exception(f"Client credentials auth failed: {resp.status_code} {resp.text}")
 
-            if not resp.ok:
-                # Fall back to password grant
-                resp = _requests.post(login_url, data={
-                    "grant_type":    "password",
-                    "client_id":     consumer_key,
-                    "client_secret": consumer_secret,
-                    "username":      username,
-                    "password":      password + token,
-                }, timeout=15)
-            if not resp.ok:
-                raise Exception(f"OAuth2 token request failed: {resp.status_code} {resp.text}")
-            data = resp.json()
-            _sf_client = Salesforce(
-                session_id=data["access_token"],
-                instance_url=data["instance_url"],
-            )
-            logger.info("Salesforce connected via OAuth2 — instance: %s", data["instance_url"])
-        else:
-            # SOAP login (requires org to have it enabled)
-            _sf_client = Salesforce(
-                username=username,
-                password=password,
-                security_token=token,
-                domain=domain,
-            )
-            logger.info("Salesforce connected via SOAP — instance: %s", _sf_client.sf_instance)
-        _sf_error = None
+        data = resp.json()
+        _access_token = data["access_token"]
+        _instance_url = data["instance_url"]
+        _sf_error     = None
+
+        _session = _requests.Session()
+        _session.headers.update({
+            "Authorization": f"Bearer {_access_token}",
+            "Content-Type":  "application/json",
+        })
+        logger.info("Salesforce connected via client_credentials — %s", _instance_url)
+
     except Exception as exc:
-        _sf_error = str(exc)
-        _sf_client = None
+        _sf_error     = str(exc)
+        _access_token = None
+        _instance_url = None
+        _session      = None
         logger.error("Salesforce auth failed: %s", exc)
 
 
-def get_client():
-    """Return cached SF client, connecting on first call."""
-    if _sf_client is None and _sf_error is None:
+def _get_session() -> _requests.Session | None:
+    if _session is None and _sf_error is None:
         _connect()
-    return _sf_client
+    return _session
 
 
-# ── public API ─────────────────────────────────────────────────────────────────
+def _reconnect_if_expired(exc: Exception) -> bool:
+    global _access_token, _instance_url, _sf_error, _session
+    msg = str(exc).lower()
+    if any(k in msg for k in ("session expired", "invalid_session_id", "401", "unauthorized")):
+        logger.info("SF token expired — reconnecting…")
+        _access_token = _instance_url = _sf_error = _session = None
+        _connect()
+        return _session is not None
+    return False
+
+
+def _base() -> str:
+    return f"{_instance_url}/services/data/v{API_VERSION}"
+
+
+def _query(soql: str) -> list[dict] | None:
+    """Run a SOQL query; auto-retry once on token expiry. Returns records list or None."""
+    for attempt in range(2):
+        sess = _get_session()
+        if sess is None:
+            return None
+        try:
+            resp = sess.get(f"{_base()}/query/", params={"q": soql}, timeout=15)
+            if not resp.ok:
+                raise Exception(f"{resp.status_code} {resp.text}")
+            return resp.json().get("records", [])
+        except Exception as exc:
+            if attempt == 0 and _reconnect_if_expired(exc):
+                continue
+            logger.error("SF query error: %s | SOQL: %s", exc, soql[:120])
+            return None
+
+
+def _post(sobject: str, data: dict) -> dict | None:
+    for attempt in range(2):
+        sess = _get_session()
+        if sess is None:
+            return None
+        try:
+            resp = sess.post(f"{_base()}/sobjects/{sobject}/", json=data, timeout=15)
+            if not resp.ok:
+                raise Exception(f"{resp.status_code} {resp.text}")
+            return resp.json()
+        except Exception as exc:
+            if attempt == 0 and _reconnect_if_expired(exc):
+                continue
+            logger.error("SF create %s error: %s", sobject, exc)
+            return None
+
+
+def _patch(sobject: str, record_id: str, data: dict) -> bool:
+    for attempt in range(2):
+        sess = _get_session()
+        if sess is None:
+            return False
+        try:
+            resp = sess.patch(f"{_base()}/sobjects/{sobject}/{record_id}", json=data, timeout=15)
+            if not resp.ok:
+                raise Exception(f"{resp.status_code} {resp.text}")
+            return True
+        except Exception as exc:
+            if attempt == 0 and _reconnect_if_expired(exc):
+                continue
+            logger.error("SF update %s/%s error: %s", sobject, record_id, exc)
+            return False
+
+
+# ── public: health ─────────────────────────────────────────────────────────────
 
 def check_connection() -> dict:
-    """Live health probe — used by /api/health/dependencies."""
-    if _sf_client is None and _sf_error is None:
+    if _session is None and _sf_error is None:
         _connect()
 
-    if _sf_client is None:
-        configured = bool(os.getenv("SF_USERNAME"))
+    if _session is None:
         return {
-            "status": "not_configured" if not configured else "auth_failed",
+            "status": "not_configured" if not os.getenv("SF_USERNAME") else "auth_failed",
             "reason": _sf_error or "unknown",
         }
     try:
         t0 = datetime.now()
-        _sf_client.query("SELECT Id FROM Case LIMIT 1")
+        _query("SELECT Id FROM UXR_Study__c LIMIT 1")
         latency_ms = int((datetime.now() - t0).total_seconds() * 1000)
         return {
-            "status": "connected",
-            "instance_url": os.getenv("SF_INSTANCE_URL", ""),
-            "latency_ms": latency_ms,
-            "last_check": datetime.now().isoformat(),
+            "status":       "connected",
+            "instance_url": _instance_url or "",
+            "latency_ms":   latency_ms,
+            "last_check":   datetime.now().isoformat(),
         }
     except Exception as exc:
         return {"status": "error", "reason": str(exc)}
 
 
+# ── public: studies ────────────────────────────────────────────────────────────
+
+_STUDY_FIELDS = (
+    "Id, Name, Study_ID__c, Researcher__c, RC_Name__c, Status__c, "
+    "Total_Required__c, Already_Sent__c, Last_Run__c, "
+    "New_Responses__c, P0_Ready__c, P0_Newly_Marked__c, Latest_Note__c"
+)
+
+
 def get_studies() -> list[dict] | None:
-    """
-    Fetch all UX Research Cases from SF.
-    Returns a list of study-shaped dicts, or None if SF is unavailable.
-    """
-    sf = get_client()
-    if sf is None:
+    records = _query(f"SELECT {_STUDY_FIELDS} FROM UXR_Study__c ORDER BY CreatedDate DESC")
+    if records is None:
         return None
-    try:
-        result = sf.query(
-            "SELECT Id, CaseNumber, Subject, Description, Status, CreatedDate "
-            f"FROM Case WHERE Origin = '{SF_ORIGIN}' ORDER BY CreatedDate DESC"
-        )
-        studies = []
-        for rec in result["records"]:
-            study = _case_to_study(rec)
-            if study:
-                studies.append(study)
-        return studies if studies else None
-    except Exception as exc:
-        logger.error("get_studies SF error: %s", exc)
-        return None
+    studies = [_record_to_study(r) for r in records]
+    return studies or None
 
 
 def get_study(study_id: str) -> dict | None:
-    """
-    Find a single study by our internal study_id stored in Case.Description JSON.
-    """
-    sf = get_client()
-    if sf is None:
+    records = _query(
+        f"SELECT {_STUDY_FIELDS} FROM UXR_Study__c "
+        f"WHERE Study_ID__c = '{study_id}' LIMIT 1"
+    )
+    if not records:
         return None
-    try:
-        result = sf.query(
-            "SELECT Id, CaseNumber, Subject, Description, Status, CreatedDate "
-            f"FROM Case WHERE Origin = '{SF_ORIGIN}'"
-        )
-        for rec in result["records"]:
-            s = _case_to_study(rec)
-            if s and s.get("id") == study_id:
-                return s
+    return _record_to_study(records[0])
+
+
+def create_study(study_dict: dict) -> str | None:
+    result = _post("UXR_Study__c", {
+        "Name":               study_dict["name"],
+        "Study_ID__c":        study_dict["id"],
+        "Researcher__c":      study_dict.get("researcher", ""),
+        "RC_Name__c":         study_dict.get("owner_rc", ""),
+        "Status__c":          "Active",
+        "Total_Required__c":  study_dict.get("total_required", 0),
+        "Already_Sent__c":    study_dict.get("already_sent", 0),
+        "Last_Run__c":        study_dict.get("last_run") or "",
+        "New_Responses__c":   study_dict.get("new_responses", 0),
+        "P0_Ready__c":        study_dict.get("p0_ready", 0),
+        "P0_Newly_Marked__c": study_dict.get("p0_newly_marked", 0),
+    })
+    sf_id = result.get("id") if result else None
+    if sf_id:
+        logger.info("Created UXR_Study__c %s for study %s", sf_id, study_dict["id"])
+    return sf_id
+
+
+def update_study_sent(sf_id: str, already_sent: int, last_run: str) -> bool:
+    return _patch("UXR_Study__c", sf_id, {
+        "Already_Sent__c": already_sent,
+        "Last_Run__c":     last_run,
+    })
+
+
+def update_study_note(sf_id: str, note_content: str) -> bool:
+    return _patch("UXR_Study__c", sf_id, {"Latest_Note__c": note_content})
+
+
+# ── public: participants ───────────────────────────────────────────────────────
+
+def get_participants(study_sf_id: str) -> list[dict] | None:
+    records = _query(
+        "SELECT Id, Name, Participant_ID__c, Email__c, Phone__c, Status__c, Invite_Sent__c "
+        f"FROM UXR_Participant__c WHERE Study__c = '{study_sf_id}'"
+    )
+    if records is None:
         return None
-    except Exception as exc:
-        logger.error("get_study(%s) SF error: %s", study_id, exc)
-        return None
+    return [_record_to_participant(r) for r in records]
 
 
-def post_case_note(sf_case_id: str, note_body: str) -> bool:
-    """
-    Attach an EOD note as a CaseComment on the given SF Case.
-    Returns True on success.
-    """
-    sf = get_client()
-    if sf is None:
-        logger.warning("post_case_note: SF not connected")
-        return False
-    try:
-        sf.CaseComment.create({
-            "ParentId": sf_case_id,
-            "CommentBody": note_body,
-            "IsPublished": False,
-        })
-        logger.info("CaseComment posted to %s", sf_case_id)
-        return True
-    except Exception as exc:
-        logger.error("post_case_note(%s) failed: %s", sf_case_id, exc)
-        return False
+def create_participant(participant_dict: dict, study_sf_id: str) -> str | None:
+    result = _post("UXR_Participant__c", {
+        "Name":              participant_dict.get("name", ""),
+        "Participant_ID__c": str(participant_dict.get("id", "")),
+        "Email__c":          participant_dict.get("email", ""),
+        "Phone__c":          participant_dict.get("phone", ""),
+        "Status__c":         participant_dict.get("status", "Shortlisted"),
+        "Invite_Sent__c":    participant_dict.get("invite_sent", False),
+        "Study__c":          study_sf_id,
+    })
+    return result.get("id") if result else None
 
 
-def create_case(study_dict: dict) -> str | None:
-    """
-    Create a SF Case for a study dict.  Returns the new Case Id or None.
-    Called from the seed script.
-    """
-    sf = get_client()
-    if sf is None:
-        return None
-    try:
-        description = json.dumps({
-            "study_id":        study_dict["id"],
-            "researcher":      study_dict.get("researcher", ""),
-            "owner_rc":        study_dict.get("owner_rc", ""),
-            "total_required":  study_dict.get("total_required", 0),
-            "already_sent":    study_dict.get("already_sent", 0),
-            "last_run":        study_dict.get("last_run"),
-            "new_responses":   study_dict.get("new_responses", 0),
-            "p0_ready":        study_dict.get("p0_ready", 0),
-            "p0_newly_marked": study_dict.get("p0_newly_marked", 0),
-        })
-        result = sf.Case.create({
-            "Subject":     study_dict["name"],
-            "Description": description,
-            "Origin":      SF_ORIGIN,
-            "Status":      "New",
-            "Priority":    "Medium",
-        })
-        case_id = result.get("id")
-        logger.info("Created Case %s for study %s", case_id, study_dict["id"])
-        return case_id
-    except Exception as exc:
-        logger.error("create_case(%s) failed: %s", study_dict["id"], exc)
-        return None
+def mark_invite_sent(participant_sf_id: str) -> bool:
+    return _patch("UXR_Participant__c", participant_sf_id, {"Invite_Sent__c": True})
 
 
-def update_case_sent(sf_case_id: str, already_sent: int, last_run: str) -> bool:
-    """
-    Sync the already_sent and last_run values back to the SF Case Description.
-    """
-    sf = get_client()
-    if sf is None:
-        return False
-    try:
-        # Fetch current description
-        result = sf.query(
-            f"SELECT Id, Description FROM Case WHERE Id = '{sf_case_id}'"
-        )
-        if not result["records"]:
-            return False
-        rec = result["records"][0]
-        try:
-            extra = json.loads(rec.get("Description") or "{}")
-        except (json.JSONDecodeError, TypeError):
-            extra = {}
-        extra["already_sent"] = already_sent
-        extra["last_run"] = last_run
-        sf.Case.update(sf_case_id, {"Description": json.dumps(extra)})
-        return True
-    except Exception as exc:
-        logger.error("update_case_sent(%s) failed: %s", sf_case_id, exc)
-        return False
+def update_participant_status(sf_id: str, status: str, invite_sent: bool = True) -> bool:
+    return _patch("UXR_Participant__c", sf_id, {
+        "Status__c":      status,
+        "Invite_Sent__c": invite_sent,
+    })
 
 
-# ── internal helpers ───────────────────────────────────────────────────────────
+# ── internal mappers ───────────────────────────────────────────────────────────
 
-def _case_to_study(record: dict) -> dict | None:
-    """Parse a SF Case record into our study dict shape."""
-    try:
-        extra: dict = {}
-        raw_desc = record.get("Description") or ""
-        if raw_desc.strip().startswith("{"):
-            try:
-                extra = json.loads(raw_desc)
-            except (json.JSONDecodeError, TypeError):
-                pass
+def _record_to_participant(rec: dict) -> dict:
+    return {
+        "id":          rec.get("Participant_ID__c") or rec.get("Id", ""),
+        "name":        rec.get("Name", ""),
+        "email":       rec.get("Email__c") or "",
+        "phone":       rec.get("Phone__c") or "",
+        "status":      rec.get("Status__c") or "Shortlisted",
+        "invite_sent": bool(rec.get("Invite_Sent__c", False)),
+        "sf_id":       rec.get("Id"),
+    }
 
-        study_id = extra.get("study_id") or record.get("CaseNumber", "")
-        return {
-            "id":               study_id,
-            "name":             record.get("Subject", "Unnamed Study"),
-            "researcher":       extra.get("researcher", ""),
-            "owner_rc":         extra.get("owner_rc", ""),
-            "total_required":   int(extra.get("total_required", 0)),
-            "already_sent":     int(extra.get("already_sent", 0)),
-            "last_run":         extra.get("last_run"),
-            "new_responses":    int(extra.get("new_responses", 0)),
-            "p0_ready":         int(extra.get("p0_ready", 0)),
-            "p0_newly_marked":  int(extra.get("p0_newly_marked", 0)),
-            # SF metadata — stored but not serialised to the frontend
-            "sf_case_id":       record.get("Id"),
-            "sf_case_number":   record.get("CaseNumber"),
-        }
-    except Exception as exc:
-        logger.error("_case_to_study parse error: %s", exc)
-        return None
+
+def _record_to_study(rec: dict) -> dict:
+    return {
+        "id":               rec.get("Study_ID__c") or rec.get("Id", ""),
+        "name":             rec.get("Name", "Unnamed Study"),
+        "researcher":       rec.get("Researcher__c") or "",
+        "owner_rc":         rec.get("RC_Name__c") or "",
+        "total_required":   int(rec.get("Total_Required__c") or 0),
+        "already_sent":     int(rec.get("Already_Sent__c") or 0),
+        "last_run":         rec.get("Last_Run__c"),
+        "new_responses":    int(rec.get("New_Responses__c") or 0),
+        "p0_ready":         int(rec.get("P0_Ready__c") or 0),
+        "p0_newly_marked":  int(rec.get("P0_Newly_Marked__c") or 0),
+        "sf_id":            rec.get("Id"),
+        "latest_note":      rec.get("Latest_Note__c") or "",
+    }

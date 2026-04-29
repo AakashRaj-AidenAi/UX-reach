@@ -1972,27 +1972,45 @@ export class ChatEngineService implements OnDestroy {
 
       case 'post_eod_one':
         if (payload && payload.studyId) {
-          this.toastService.show('success', `Note posted for Study ${payload.studyId}`);
-          this.addBotMessage(
-            `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
-            `Note posted to Salesforce for <strong>${payload.studyName ?? 'Study ' + payload.studyId}</strong>. ` +
-            `<span style="font-size:12px;color:var(--text-muted);">(POC)</span>`,
-            undefined, 0
-          );
+          this.api.postStudyNote(payload.studyId, payload.content ?? '', payload.title ?? '').subscribe({
+            next: () => {
+              this.toastService.show('success', `Note saved to Salesforce for ${payload.studyName ?? payload.studyId}`);
+              this.addBotMessage(
+                `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
+                `Note saved to Salesforce for <strong>${payload.studyName ?? 'Study ' + payload.studyId}</strong>.`,
+                undefined, 0
+              );
+            },
+            error: () => {
+              this.toastService.show('error', `Failed to save note for ${payload.studyName ?? payload.studyId}`);
+            }
+          });
         }
         break;
 
       case 'post_eod_all': {
         const notes = Array.isArray(payload) ? payload : [];
         const count = notes.length;
-        this.toastService.show('success', `All ${count} notes posted to Salesforce`);
-        this.addBotMessage(
-          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
-          `All <strong>${count}</strong> notes posted to Salesforce. UXRs and Pod Leads have been notified. ` +
-          `<span style="font-size:12px;color:var(--text-muted);">(POC)</span>`,
-          [{ label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }],
-          0
-        );
+        let saved = 0;
+        notes.forEach((note: any) => {
+          if (note?.studyId) {
+            this.api.postStudyNote(note.studyId, note.content ?? '', note.title ?? '').subscribe({
+              next: () => {
+                saved++;
+                if (saved === count) {
+                  this.toastService.show('success', `All ${count} notes saved to Salesforce`);
+                  this.addBotMessage(
+                    `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
+                    `All <strong>${count}</strong> notes saved to Salesforce. UXRs and Pod Leads have been notified.`,
+                    [{ label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }],
+                    0
+                  );
+                }
+              },
+              error: () => this.toastService.show('error', `Failed to save note for ${note.studyName ?? note.studyId}`)
+            });
+          }
+        });
         break;
       }
 

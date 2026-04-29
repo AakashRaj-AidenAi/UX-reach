@@ -64,9 +64,13 @@ def get_pending_studies(rc_name: str) -> list[Study]:
 
 
 def update_study_sent(study_id: str, additional_sent: int) -> Study | None:
+    # Try mock dict first; fall back to a live SF fetch so SF-only studies work
     data = STUDIES.get(study_id)
     if data is None:
-        return None
+        sf_study = salesforce_service.get_study(study_id)
+        if sf_study is None:
+            return None
+        data = sf_study
 
     data["already_sent"] = min(
         data["already_sent"] + additional_sent,
@@ -75,10 +79,9 @@ def update_study_sent(study_id: str, additional_sent: int) -> Study | None:
     now = datetime.now()
     data["last_run"] = now.strftime("%b %d")
 
-    # Sync back to SF if we have a case ID
-    if data.get("sf_case_id"):
-        salesforce_service.update_case_sent(
-            data["sf_case_id"], data["already_sent"], data["last_run"]
+    if data.get("sf_id"):
+        salesforce_service.update_study_sent(
+            data["sf_id"], data["already_sent"], data["last_run"]
         )
 
     return Study(**data)
@@ -89,3 +92,20 @@ def get_remaining(study_id: str) -> int | None:
     if data is None:
         return None
     return data["total_required"] - data["already_sent"]
+
+
+def update_study_note(study_id: str, content: str, title: str = "") -> bool | None:
+    """Save note to the SF study record. Returns None if study not found in SF."""
+    sf_study = salesforce_service.get_study(study_id)
+    if not sf_study or not sf_study.get("sf_id"):
+        return None
+    note_text = f"{title}\n\n{content}".strip() if title else content.strip()
+    return salesforce_service.update_study_note(sf_study["sf_id"], note_text)
+
+
+def get_participants(study_id: str) -> list[dict] | None:
+    """Return participants for a study from Salesforce."""
+    sf_study = salesforce_service.get_study(study_id)
+    if not sf_study or not sf_study.get("sf_id"):
+        return None
+    return salesforce_service.get_participants(sf_study["sf_id"])
