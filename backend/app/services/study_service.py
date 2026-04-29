@@ -4,10 +4,10 @@ Primary source: Salesforce Cases (Origin = 'UX Research').
 Fallback:       in-memory mock_data.STUDIES.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 
 from app.models.study import Study
-from app.services.mock_data import STUDIES
+from app.services.mock_data import DAILY_ACTIVITY, STUDIES
 from app.services import salesforce_service
 
 
@@ -109,3 +109,44 @@ def get_participants(study_id: str) -> list[dict] | None:
     if not sf_study or not sf_study.get("sf_id"):
         return None
     return salesforce_service.get_participants(sf_study["sf_id"])
+
+
+def get_eod_activity(rc_name: str) -> dict:
+    """
+    Build EOD activity data from live Salesforce data + runtime counters.
+
+    Sources:
+      invites_sent_today           — DAILY_ACTIVITY counter (incremented per completed send)
+      p0_shortlisted_total         — sum of P0_Ready__c across RC's SF studies
+      appointments_booked          — SF participant count with status Responded
+      prescreening_interviews_completed — SF participant count with status Completed
+      everything else              — 0 (not tracked in SF yet)
+    """
+    # invites_sent_today: maintained in DAILY_ACTIVITY by sending_service on every send
+    invites_sent_today = DAILY_ACTIVITY.get("invites_sent_today", 0)
+
+    # P0_Ready__c sum across RC's studies from SF (falls back to mock if SF unavailable)
+    rc_studies = _merged_studies()
+    p0_shortlisted_total = sum(
+        data.get("p0_ready", 0)
+        for data in rc_studies.values()
+        if data.get("owner_rc") == rc_name
+    )
+
+    # Live participant status counts from SF via a single aggregate query
+    status_counts = salesforce_service.get_participant_status_counts_for_rc(rc_name)
+    appointments_booked = status_counts.get("Responded", 0)
+    prescreening_completed = status_counts.get("Completed", 0)
+
+    return {
+        "date": date.today().isoformat(),
+        "p0_shortlisted_total": p0_shortlisted_total,
+        "invites_sent_today": invites_sent_today,
+        "appointments_booked": appointments_booked,
+        "appointments_cancelled": 0,
+        "appointments_rescheduled": 0,
+        "prescreening_interviews_completed": prescreening_completed,
+        "prescreening_invited": 0,
+        "prescreening_cancelled": 0,
+        "prescreening_rescheduled": 0,
+    }

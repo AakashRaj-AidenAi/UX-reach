@@ -263,6 +263,91 @@ def update_participant_status(sf_id: str, status: str, invite_sent: bool = True)
     })
 
 
+# ── public: email ─────────────────────────────────────────────────────────────
+
+_INVITE_SUBJECT = "You're Invited: {study_name} UX Research Study"
+_INVITE_BODY = """\
+Hello {name},
+
+You have been selected to participate in a UX Research study:
+
+  Study: {study_name} (ID: {study_id})
+
+Please reply to confirm your availability, and our team will be in touch with
+next steps.
+
+Thank you,
+UX Research Team
+"""
+
+
+def send_invite_email(
+    to_email: str,
+    to_name: str,
+    study_name: str,
+    study_id: str,
+) -> bool:
+    """
+    Send one invite email via Salesforce's standard emailSimple invocable action.
+    Emails are sent through Salesforce's own mail infrastructure (shows in SF activity).
+    Returns True on success, False on any error (non-blocking — the SF record update
+    already happened before this is called).
+    """
+    sess = _get_session()
+    if sess is None or not to_email:
+        return False
+
+    subject = _INVITE_SUBJECT.format(study_name=study_name)
+    body = _INVITE_BODY.format(name=to_name or "Participant", study_name=study_name, study_id=study_id)
+
+    payload = {
+        "inputs": [{
+            "emailBody":      body,
+            "emailAddresses": to_email,
+            "emailSubject":   subject,
+        }]
+    }
+
+    try:
+        resp = sess.post(
+            f"{_base()}/actions/standard/emailSimple",
+            json=payload,
+            timeout=15,
+        )
+        if not resp.ok:
+            logger.error("SF emailSimple HTTP %s: %s", resp.status_code, resp.text[:200])
+            return False
+        results = resp.json()
+        success = all(r.get("isSuccess") for r in results)
+        if not success:
+            errors = [r.get("errors") for r in results if not r.get("isSuccess")]
+            logger.error("SF emailSimple reported failure: %s", errors)
+        return success
+    except Exception as exc:
+        logger.error("SF email send error (%s → %s): %s", study_id, to_email, exc)
+        return False
+
+
+# ── public: aggregates ────────────────────────────────────────────────────────
+
+def get_participant_status_counts_for_rc(rc_name: str) -> dict[str, int]:
+    """
+    Single aggregate SOQL query: {status: count} for all participants
+    across every study owned by rc_name.
+    Traverses the Study__r lookup to filter by RC_Name__c.
+    """
+    records = _query(
+        f"SELECT Status__c, COUNT(Id) "
+        f"FROM UXR_Participant__c "
+        f"WHERE Study__r.RC_Name__c = '{rc_name}' "
+        f"GROUP BY Status__c"
+    )
+    if not records:
+        return {}
+    # SOQL aggregate COUNT(Id) without alias comes back as expr0
+    return {r.get("Status__c", ""): int(r.get("expr0", 0)) for r in records}
+
+
 # ── internal mappers ───────────────────────────────────────────────────────────
 
 def _record_to_participant(rec: dict) -> dict:

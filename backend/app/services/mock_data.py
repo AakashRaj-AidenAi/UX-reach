@@ -618,15 +618,15 @@ UXR_SHORTLISTING_EVENTS: list[dict] = [
 
 DAILY_ACTIVITY: dict = {
     "date": _today,
-    "p0_shortlisted_total": 15,
-    "invites_sent_today": 10,
-    "appointments_booked": 3,
-    "appointments_cancelled": 1,
-    "appointments_rescheduled": 1,
-    "prescreening_interviews_completed": 10,
-    "prescreening_invited": 2,
-    "prescreening_cancelled": 1,
-    "prescreening_rescheduled": 1,
+    "p0_shortlisted_total": 0,
+    "invites_sent_today": 0,
+    "appointments_booked": 0,
+    "appointments_cancelled": 0,
+    "appointments_rescheduled": 0,
+    "prescreening_interviews_completed": 0,
+    "prescreening_invited": 0,
+    "prescreening_cancelled": 0,
+    "prescreening_rescheduled": 0,
 }
 
 # ── Counter for generating unique IDs ──

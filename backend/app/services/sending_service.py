@@ -7,7 +7,7 @@ import logging
 import time
 from datetime import datetime
 
-from app.services.mock_data import SEND_STATE, AUDIT_RUNS, STUDIES, next_id
+from app.services.mock_data import SEND_STATE, AUDIT_RUNS, STUDIES, DAILY_ACTIVITY, next_id
 from app.services import salesforce_service
 
 logger = logging.getLogger(__name__)
@@ -21,24 +21,42 @@ def format_duration(seconds: int) -> str:
     return f"{minutes}m {secs}s"
 
 
-def _sync_to_sf(study_id: str, emails_sent: int, new_already_sent: int, last_run: str) -> None:
+def _sync_to_sf(study_id: str, emails_sent: int, last_run: str) -> None:
     """Push updated study count and mark N participants as Invited in Salesforce."""
     try:
         sf_study = salesforce_service.get_study(study_id)
         if not sf_study or not sf_study.get("sf_id"):
             return
-        sf_id = sf_study["sf_id"]
+        sf_id   = sf_study["sf_id"]
+        study_name = sf_study["name"]
+
+        # Always derive new_already_sent from live SF value — avoids mock/SF divergence
+        # when the in-memory STUDIES dict doesn't reflect prior-session sends.
+        sf_current = sf_study.get("already_sent", 0)
+        sf_total   = sf_study.get("total_required", emails_sent)
+        new_already_sent = min(sf_current + emails_sent, sf_total)
 
         salesforce_service.update_study_sent(sf_id, new_already_sent, last_run)
 
         participants = salesforce_service.get_participants(sf_id)
         if participants:
             not_invited = [p for p in participants if not p.get("invite_sent") and p.get("sf_id")]
-            for p in not_invited[:emails_sent]:
+            to_invite = not_invited[:emails_sent]
+            emailed = 0
+            for p in to_invite:
                 salesforce_service.update_participant_status(p["sf_id"], "Invited", True)
+                if p.get("email"):
+                    sent = salesforce_service.send_invite_email(
+                        to_email=p["email"],
+                        to_name=p.get("name", "Participant"),
+                        study_name=study_name,
+                        study_id=study_id,
+                    )
+                    if sent:
+                        emailed += 1
             logger.info(
-                "SF sync: study=%s sent=%d updated=%d participants",
-                study_id, emails_sent, min(len(not_invited), emails_sent),
+                "SF sync: study=%s status_updated=%d emails_sent=%d",
+                study_id, len(to_invite), emailed,
             )
     except Exception as exc:
         logger.error("SF sync error for study %s: %s", study_id, exc)
@@ -86,8 +104,12 @@ async def _simulate_sending(session_id: str) -> None:
             _sync_to_sf,
             state["study_id"],
             state["emails_sent"],
-            new_already_sent,
             last_run,
+        )
+
+        # Update today's activity so EOD update reflects actual invites sent
+        DAILY_ACTIVITY["invites_sent_today"] = (
+            DAILY_ACTIVITY.get("invites_sent_today", 0) + state["emails_sent"]
         )
 
         # Create an audit run entry
@@ -187,7 +209,10 @@ def stop_send(session_id: str) -> dict | None:
 
     # Push partial send to Salesforce synchronously (stop is a sync function)
     if state["emails_sent"] > 0:
-        _sync_to_sf(state["study_id"], state["emails_sent"], new_already_sent, last_run)
+        _sync_to_sf(state["study_id"], state["emails_sent"], last_run)
+        DAILY_ACTIVITY["invites_sent_today"] = (
+            DAILY_ACTIVITY.get("invites_sent_today", 0) + state["emails_sent"]
+        )
 
     return {
         "emails_sent": state["emails_sent"],

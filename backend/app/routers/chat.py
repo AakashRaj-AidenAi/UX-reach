@@ -562,11 +562,12 @@ def _build_send_all_p0s_html(study_id: str | None, rc_name: str) -> tuple[str, l
 
 def _build_eod_update_html(rc_name: str) -> tuple[str, list[dict] | None]:
     from datetime import date
-    from app.services.mock_data import DAILY_ACTIVITY, UXR_SHORTLISTING_EVENTS
+    from app.services.mock_data import UXR_SHORTLISTING_EVENTS
+    from app.services import study_service
 
     today_iso = date.today().isoformat()
     title_date = date.today().strftime("%B %d")
-    da = DAILY_ACTIVITY
+    da = study_service.get_eod_activity(rc_name)
 
     # UXR shortlisting context for this RC
     my_events = [
@@ -631,12 +632,12 @@ def _build_post_eod_html() -> tuple[str, list[dict] | None]:
     return html, actions
 
 
-def _build_edit_eod_html() -> tuple[str, list[dict] | None]:
+def _build_edit_eod_html(rc_name: str = "") -> tuple[str, list[dict] | None]:
     from datetime import date
-    from app.services.mock_data import DAILY_ACTIVITY
+    from app.services import study_service
 
     title_date = date.today().strftime("%B %d")
-    da = DAILY_ACTIVITY
+    da = study_service.get_eod_activity(rc_name)
 
     lines = [
         f"{title_date}",
@@ -828,7 +829,7 @@ def process_message(req: ChatRequest):
         html, actions = _build_post_eod_html()
 
     elif intent == "edit_eod_note":
-        html, actions = _build_edit_eod_html()
+        html, actions = _build_edit_eod_html(req.user_name)
 
     elif intent == "candidate_reply":
         html, actions = _build_candidate_reply_html(req.message)
