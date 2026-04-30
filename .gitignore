@@ -4,8 +4,7 @@ __pycache__/
 *.pyo
 
 # Credentials — never commit these
-.env
-*.env
-tough-zoo-475011-s6-1d16097b5082.json
+
+backend/tough-zoo-475011-s6-81e055df5732.json
 backend/sf_server.key
 backend/sf_server.crt
