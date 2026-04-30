@@ -223,6 +223,14 @@ def update_study_sent(sf_id: str, already_sent: int, last_run: str) -> bool:
     })
 
 
+def update_study_counts(sf_id: str, total_required: int, already_sent: int, last_run: str) -> bool:
+    return _patch("UXR_Study__c", sf_id, {
+        "Total_Required__c": total_required,
+        "Already_Sent__c":   already_sent,
+        "Last_Run__c":       last_run,
+    })
+
+
 def update_study_note(sf_id: str, note_content: str) -> bool:
     return _patch("UXR_Study__c", sf_id, {"Latest_Note__c": note_content})
 

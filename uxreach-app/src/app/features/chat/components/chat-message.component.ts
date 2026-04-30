@@ -89,7 +89,7 @@ import { ToastService } from '../../../services/toast.service';
           <!-- Message footer: timestamp + actions -->
           @if (message.sender === 'bot' && !message.isTyping) {
             <div class="msg-footer">
-              <span class="msg-timestamp" [attr.title]="absoluteTime">{{ relativeTime }}</span>
+              <span class="msg-timestamp" [attr.title]="relativeTime">{{ exactTime }}</span>
               @if (message.html) {
                 <button class="msg-copy-btn" (click)="onCopy()" title="Copy to clipboard">
                   <span class="material-symbols-outlined icon-sm">content_copy</span>
@@ -99,7 +99,7 @@ import { ToastService } from '../../../services/toast.service';
           }
           @if (message.sender === 'user') {
             <div class="msg-footer msg-footer-user">
-              <span class="msg-timestamp" [attr.title]="absoluteTime">{{ relativeTime }}</span>
+              <span class="msg-timestamp" [attr.title]="relativeTime">{{ exactTime }}</span>
             </div>
           }
 
@@ -435,6 +435,13 @@ export class ChatMessageComponent {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h ago`;
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  get exactTime(): string {
+    const d = this.message.timestamp instanceof Date
+      ? this.message.timestamp
+      : new Date(this.message.timestamp);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   get absoluteTime(): string {
