@@ -12,7 +12,9 @@ Complete setup + run guide for the UXReach AI Invite Email Agent — an Angular 
 | `backend/` | FastAPI backend (Gemini LLM + mock Salesforce + auth allowlist) |
 | `openspec/` | Spec-driven change proposals (`changes/` active, `changes/archive/` shipped) |
 | `Agent-Capabilities-Full-List.md` | Refusal matrix — the 20 documented scenarios the agent MUST refuse |
-| `TDD-Technical-Design-Document.md` | Technical design |
+| `TDD-Technical-Design-Document.md` | Original technical design |
+| `TDD-UXReach-Agent.md` / `.docx` | Detailed agent TDD (markdown source + Google-Doc–ready docx) |
+| `build_tdd_docx.py` | One-shot script that regenerates `TDD-UXReach-Agent.docx` from the markdown |
 | `POC Screenshots/`, `*.pptx`, `*.html` | Stakeholder demos |
 
 ---
@@ -38,10 +40,10 @@ Complete setup + run guide for the UXReach AI Invite Email Agent — an Angular 
 ```
 git clone https://github.com/AakashRaj-AidenAi/UX-reach.git
 cd UX-reach
-git checkout V1.0
+git checkout <your active branch>     # e.g. V1.0_sf_objects, latest_poc, V1.0
 ```
 
-> **Known gotcha on Windows:** the remote has two branches that differ only in case (`V1.0_auth1` / `v1.0_auth1`). `git pull` prints a warning — non-blocking, doesn't affect `V1.0`. See §8.
+> **Known gotcha on Windows:** the remote has two branches that differ only in case (`V1.0_auth1` / `v1.0_auth1`). `git pull` prints a warning — non-blocking, doesn't affect your branch. See §8.
 
 ### 3b. Backend `.env`
 
@@ -127,13 +129,14 @@ The frontend is built to stay useful when the backend is unreachable:
 |---|---|
 | Login | Google Sign-In requires backend; without it, you can't enter the app unless auth is bypassed in dev mode |
 | Study list | Falls back to mock data in `uxreach-app/src/app/mock-data/studies.data.ts` |
-| `study progress <id>` | Synthesizes a plausible funnel from `alreadySent` (60% responded / 45% booked / 32% ICF / 25% confirmed) with an amber "Backend unavailable — synthesized funnel" banner |
+| `study progress <id>` | Synthesizes a plausible funnel from `alreadySent` (60% responded / 45% booked / 32% ICF / 25% confirmed) **plus a "Today's Activity" panel** (P0s shortlisted, invites sent today, appointments booked/cancelled/rescheduled, pre-screening completed/invited/cancelled/rescheduled) with an amber "Backend unavailable — synthesized funnel" banner |
 | Other Query Agent intents (responses / bookings / ICF / reminders / confirmed) | Retry once with 2s backoff, then serve cached snapshot with timestamp banner; empty cache → friendly error + Retry button |
 | Refusal scenarios | 100% client-side via `GuardrailsService` — all 20 documented refusals fire offline with the canonical text from `Agent-Capabilities-Full-List.md` |
 | Invite send | Falls back to a local simulation (one-per-500ms) if `POST /api/send/start` fails |
 | Chat history | Persists in `localStorage` keyed by `uxreach.chat.history.v1.<userName>`; survives reloads |
 | Chat switcher | Header pill + popover with Today / Yesterday / Earlier buckets, New chat, per-row delete, Clear all — works fully offline |
 | Study notes editor (EOD) | Renders inline editable notes when the bot returns `studyNotes` payload; "Post one" / "Post all" actions hit the backend when reachable |
+| Picker preselection | `<app-study-picker>` accepts `preselectedStudyId` + `preselectedCount` so action buttons (e.g. "Send 10 to Study X") can open the picker pre-filled, single-row, with the radio/checkbox hidden — confirms in one click |
 
 ---
 
@@ -207,6 +210,16 @@ If it still fails on Node 24, downgrade to Node 22 LTS via [nvm-windows](https:/
 
 Remote has duplicate-cased branches (`V1.0_auth1` vs `v1.0_auth1`). Windows can't store both as separate refs in the default `files` backend. Doesn't affect your branch — ignore. If you want it gone: `git push origin --delete v1.0_auth1` (only if confirmed it's a typo).
 
+### Regenerating the TDD docx
+
+If you edit `TDD-UXReach-Agent.md`, regenerate the Google-Doc-ready docx with:
+
+```
+python build_tdd_docx.py
+```
+
+Requires `python-docx` (`pip install python-docx`). Output: `TDD-UXReach-Agent.docx`.
+
 ### Component update failed in the browser console
 
 Angular HMR occasionally chokes on new fields. Hard-refresh (Ctrl+Shift+R).
@@ -260,7 +273,7 @@ UXReach/
 1. Open http://localhost:4200/ → login overlay appears.
 2. Sign in with a Google account in `backend/app/services/auth_service.py` allowlist (or use the admin screen to add yours).
 3. Welcome card renders with Send invites / Schedule / Study progress buttons.
-4. Click **Study progress** → picker opens in single-select radio mode → pick a study → funnel renders with 5 stages.
+4. Click **Study progress** → picker opens in single-select radio mode → pick a study → funnel renders with 5 stages **plus the "Today's Activity" panel** (9 EOD metrics).
 5. Type `send 10 invites for study 1234567` → confirmation card with **Invite Agent** badge.
 6. Type `modify the email template` → refusal "Sorry, I am not allowed to modify the template" — works even with backend stopped.
 7. Header **chat switcher pill** → click → past conversations grouped by Today / Yesterday / Earlier.
