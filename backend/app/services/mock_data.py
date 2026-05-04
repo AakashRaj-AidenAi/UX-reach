@@ -13,6 +13,9 @@ ALLOWED_USERS: list[dict] = [
     {"email": "sarah.chen@google.com",     "name": "Sarah Chen",   "role": "rc"},
     {"email": "aakash.aidenai@gmail.com",  "name": "Aakash",       "role": "rc"},
     {"email": "shubhamkapadia0@gmail.com", "name": "Shubham",      "role": "rc"},
+    {"email": "aakashrr@google.com",       "name": "Aakash",       "role": "rc"},
+    {"email": "vinothdkumar7@gmail.com",    "name": "Vinoth",       "role": "rc"},
+    {"email": "Pillak@google.com",         "name": "Bharath",      "role": "rc"},
 ]
 
 # ── Studies (keyed by study ID) ──
@@ -127,6 +130,42 @@ STUDIES: dict[str, dict] = {
         "new_responses": 8,
         "p0_ready": 6,
         "p0_newly_marked": 2,
+    },
+    "6012345": {
+        "id": "6012345",
+        "name": "Google Lens Visual Search Study",
+        "researcher": "Asha Verma",
+        "owner_rc": "Lohithaksh",
+        "total_required": 30,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    "6123456": {
+        "id": "6123456",
+        "name": "Pixel Watch Health Features UX",
+        "researcher": "Vikram Bhat",
+        "owner_rc": "Lohithaksh",
+        "total_required": 40,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    "6234567": {
+        "id": "6234567",
+        "name": "Google TV Interface Research",
+        "researcher": "Sunita Rao",
+        "owner_rc": "Lohithaksh",
+        "total_required": 35,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
     },
     # ── Aakash's studies ──
     "7890123": {
@@ -274,6 +313,80 @@ STUDIES: dict[str, dict] = {
         "new_responses": 7,
         "p0_ready": 3,
         "p0_newly_marked": 1,
+    },
+    # ── Vinoth's studies ──
+    "6345678": {
+        "id": "6345678",
+        "name": "Google Maps AR Navigation Study",
+        "researcher": "Kavya Reddy",
+        "owner_rc": "Vinoth",
+        "total_required": 40,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    "6456789": {
+        "id": "6456789",
+        "name": "Google Translate UX Research",
+        "researcher": "Harish Kumar",
+        "owner_rc": "Vinoth",
+        "total_required": 35,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    "6567890": {
+        "id": "6567890",
+        "name": "Chrome Extensions Usability Study",
+        "researcher": "Meena Iyer",
+        "owner_rc": "Vinoth",
+        "total_required": 30,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    # ── Bharath's studies ──
+    "6678901": {
+        "id": "6678901",
+        "name": "Google Classroom UX Evaluation",
+        "researcher": "Divya Krishnan",
+        "owner_rc": "Bharath",
+        "total_required": 45,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    "6789123": {
+        "id": "6789123",
+        "name": "Google One Storage UX Study",
+        "researcher": "Rajan Pillai",
+        "owner_rc": "Bharath",
+        "total_required": 30,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
+    },
+    "6890234": {
+        "id": "6890234",
+        "name": "Android Notification Design Research",
+        "researcher": "Suma Nair",
+        "owner_rc": "Bharath",
+        "total_required": 35,
+        "already_sent": 0,
+        "last_run": None,
+        "new_responses": 0,
+        "p0_ready": 9,
+        "p0_newly_marked": 9,
     },
 }
 
@@ -549,6 +662,12 @@ PARTICIPANTS: dict[str, list[dict]] = {
     "5890123": _make_participants("5890123", confirmed=7, booked=3, no_response=4, declined=3, invited=2),
     # Pixel Camera AI Features Study – 30 sent
     "5901234": _make_participants("5901234", confirmed=12, booked=5, no_response=6, declined=5, invited=2),
+    # Google Lens Visual Search Study – fresh, all shortlisted
+    "6012345": _make_participants("6012345", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+    # Pixel Watch Health Features UX – fresh, all shortlisted
+    "6123456": _make_participants("6123456", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+    # Google TV Interface Research – fresh, all shortlisted
+    "6234567": _make_participants("6234567", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
 
     # ── Aakash's studies ──
     # Chrome Browser Usability Study – 12 sent
@@ -571,6 +690,16 @@ PARTICIPANTS: dict[str, list[dict]] = {
     "9234567": _make_participants("9234567", confirmed=0, booked=0, no_response=0, declined=0, invited=2),
     # Google Photos Smart Features Study – 14 sent
     "9345678": _make_participants("9345678", confirmed=6, booked=3, no_response=3, declined=2, invited=1),
+
+    # ── Vinoth's studies ──
+    "6345678": _make_participants("6345678", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+    "6456789": _make_participants("6456789", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+    "6567890": _make_participants("6567890", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+
+    # ── Bharath's studies ──
+    "6678901": _make_participants("6678901", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+    "6789123": _make_participants("6789123", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
+    "6890234": _make_participants("6890234", confirmed=0, booked=0, no_response=0, declined=0, invited=0),
 }
 
 # ── UXR → RC shortlisting events (UXR randomly selects P0 candidates and notifies RC) ──
