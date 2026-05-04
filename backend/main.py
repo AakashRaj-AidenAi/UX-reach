@@ -32,8 +32,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:4200",
         "http://127.0.0.1:4200",
-        "http://localhost:4000",
-        "*",
+        "https://uxreach-frontend-1007459863351.us-central1.run.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
