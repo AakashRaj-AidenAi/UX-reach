@@ -36,7 +36,10 @@ def _sync_study_counts(study_id: str, last_run: str) -> None:
             return
 
         total = len(participants)
-        already_sent = sum(1 for p in participants if p.get("invite_sent"))
+        already_sent = sum(
+            1 for p in participants
+            if p.get("invite_sent") or p.get("status") not in ("Shortlisted", None, "")
+        )
 
         salesforce_service.update_study_counts(sf_id, total, already_sent, last_run)
 

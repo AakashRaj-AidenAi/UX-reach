@@ -49,17 +49,29 @@ async def _run_loop() -> None:
 
             try:
                 session_id = await sending_service.start_send(study_id, count)
-                # Wait for the send to complete (it runs in a background task; poll progress)
-                for _ in range(120):  # max 60s wait
+
+                # Check immediately if there were no participants to invite
+                progress = sending_service.get_send_progress(session_id)
+                if progress and progress.get("total") == 0:
+                    job["status"] = "failed"
+                    job["error"] = "No uninvited participants available for this study"
+                    logger.warning(f"Scheduler job for study {study_id}: no uninvited participants")
+                    continue
+
+                # Wait for the send to complete (poll up to 60s)
+                for _ in range(120):
                     await asyncio.sleep(0.5)
                     progress = sending_service.get_send_progress(session_id)
                     if progress and progress.get("is_complete"):
                         break
 
+                final = sending_service.get_send_progress(session_id)
                 job["status"] = "completed"
-                logger.info(f"Scheduler completed job for study {study_id}")
+                job["emails_sent"] = final.get("emails_sent", 0) if final else 0
+                logger.info(f"Scheduler completed job for study {study_id}: {job['emails_sent']} sent")
             except Exception as exc:
                 job["status"] = "failed"
+                job["error"] = str(exc)
                 logger.error(f"Scheduler job failed for study {study_id}: {exc}")
 
 
