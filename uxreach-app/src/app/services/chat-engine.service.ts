@@ -38,6 +38,19 @@ export class ChatEngineService implements OnDestroy {
     this.inputDraft.set({ text, n: this.suggestCount });
   }
 
+  private pendingCommand: string | null = null;
+
+  suggestInputWithCommand(displayText: string, command: string): void {
+    this.pendingCommand = command;
+    this.suggestInput(displayText);
+  }
+
+  consumePendingCommand(): string | null {
+    const cmd = this.pendingCommand;
+    this.pendingCommand = null;
+    return cmd;
+  }
+
   // Signals for picker visibility
   readonly showStudyPicker = signal(false);
   readonly showSchedulePicker = signal(false);
@@ -1229,6 +1242,18 @@ export class ChatEngineService implements OnDestroy {
 
   // ── SCHEDULE FLOW ──
 
+  private formatAsIST(isoStr: string): string {
+    try {
+      return new Date(isoStr).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      }) + ' IST';
+    } catch {
+      return isoStr;
+    }
+  }
+
   handleScheduleFlow(studyId: string, count: number, dateTimeStr: string): void {
     const study = this.studyService.getStudy(studyId);
     if (!study) {
@@ -1250,8 +1275,9 @@ export class ChatEngineService implements OnDestroy {
       this.schedulerService.addJob(studyId, study.name, count, dateTimeStr);
       const jobIndex = this.schedulerService.jobs().length - 1;
 
+      const displayTime = this.formatAsIST(dateTimeStr);
       const html =
-        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> <strong>Scheduled:</strong> ${count} invites for Study ${studyId} - ${study.name} on ${dateTimeStr}.<br>` +
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> <strong>Scheduled:</strong> ${count} invites for Study ${studyId} - ${study.name} on ${displayTime}.<br>` +
         `<span class="msg-hint">I'll notify you when it's done.</span>`;
 
       this.addBotMessage(html, [

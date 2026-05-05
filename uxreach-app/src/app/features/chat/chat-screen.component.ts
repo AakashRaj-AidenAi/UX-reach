@@ -124,8 +124,9 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   onSend(text: string): void {
     this.shouldScroll = true;
+    const command = this.chatEngine.consumePendingCommand() ?? text;
     this.chatEngine.addUserMessage(text);
-    this.chatEngine.processCommand(text);
+    this.chatEngine.processCommand(command);
   }
 
   onAction(event: { action: string; payload?: any }): void {
@@ -142,9 +143,9 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
     this.chatEngine.cancelStudyPicker();
   }
 
-  onSchedulePickerSubmit(commandText: string): void {
+  onSchedulePickerSubmit(event: { displayText: string; command: string }): void {
     this.chatEngine.cancelSchedulePicker();
-    this.chatEngine.suggestInput(commandText);
+    this.chatEngine.suggestInputWithCommand(event.displayText, event.command);
   }
 
   onSchedulePickerCancel(): void {

@@ -98,7 +98,7 @@ export class SchedulePickerComponent implements OnInit {
   @Input() preselectedStudyId: string | null = null;
   @Input() preselectedCount: number | null = null;
 
-  @Output() submit = new EventEmitter<string>();
+  @Output() submit = new EventEmitter<{ displayText: string; command: string }>();
   @Output() cancel = new EventEmitter<void>();
 
   studies: PickerStudy[] = [];
@@ -169,12 +169,17 @@ export class SchedulePickerComponent implements OnInit {
     const dateObj = new Date(this.schedDate + 'T' + this.schedTime);
     const isoStr = dateObj.toISOString();
 
-    // Build command for first selected, provide hints for more
-    const cmds = selected.map(item =>
-      `Send ${item.count} invites for study ${item.id} at ${isoStr}`
-    );
+    const displayTime = dateObj.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    }) + ' IST';
 
-    this.submit.emit(cmds[0]);
+    const item = selected[0];
+    this.submit.emit({
+      displayText: `Schedule ${item.count} invite${item.count > 1 ? 's' : ''} for study ${item.id} on ${displayTime}`,
+      command: `Send ${item.count} invites for study ${item.id} at ${isoStr}`,
+    });
   }
 
   onCancel(): void {

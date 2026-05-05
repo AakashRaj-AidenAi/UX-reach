@@ -178,6 +178,7 @@ def update_rc_emails(session, base):
     print("JOB 2: Update participant emails per RC")
     print("=" * 60)
 
+    # Single-email RCs
     for rc_name, email in RC_EMAILS.items():
         print(f"\nRC: {rc_name} → {email}")
 
@@ -201,6 +202,34 @@ def update_rc_emails(session, base):
 
             updated = 0
             for p in participants:
+                ok = patch(session, base, "UXR_Participant__c", p["Id"], {"Email__c": email})
+                if ok:
+                    updated += 1
+
+            print(f"  [{study_name}] Updated {updated}/{len(participants)} participants")
+
+    # Lohithaksh — rotating emails across all studies
+    print(f"\nRC: Lohithaksh → rotating {LOHITHAKSH_EMAILS}")
+    lohith_studies = query(session, base,
+        "SELECT Id, Name, Study_ID__c FROM UXR_Study__c WHERE RC_Name__c = 'Lohithaksh'")
+
+    if not lohith_studies:
+        print("  No studies found for Lohithaksh")
+    else:
+        for study in lohith_studies:
+            sf_study_id = study["Id"]
+            study_name  = study.get("Name", study.get("Study_ID__c", ""))
+
+            participants = query(session, base,
+                f"SELECT Id, Name FROM UXR_Participant__c WHERE Study__c = '{sf_study_id}'")
+
+            if not participants:
+                print(f"  [{study_name}] No participants")
+                continue
+
+            updated = 0
+            for i, p in enumerate(participants):
+                email = LOHITHAKSH_EMAILS[i % len(LOHITHAKSH_EMAILS)]
                 ok = patch(session, base, "UXR_Participant__c", p["Id"], {"Email__c": email})
                 if ok:
                     updated += 1
