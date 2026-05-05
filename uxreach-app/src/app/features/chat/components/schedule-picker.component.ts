@@ -167,13 +167,11 @@ export class SchedulePickerComponent implements OnInit {
     }
 
     const dateObj = new Date(this.schedDate + 'T' + this.schedTime);
-    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const dateTimeStr = `${dateStr} at ${timeStr}`;
+    const isoStr = dateObj.toISOString();
 
     // Build command for first selected, provide hints for more
     const cmds = selected.map(item =>
-      `Send ${item.count} invites for study ${item.id} on ${dateTimeStr}`
+      `Send ${item.count} invites for study ${item.id} at ${isoStr}`
     );
 
     this.submit.emit(cmds[0]);

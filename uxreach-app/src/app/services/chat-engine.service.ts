@@ -251,7 +251,15 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
-    // Scheduler flow
+    // Scheduler flow — ISO format from schedule picker (UTC)
+    const isoScheduleRe = /send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+at\s+(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/i;
+    const isoMatch = text.match(isoScheduleRe);
+    if (isoMatch) {
+      this.handleScheduleFlow(isoMatch[2], parseInt(isoMatch[1], 10), isoMatch[3]);
+      return;
+    }
+
+    // Scheduler flow — natural language format
     const scheduleRe = /send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+(?:(?:tomorrow|today)|(?:on\s+.+?)|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2},\s+\d{4}|(?:\d{4}-\d{2}-\d{2}))\s+(?:at\s+)?(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)/i;
     const scheduleMatch = lower.match(scheduleRe);
     if (scheduleMatch) {
