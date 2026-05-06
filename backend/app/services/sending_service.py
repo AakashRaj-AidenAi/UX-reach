@@ -40,14 +40,19 @@ def _sync_study_counts(study_id: str, last_run: str) -> None:
             1 for p in participants
             if p.get("invite_sent") or p.get("status") not in ("Shortlisted", None, "")
         )
+        p0_ready = sum(
+            1 for p in participants
+            if not p.get("invite_sent") and p.get("status") == "Shortlisted"
+        )
 
-        salesforce_service.update_study_counts(sf_id, total, already_sent, last_run)
+        salesforce_service.update_study_counts(sf_id, total, already_sent, last_run, p0_ready)
 
         study_data = STUDIES.get(study_id)
         if study_data:
             study_data["total_required"] = total
             study_data["already_sent"] = already_sent
             study_data["last_run"] = last_run
+            study_data["p0_ready"] = p0_ready
 
         logger.info(
             "Study counts synced: study=%s total=%d already_sent=%d",

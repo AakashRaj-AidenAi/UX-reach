@@ -24,12 +24,25 @@ def _sf_studies_map() -> dict[str, dict] | None:
 def _merged_studies() -> dict[str, dict]:
     """
     SF studies take precedence; mock fills in any ID not present in SF.
+    p0_ready is overridden with the live count of uninvited Shortlisted participants.
     """
     sf_map = _sf_studies_map()
     if sf_map is None:
         return STUDIES
     merged = dict(STUDIES)   # start with mock
     merged.update(sf_map)    # SF wins on conflict
+
+    # Override p0_ready with actual uninvited Shortlisted count from SF
+    uninvited_counts = salesforce_service.get_uninvited_shortlisted_counts()
+    if uninvited_counts:
+        for study_data in merged.values():
+            sf_id = study_data.get("sf_id")
+            if sf_id and sf_id in uninvited_counts:
+                study_data["p0_ready"] = uninvited_counts[sf_id]
+            elif sf_id:
+                # Study exists in SF but has 0 uninvited Shortlisted participants
+                study_data["p0_ready"] = 0
+
     return merged
 
 

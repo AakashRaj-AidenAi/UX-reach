@@ -64,7 +64,7 @@ export class DashboardScreenComponent {
 
     for (const id of Object.keys(studyMap)) {
       const s = studyMap[id];
-      const remaining = Math.max(0, s.totalRequired - s.alreadySent);
+      const remaining = Math.max(0, s.p0Ready || 0);
       this.totalNewResponses += (s.newResponses || 0);
       this.totalP0Ready += (s.p0Ready || 0);
 

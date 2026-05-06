@@ -123,7 +123,7 @@ export class SchedulePickerComponent implements OnInit {
 
     const allStudies = Object.keys(active).map(id => {
       const s = active[id];
-      const remaining = s.totalRequired - s.alreadySent;
+      const remaining = Math.max(0, s.p0Ready || 0);
       const isPreselected = this.preselectedStudyId === id;
       return {
         id,

@@ -144,7 +144,7 @@ export class StudyPickerComponent implements OnInit, OnChanges {
 
     const allStudies = Object.keys(source).map(id => {
       const s = source[id];
-      const remaining = s.totalRequired - s.alreadySent;
+      const remaining = Math.max(0, s.p0Ready || 0);
       const prior = priorSelection.get(id);
       const isPreselected = this.preselectedStudyId === id;
       return {
