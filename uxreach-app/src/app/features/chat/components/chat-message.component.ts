@@ -86,20 +86,12 @@ import { ToastService } from '../../../services/toast.service';
             />
           }
 
-          <!-- Message footer: timestamp + actions -->
-          @if (message.sender === 'bot' && !message.isTyping) {
+          <!-- Message footer: copy button (bot only, no timestamp) -->
+          @if (message.sender === 'bot' && !message.isTyping && message.html) {
             <div class="msg-footer">
-              <span class="msg-timestamp" [attr.title]="relativeTime">{{ exactTime }}</span>
-              @if (message.html) {
-                <button class="msg-copy-btn" (click)="onCopy()" title="Copy to clipboard">
-                  <span class="material-symbols-outlined icon-sm">content_copy</span>
-                </button>
-              }
-            </div>
-          }
-          @if (message.sender === 'user') {
-            <div class="msg-footer msg-footer-user">
-              <span class="msg-timestamp" [attr.title]="relativeTime">{{ exactTime }}</span>
+              <button class="msg-copy-btn" (click)="onCopy()" title="Copy to clipboard">
+                <span class="material-symbols-outlined icon-sm">content_copy</span>
+              </button>
             </div>
           }
 
