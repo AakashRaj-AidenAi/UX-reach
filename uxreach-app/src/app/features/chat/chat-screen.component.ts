@@ -147,6 +147,16 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
     this.chatEngine.handleAction(event.action, event.payload);
   }
 
+  onSuggestionChip(action: string, payload?: string): void {
+    if (action === 'open_study_picker') {
+      this.chatEngine.openStudyPicker();
+    } else if (action === 'open_schedule_picker') {
+      this.chatEngine.openSchedulePicker();
+    } else if (action === 'suggest' && payload) {
+      this.chatEngine.suggestInput(payload);
+    }
+  }
+
   onStudyPickerSubmit(commandText: string): void {
     this.chatEngine.cancelStudyPicker();
     this.chatEngine.suggestInput(commandText);

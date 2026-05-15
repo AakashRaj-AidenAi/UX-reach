@@ -25,7 +25,7 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
           #inputField
           class="gemini-textarea"
           rows="1"
-          placeholder="Ask me anything..."
+          placeholder="Send invites, schedule a run, check study status…"
           [(ngModel)]="text"
           (keydown)="onKeydown($event)"
           (input)="autoResize()"
@@ -33,14 +33,6 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
           (blur)="isFocused = false"
         ></textarea>
         <div class="gemini-input-actions">
-          <button
-            class="gemini-add-btn"
-            title="Open study picker"
-            (click)="openStudyPicker()"
-            tabindex="-1"
-          >
-            <span class="material-symbols-outlined" style="font-size:20px;">add</span>
-          </button>
           <div class="gemini-input-spacer"></div>
           <button
             class="gemini-send-btn"
@@ -48,9 +40,7 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
             [disabled]="!text.trim()"
             title="Send (Enter)"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" fill="currentColor"/>
-            </svg>
+            <span class="material-symbols-outlined" style="font-size:18px;">send</span>
           </button>
         </div>
       </div>
@@ -66,10 +56,11 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
     .gemini-input-card {
       background: var(--card);
       border: 1px solid var(--card-border);
-      border-radius: 28px;
-      padding: 14px 16px 10px;
+      border-radius: 24px;
+      padding: 6px 6px 6px 16px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      align-items: center;
       gap: 8px;
       box-shadow: 0 1px 6px rgba(60, 64, 67, 0.08);
       transition: box-shadow 0.2s ease, border-color 0.2s ease;
@@ -81,6 +72,7 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
     }
 
     .gemini-textarea {
+      flex: 1;
       border: none;
       background: transparent;
       outline: none;
@@ -92,8 +84,7 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
       min-height: 24px;
       max-height: 200px;
       overflow-y: auto;
-      padding: 0 2px;
-      width: 100%;
+      padding: 0;
     }
 
     .gemini-textarea::placeholder {
@@ -104,10 +95,11 @@ import { ChatEngineService } from '../../../services/chat-engine.service';
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .gemini-input-spacer {
-      flex: 1;
+      display: none;
     }
 
     .gemini-add-btn {

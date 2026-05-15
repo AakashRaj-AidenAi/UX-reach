@@ -102,6 +102,32 @@
         />
       </div>
     }
+
+    <!-- Suggestion chips after last message (non-empty chat) -->
+    @if (hasMessages() && !searchQuery) {
+      <div class="chat-suggestion-chips">
+        <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_study_picker')">
+          <span class="material-symbols-outlined suggestion-chip-icon">send</span>
+          Send invites now
+        </button>
+        <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_schedule_picker')">
+          <span class="material-symbols-outlined suggestion-chip-icon">schedule</span>
+          Schedule invites
+        </button>
+        <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'How many invites are left?')">
+          <span class="material-symbols-outlined suggestion-chip-icon">hourglass_empty</span>
+          Invites remaining
+        </button>
+        <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', &quot;Show today's summary&quot;)">
+          <span class="material-symbols-outlined suggestion-chip-icon">bar_chart</span>
+          Today's summary
+        </button>
+        <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'My studies')">
+          <span class="material-symbols-outlined suggestion-chip-icon">folder_open</span>
+          My studies
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Study Picker Dropdown -->
@@ -127,6 +153,32 @@
         (submit)="onSchedulePickerSubmit($event)"
         (cancel)="onSchedulePickerCancel()"
       />
+    </div>
+  }
+
+  <!-- Suggestion chips above input (empty chat) -->
+  @if (!hasMessages() && !searchQuery) {
+    <div class="chat-suggestion-chips chat-suggestion-chips--pre-input">
+      <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_study_picker')">
+        <span class="material-symbols-outlined suggestion-chip-icon">send</span>
+        Send invites now
+      </button>
+      <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_schedule_picker')">
+        <span class="material-symbols-outlined suggestion-chip-icon">schedule</span>
+        Schedule invites
+      </button>
+      <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'How many invites are left?')">
+        <span class="material-symbols-outlined suggestion-chip-icon">hourglass_empty</span>
+        Invites remaining
+      </button>
+      <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', &quot;Show today's summary&quot;)">
+        <span class="material-symbols-outlined suggestion-chip-icon">bar_chart</span>
+        Today's summary
+      </button>
+      <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'My studies')">
+        <span class="material-symbols-outlined suggestion-chip-icon">folder_open</span>
+        My studies
+      </button>
     </div>
   }
 
