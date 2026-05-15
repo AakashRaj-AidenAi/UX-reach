@@ -2,6 +2,14 @@
   <!-- Header -->
   <div class="chat-screen-header">
     <div class="chat-header-left">
+      <app-chat-switcher
+        [requestOpen]="switcherRequestOpen()"
+        (newChat)="onNewChat()"
+        (selectConversation)="onSelectConversation($event)"
+        (deleteConversation)="onDeleteConversation($event)"
+        (clearAll)="onClearAll()"
+      />
+
       <div class="chat-title-row">
         <span class="material-symbols-outlined chat-ai-icon">auto_awesome</span>
         <div>
@@ -12,14 +20,6 @@
           </div>
         </div>
       </div>
-
-      <app-chat-switcher
-        [requestOpen]="switcherRequestOpen()"
-        (newChat)="onNewChat()"
-        (selectConversation)="onSelectConversation($event)"
-        (deleteConversation)="onDeleteConversation($event)"
-        (clearAll)="onClearAll()"
-      />
     </div>
 
     <div class="chat-search">
@@ -38,6 +38,43 @@
     </div>
 
     <app-chat-health-strip />
+
+    <!-- User avatar + profile dropdown -->
+    <div class="user-menu-wrapper">
+      <button class="user-avatar-btn" (click)="toggleProfileMenu($event)" title="{{ appState.userName() }}">
+        @if (appState.userPicture()) {
+          <img class="user-avatar-photo" [src]="appState.userPicture()" alt="profile" referrerpolicy="no-referrer" />
+        } @else {
+          <span class="user-avatar-initials">{{ appState.userInitials() }}</span>
+        }
+      </button>
+
+      @if (profileMenuOpen()) {
+        <div class="profile-dropdown">
+          <div class="profile-dropdown-header">
+            @if (appState.userPicture()) {
+              <img class="profile-dropdown-photo" [src]="appState.userPicture()" alt="profile" referrerpolicy="no-referrer" />
+            } @else {
+              <div class="profile-dropdown-avatar">{{ appState.userInitials() }}</div>
+            }
+            <div class="profile-dropdown-info">
+              <div class="profile-dropdown-name">{{ appState.userName() }}</div>
+              <div class="profile-dropdown-email">{{ appState.userEmail() }}</div>
+            </div>
+          </div>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item" (click)="profileMenuOpen.set(false)">
+            <span class="material-symbols-outlined profile-dropdown-icon">manage_accounts</span>
+            User Profile
+          </button>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item profile-dropdown-signout" (click)="signOut()">
+            <span class="material-symbols-outlined profile-dropdown-icon">logout</span>
+            Sign out
+          </button>
+        </div>
+      }
+    </div>
   </div>
 
   <!-- Message list / Hero state -->

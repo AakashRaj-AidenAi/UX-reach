@@ -34,21 +34,3 @@
   </nav>
 }
 
-<!-- Footer -->
-<div class="sidebar-footer">
-  <div class="sidebar-user">
-    @if (appState.userPicture()) {
-      <img class="sidebar-user-photo" [src]="appState.userPicture()" alt="profile" referrerpolicy="no-referrer" />
-    } @else {
-      <div class="sidebar-user-avatar">{{ appState.userInitials() }}</div>
-    }
-    <div>
-      <div class="sidebar-user-name">{{ appState.userName() }}</div>
-      <div class="sidebar-user-email">{{ appState.userEmail() }}</div>
-    </div>
-  </div>
-  <button class="sidebar-logout" (click)="signOut()">
-    <span class="material-symbols-outlined icon-sm">logout</span>
-    Sign Out
-  </button>
-</div>

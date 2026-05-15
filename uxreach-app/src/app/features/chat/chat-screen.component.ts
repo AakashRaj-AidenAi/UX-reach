@@ -11,8 +11,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ChatEngineService } from '../../services/chat-engine.service';
 import { AppStateService } from '../../services/app-state.service';
+import { AuthService } from '../../services/auth.service';
 import { ChatHealthStripComponent } from './components/chat-health-strip.component';
 import { ChatMessageComponent } from './components/chat-message.component';
 import { ChatInputBarComponent } from './components/chat-input-bar.component';
@@ -39,10 +41,13 @@ import { ChatSwitcherComponent } from './components/chat-switcher.component';
 export class ChatScreenComponent implements OnInit, AfterViewChecked {
   protected readonly chatEngine = inject(ChatEngineService);
   protected readonly appState = inject(AppStateService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   readonly messages = this.chatEngine.messages;
 
   protected searchQuery = '';
   protected switcherRequestOpen = signal(false);
+  protected profileMenuOpen = signal(false);
   protected readonly hasMessages = computed(() => this.messages().length > 0);
 
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
@@ -154,12 +159,27 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
     this.chatEngine.cancelSchedulePicker();
   }
 
+  toggleProfileMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.profileMenuOpen.update(v => !v);
+  }
+
+  signOut(): void {
+    this.profileMenuOpen.set(false);
+    this.authService.logout();
+    this.router.navigate(['/']);
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (this.chatEngine.justOpened) return;
 
     const target = event.target as HTMLElement;
     if (!target) return;
+
+    if (this.profileMenuOpen() && !target.closest('.user-menu-wrapper')) {
+      this.profileMenuOpen.set(false);
+    }
 
     if (
       this.chatEngine.showStudyPicker() &&
