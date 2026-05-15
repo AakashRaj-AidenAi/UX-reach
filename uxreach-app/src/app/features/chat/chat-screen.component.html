@@ -2,11 +2,14 @@
   <!-- Header -->
   <div class="chat-screen-header">
     <div class="chat-header-left">
-      <div>
-        <div class="chat-screen-title">UXReach Assistant</div>
-        <div class="chat-screen-subtitle">
-          <span class="pulse-dot" style="width:6px;height:6px;"></span>
-          Online
+      <div class="chat-title-row">
+        <span class="material-symbols-outlined chat-ai-icon">auto_awesome</span>
+        <div>
+          <div class="chat-screen-title">UXReach Assistant</div>
+          <div class="chat-screen-subtitle">
+            <span class="pulse-dot" style="width:6px;height:6px;"></span>
+            Online
+          </div>
         </div>
       </div>
 
@@ -37,8 +40,21 @@
     <app-chat-health-strip />
   </div>
 
-  <!-- Message list -->
+  <!-- Message list / Hero state -->
   <div class="message-list" #messageContainer>
+    @if (!hasMessages()) {
+      <!-- Gemini-like hero when no messages yet -->
+      <div class="chat-hero">
+        <div class="chat-hero-icon">
+          <span class="material-symbols-outlined">auto_awesome</span>
+        </div>
+        <h2 class="chat-hero-greeting">Hi, {{ appState.userName().split(' ')[0] }}</h2>
+        <p class="chat-hero-subtitle">
+          I'm ready to help you send invites, track participant responses,<br>check study status, and more.
+        </p>
+      </div>
+    }
+
     @for (msg of messages(); track msg.id) {
       @if (!searchQuery || msg.isTyping || messageMatchesSearch(msg.html)) {
         <app-chat-message

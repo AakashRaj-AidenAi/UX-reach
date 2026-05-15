@@ -127,33 +127,11 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
-    // Otherwise, start a fresh conversation and show the welcome card.
+    // Otherwise, start a fresh conversation — hero screen is shown when messages are empty.
     if (!active) {
       this.history.startNewConversation();
     }
     this.messages.set([]);
-
-    const fallbackButtons: MessageAction[] = [
-      { label: 'Send invites now', type: 'primary', action: 'open_study_picker' },
-      { label: 'Schedule invites', type: 'primary', action: 'open_schedule_picker' },
-      { label: 'Study progress', type: 'primary', action: 'open_study_progress_picker' },
-      { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
-      { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Show today's summary" },
-      { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
-    ];
-
-    this.api.getWelcomeConfig().subscribe({
-      next: (config) => {
-        this.addBotMessage(config.message, (config.buttons as MessageAction[]) ?? fallbackButtons, 0);
-      },
-      error: () => {
-        this.addBotMessage(
-          'Hello! I can help you send invites, track participant responses, check ICF status, and more.',
-          fallbackButtons,
-          0
-        );
-      }
-    });
   }
 
   newConversation(): void {
@@ -1486,10 +1464,10 @@ export class ChatEngineService implements OnDestroy {
         const remaining = s.totalRequired - s.alreadySent;
         const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
         const icon = remaining === 0
-          ? '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span>'
+          ? '<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;" fill="none"><circle cx="7" cy="7" r="6.5" fill="var(--green)" stroke="var(--green)"/><path d="M4 7l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
           : (s.alreadySent === 0
-            ? '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--text-muted);">radio_button_unchecked</span>'
-            : '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">fiber_manual_record</span>');
+            ? '<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;" fill="none"><circle cx="7" cy="7" r="6.5" stroke="var(--text-muted)" stroke-width="1.2"/></svg>'
+            : '<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;" fill="none"><circle cx="7" cy="7" r="6.5" stroke="var(--amber)" stroke-width="1.2"/><circle cx="7" cy="7" r="3.5" fill="var(--amber)"/></svg>');
         studyLines += `<tr><td>${icon} Study ${id}<br><span style="font-size:11px;color:var(--text-faint);">${s.researcher}</span></td><td>${s.name}</td><td>${s.alreadySent}/${s.totalRequired} (${pct}%)</td><td>${remaining > 0 ? '<strong>' + remaining + '</strong> left' : '<span style="color:var(--green);">Done</span>'}</td></tr>`;
         if (remaining > 0) {
           const sendCount = Math.min(remaining, 10);

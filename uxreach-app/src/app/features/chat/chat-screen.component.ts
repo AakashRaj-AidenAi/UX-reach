@@ -6,7 +6,8 @@ import {
   ElementRef,
   AfterViewChecked,
   HostListener,
-  signal
+  signal,
+  computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -42,6 +43,7 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
   protected searchQuery = '';
   protected switcherRequestOpen = signal(false);
+  protected readonly hasMessages = computed(() => this.messages().length > 0);
 
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
 
