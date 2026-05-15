@@ -31,6 +31,7 @@
         [(ngModel)]="searchQuery"
       />
       @if (searchQuery) {
+        <span class="chat-search-count">{{ searchMatchCount() }}</span>
         <button class="chat-search-clear" (click)="searchQuery = ''" title="Clear search">
           <span class="material-symbols-outlined icon-sm">close</span>
         </button>
@@ -93,13 +94,13 @@
     }
 
     @for (msg of messages(); track msg.id) {
-      @if (!searchQuery || msg.isTyping || messageMatchesSearch(msg.html)) {
+      <div [class.search-dim]="searchQuery && !msg.isTyping && !messageMatchesSearch(msg.html)">
         <app-chat-message
           [message]="msg"
           [searchQuery]="searchQuery"
           (actionClicked)="onAction($event)"
         />
-      }
+      </div>
     }
   </div>
 

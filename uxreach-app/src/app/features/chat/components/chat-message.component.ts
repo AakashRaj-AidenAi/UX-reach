@@ -455,10 +455,16 @@ export class ChatMessageComponent {
     const html = this.message.html ?? '';
     const q = this.searchQuery.trim();
     if (!q) return html;
-    // Only wrap matches that lie in text nodes, not inside tag attributes.
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('(>[^<]*)(' + escaped + ')', 'gi');
-    return html.replace(re, (_m, before, match) => `${before}<mark class="search-hit">${match}</mark>`);
+    if (/<[^>]+>/.test(html)) {
+      // HTML content — only replace inside text nodes (between > and <)
+      const re = new RegExp('(>[^<]*)(' + escaped + ')', 'gi');
+      return html.replace(re, (_m, before, match) => `${before}<mark class="search-hit">${match}</mark>`);
+    } else {
+      // Plain text — wrap all occurrences directly
+      const re = new RegExp('(' + escaped + ')', 'gi');
+      return html.replace(re, '<mark class="search-hit">$1</mark>');
+    }
   }
 
   onActionClick(action: string, payload?: any): void {

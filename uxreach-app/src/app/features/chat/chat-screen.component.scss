@@ -79,25 +79,32 @@
   margin-right: 12px;
   display: flex;
   align-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  background: var(--bg);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+  }
 }
 
 .chat-search-input {
   padding: 6px 10px 6px 32px;
-  border: 1px solid var(--card-border);
+  border: none;
   border-radius: 18px;
-  background: var(--bg);
+  background: transparent;
   font-size: 13px;
   font-family: inherit;
   color: var(--text);
   outline: none;
   width: 180px;
-  transition: width 0.15s ease, box-shadow 0.15s ease;
-}
+  transition: width 0.15s ease;
 
-.chat-search-input:focus {
-  width: 240px;
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+  &:focus {
+    width: 220px;
+  }
 }
 
 .chat-search-icon {
@@ -105,10 +112,18 @@
   color: var(--text-muted); pointer-events: none; font-size: 16px;
 }
 
+.chat-search-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding: 0 4px 0 6px;
+  flex-shrink: 0;
+}
+
 .chat-search-clear {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
   background: transparent; border: none; color: var(--text-muted);
-  cursor: pointer; padding: 2px; display: inline-flex;
+  cursor: pointer; padding: 2px 6px 2px 0; display: inline-flex;
+  flex-shrink: 0;
 }
 
 .chat-search-clear:hover { color: var(--text); }
@@ -123,6 +138,11 @@
   flex-direction: column;
   gap: 16px;
   animation: fadeIn 0.3s ease;
+}
+
+.search-dim {
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
 }
 
 @keyframes fadeIn {

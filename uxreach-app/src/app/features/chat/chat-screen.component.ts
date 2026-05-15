@@ -49,6 +49,11 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   protected switcherRequestOpen = signal(false);
   protected profileMenuOpen = signal(false);
   protected readonly hasMessages = computed(() => this.messages().length > 0);
+  protected readonly searchMatchCount = computed(() => {
+    const q = this.searchQuery.trim();
+    if (!q) return 0;
+    return this.messages().filter(m => !m.isTyping && this.messageMatchesSearch(m.html)).length;
+  });
 
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
 
@@ -96,9 +101,10 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   messageMatchesSearch(html: string): boolean {
     const q = this.searchQuery.trim().toLowerCase();
     if (!q) return true;
+    if (!html) return false;
     const div = document.createElement('div');
     div.innerHTML = html;
-    const text = (div.textContent ?? '').toLowerCase();
+    const text = (div.textContent ?? html).toLowerCase();
     return text.includes(q);
   }
 
