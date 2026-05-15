@@ -1,6 +1,5 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../../../services/api.service';
 
 interface DependencyStatus {
   label: string;
@@ -75,29 +74,10 @@ interface DependencyStatus {
     }
   `]
 })
-export class ChatHealthStripComponent implements OnInit {
-  private readonly api = inject(ApiService);
-
+export class ChatHealthStripComponent {
   readonly dependencies = signal<DependencyStatus[]>([
     { label: 'SF', status: 'ok' },
     { label: 'Gemini', status: 'ok' },
     { label: 'Shortlisting', status: 'ok' }
   ]);
-
-  ngOnInit(): void {
-    this.api.getDependencies().subscribe({
-      next: (data: any) => {
-        const deps: DependencyStatus[] = [];
-        for (const key of Object.keys(data)) {
-          deps.push({
-            label: data[key].label || key,
-            status: data[key].status || 'unknown'
-          });
-        }
-        if (deps.length > 0) {
-          this.dependencies.set(deps);
-        }
-      }
-    });
-  }
 }
