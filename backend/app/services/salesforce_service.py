@@ -146,7 +146,7 @@ def _patch(sobject: str, record_id: str, data: dict) -> bool:
 
 # ── public: health ─────────────────────────────────────────────────────────────
 
-def check_connection() -> dict:
+def check_connection() -> dict: 
     if _session is None and _sf_error is None:
         _connect()
 
@@ -223,15 +223,12 @@ def update_study_sent(sf_id: str, already_sent: int, last_run: str) -> bool:
     })
 
 
-def update_study_counts(sf_id: str, total_required: int, already_sent: int, last_run: str, p0_ready: int | None = None) -> bool:
-    payload: dict = {
+def update_study_counts(sf_id: str, total_required: int, already_sent: int, last_run: str) -> bool:
+    return _patch("UXR_Study__c", sf_id, {
         "Total_Required__c": total_required,
         "Already_Sent__c":   already_sent,
         "Last_Run__c":       last_run,
-    }
-    if p0_ready is not None:
-        payload["P0_Ready__c"] = p0_ready
-    return _patch("UXR_Study__c", sf_id, payload)
+    })
 
 
 def update_study_note(sf_id: str, note_content: str) -> bool:
@@ -340,22 +337,6 @@ def send_invite_email(
 
 
 # ── public: aggregates ────────────────────────────────────────────────────────
-
-def get_uninvited_shortlisted_counts() -> dict[str, int]:
-    """
-    Single aggregate SOQL: {study_sf_id: count} of Shortlisted + not-yet-invited
-    participants across ALL studies. Used to show accurate 'available to invite' count.
-    """
-    records = _query(
-        "SELECT Study__c, COUNT(Id) "
-        "FROM UXR_Participant__c "
-        "WHERE Status__c = 'Shortlisted' AND Invite_Sent__c = false "
-        "GROUP BY Study__c"
-    )
-    if not records:
-        return {}
-    return {r["Study__c"]: int(r.get("expr0", 0)) for r in records}
-
 
 def get_participant_status_counts_for_rc(rc_name: str) -> dict[str, int]:
     """
