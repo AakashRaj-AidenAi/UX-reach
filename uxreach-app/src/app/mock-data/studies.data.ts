@@ -140,6 +140,111 @@ export const STUDIES: StudyMap = {
     p0NewlyMarked: 0
   },
 
+  // ── Manaswitha's studies ──
+  '9456789': {
+    name: 'Google Search Personalization Study',
+    researcher: 'Kavitha Rajan',
+    ownerRC: 'Manaswitha',
+    totalRequired: 40,
+    alreadySent: 10,
+    lastRun: 'Apr 16',
+    newResponses: 3,
+    p0Ready: 9,
+    p0NewlyMarked: 4
+  },
+  '9567890': {
+    name: 'Google Lens Visual Search Research',
+    researcher: 'Suresh Babu',
+    ownerRC: 'Manaswitha',
+    totalRequired: 30,
+    alreadySent: 0,
+    lastRun: null,
+    newResponses: 0,
+    p0Ready: 11,
+    p0NewlyMarked: 11
+  },
+  '9678901': {
+    name: 'Wear OS Health Features Study',
+    researcher: 'Pooja Reddy',
+    ownerRC: 'Manaswitha',
+    totalRequired: 25,
+    alreadySent: 18,
+    lastRun: 'Apr 20',
+    newResponses: 5,
+    p0Ready: 4,
+    p0NewlyMarked: 1
+  },
+
+  // ── Vinoth's studies ──
+  '9789012': {
+    name: 'Google Cloud Console UX Review',
+    researcher: 'Arun Krishnan',
+    ownerRC: 'Vinoth',
+    totalRequired: 50,
+    alreadySent: 22,
+    lastRun: 'Apr 18',
+    newResponses: 7,
+    p0Ready: 10,
+    p0NewlyMarked: 3
+  },
+  '9890123': {
+    name: 'Firebase Dashboard Usability Study',
+    researcher: 'Deepa Nair',
+    ownerRC: 'Vinoth',
+    totalRequired: 35,
+    alreadySent: 0,
+    lastRun: null,
+    newResponses: 0,
+    p0Ready: 13,
+    p0NewlyMarked: 13
+  },
+  '9901234': {
+    name: 'Google Ads Campaign Manager Research',
+    researcher: 'Harish Kumar',
+    ownerRC: 'Vinoth',
+    totalRequired: 45,
+    alreadySent: 9,
+    lastRun: 'Apr 14',
+    newResponses: 2,
+    p0Ready: 7,
+    p0NewlyMarked: 0
+  },
+
+  // ── Bharath's studies ──
+  '8012345': {
+    name: 'Google Forms Accessibility Research',
+    researcher: 'Lavanya Menon',
+    ownerRC: 'Bharath',
+    totalRequired: 40,
+    alreadySent: 16,
+    lastRun: 'Apr 22',
+    newResponses: 6,
+    p0Ready: 8,
+    p0NewlyMarked: 2
+  },
+  '8123456': {
+    name: 'Google Classroom Mobile UX Study',
+    researcher: 'Srinivas Rao',
+    ownerRC: 'Bharath',
+    totalRequired: 30,
+    alreadySent: 0,
+    lastRun: null,
+    newResponses: 0,
+    p0Ready: 14,
+    p0NewlyMarked: 14
+  },
+  '8234567': {
+    name: 'YouTube Studio Creator Tools Research',
+    researcher: 'Preethi Sundaram',
+    ownerRC: 'Bharath',
+    totalRequired: 55,
+    alreadySent: 25,
+    lastRun: 'Apr 17',
+    newResponses: 8,
+    p0Ready: 12,
+    p0NewlyMarked: 5
+  },
+
   // ── Shubham's studies ──
   '9123456': {
     name: 'Google Meet Accessibility Study',
