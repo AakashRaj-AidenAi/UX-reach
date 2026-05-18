@@ -2,3 +2,12 @@ venv
 __pycache__/
 *.pyc
 *.pyo
+
+# Credentials — never commit these
+.env
+backend/.env
+backend/tough-zoo-475011-s6-81e055df5782.json
+backend/tough-zoo-475011-s6-81e055df5732.json
+backend/sf_server.key
+backend/sf_server.crt
+*.json

@@ -2,14 +2,6 @@
   <!-- Header -->
   <div class="chat-screen-header">
     <div class="chat-header-left">
-      <div>
-        <div class="chat-screen-title">UXReach Assistant</div>
-        <div class="chat-screen-subtitle">
-          <span class="pulse-dot" style="width:6px;height:6px;"></span>
-          Online
-        </div>
-      </div>
-
       <app-chat-switcher
         [requestOpen]="switcherRequestOpen()"
         (newChat)="onNewChat()"
@@ -17,6 +9,17 @@
         (deleteConversation)="onDeleteConversation($event)"
         (clearAll)="onClearAll()"
       />
+
+      <div class="chat-title-row">
+        <span class="material-symbols-outlined chat-ai-icon">auto_awesome</span>
+        <div>
+          <div class="chat-screen-title">UXReach Assistant</div>
+          <div class="chat-screen-subtitle">
+            <span class="pulse-dot" style="width:6px;height:6px;"></span>
+            Online
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="chat-search">
@@ -28,6 +31,7 @@
         [(ngModel)]="searchQuery"
       />
       @if (searchQuery) {
+        <span class="chat-search-count">{{ searchMatchCount() }}</span>
         <button class="chat-search-clear" (click)="searchQuery = ''" title="Clear search">
           <span class="material-symbols-outlined icon-sm">close</span>
         </button>
@@ -35,18 +39,94 @@
     </div>
 
     <app-chat-health-strip />
+
+    <!-- User avatar + profile dropdown -->
+    <div class="user-menu-wrapper">
+      <button class="user-avatar-btn" (click)="toggleProfileMenu($event)" title="{{ appState.userName() }}">
+        @if (appState.userPicture()) {
+          <img class="user-avatar-photo" [src]="appState.userPicture()" alt="profile" referrerpolicy="no-referrer" />
+        } @else {
+          <span class="user-avatar-initials">{{ appState.userInitials() }}</span>
+        }
+      </button>
+
+      @if (profileMenuOpen()) {
+        <div class="profile-dropdown">
+          <div class="profile-dropdown-header">
+            @if (appState.userPicture()) {
+              <img class="profile-dropdown-photo" [src]="appState.userPicture()" alt="profile" referrerpolicy="no-referrer" />
+            } @else {
+              <div class="profile-dropdown-avatar">{{ appState.userInitials() }}</div>
+            }
+            <div class="profile-dropdown-info">
+              <div class="profile-dropdown-name">{{ appState.userName() }}</div>
+              <div class="profile-dropdown-email">{{ appState.userEmail() }}</div>
+            </div>
+          </div>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item" (click)="profileMenuOpen.set(false)">
+            <span class="material-symbols-outlined profile-dropdown-icon">manage_accounts</span>
+            User Profile
+          </button>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item profile-dropdown-signout" (click)="signOut()">
+            <span class="material-symbols-outlined profile-dropdown-icon">logout</span>
+            Sign out
+          </button>
+        </div>
+      }
+    </div>
   </div>
 
-  <!-- Message list -->
+  <!-- Message list / Hero state -->
   <div class="message-list" #messageContainer>
+    @if (!hasMessages()) {
+      <!-- Gemini-like hero when no messages yet -->
+      <div class="chat-hero">
+        <div class="chat-hero-icon">
+          <span class="material-symbols-outlined">auto_awesome</span>
+        </div>
+        <h2 class="chat-hero-greeting">Hi, {{ appState.userName().split(' ')[0] }}</h2>
+        <p class="chat-hero-subtitle">
+          I'm ready to help you send invites, track participant responses,<br>check study status, and more.
+        </p>
+      </div>
+    }
+
     @for (msg of messages(); track msg.id) {
-      @if (!searchQuery || msg.isTyping || messageMatchesSearch(msg.html)) {
+      <div [class.search-dim]="searchQuery && !msg.isTyping && !messageMatchesSearch(msg.html)">
         <app-chat-message
           [message]="msg"
           [searchQuery]="searchQuery"
           (actionClicked)="onAction($event)"
         />
-      }
+      </div>
+    }
+
+    <!-- Suggestion chips after last message (non-empty chat) -->
+    @if (hasMessages() && !searchQuery) {
+      <div class="chat-suggestion-chips">
+        <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_study_picker')">
+          <span class="material-symbols-outlined suggestion-chip-icon">send</span>
+          Send invites now
+        </button>
+        <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_schedule_picker')">
+          <span class="material-symbols-outlined suggestion-chip-icon">schedule</span>
+          Schedule invites
+        </button>
+        <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'How many invites are left?')">
+          <span class="material-symbols-outlined suggestion-chip-icon">hourglass_empty</span>
+          Invites remaining
+        </button>
+        <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', &quot;Show today's summary&quot;)">
+          <span class="material-symbols-outlined suggestion-chip-icon">bar_chart</span>
+          Today's summary
+        </button>
+        <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'My studies')">
+          <span class="material-symbols-outlined suggestion-chip-icon">folder_open</span>
+          My studies
+        </button>
+      </div>
     }
   </div>
 
@@ -56,6 +136,8 @@
       <app-study-picker
         [mode]="chatEngine.pickerMode()"
         [refreshKey]="appState.studyListVersion()"
+        [preselectedStudyId]="chatEngine.studyPickerStudyId()"
+        [preselectedCount]="chatEngine.studyPickerCount()"
         (submit)="onStudyPickerSubmit($event)"
         (cancel)="onStudyPickerCancel()"
       />
@@ -66,9 +148,37 @@
   @if (chatEngine.showSchedulePicker()) {
     <div class="picker-overlay">
       <app-schedule-picker
+        [preselectedStudyId]="chatEngine.schedulePickerStudyId()"
+        [preselectedCount]="chatEngine.schedulePickerCount()"
         (submit)="onSchedulePickerSubmit($event)"
         (cancel)="onSchedulePickerCancel()"
       />
+    </div>
+  }
+
+  <!-- Suggestion chips above input (empty chat) -->
+  @if (!hasMessages() && !searchQuery) {
+    <div class="chat-suggestion-chips chat-suggestion-chips--pre-input">
+      <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_study_picker')">
+        <span class="material-symbols-outlined suggestion-chip-icon">send</span>
+        Send invites now
+      </button>
+      <button class="suggestion-chip chip-primary" (click)="onSuggestionChip('open_schedule_picker')">
+        <span class="material-symbols-outlined suggestion-chip-icon">schedule</span>
+        Schedule invites
+      </button>
+      <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'How many invites are left?')">
+        <span class="material-symbols-outlined suggestion-chip-icon">hourglass_empty</span>
+        Invites remaining
+      </button>
+      <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', &quot;Show today's summary&quot;)">
+        <span class="material-symbols-outlined suggestion-chip-icon">bar_chart</span>
+        Today's summary
+      </button>
+      <button class="suggestion-chip chip-secondary" (click)="onSuggestionChip('suggest', 'My studies')">
+        <span class="material-symbols-outlined suggestion-chip-icon">folder_open</span>
+        My studies
+      </button>
     </div>
   }
 

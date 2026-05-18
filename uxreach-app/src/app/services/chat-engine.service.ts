@@ -1,7 +1,7 @@
 import { Injectable, effect, inject, signal, OnDestroy } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import { retry } from 'rxjs/operators';
-import { ChatMessage, MessageAction, SendQueueItem } from '../models/chat.model';
+import { ChatMessage, MessageAction, SendQueueItem, StudyNote } from '../models/chat.model';
 import { FilterSet } from '../models/candidate.model';
 import { AgentType, determineAgent, extractStudyId } from '../models/agent-type';
 import { AppStateService } from './app-state.service';
@@ -29,10 +29,36 @@ export class ChatEngineService implements OnDestroy {
 
   readonly messages = signal<ChatMessage[]>([]);
 
+  // Populated when a 'suggest' button or picker submit fires — input bar watches this to prefill
+  private suggestCount = 0;
+  readonly inputDraft = signal<{ text: string; n: number }>({ text: '', n: 0 });
+
+  suggestInput(text: string): void {
+    this.suggestCount++;
+    this.inputDraft.set({ text, n: this.suggestCount });
+  }
+
+  private pendingCommand: string | null = null;
+
+  suggestInputWithCommand(displayText: string, command: string): void {
+    this.pendingCommand = command;
+    this.suggestInput(displayText);
+  }
+
+  consumePendingCommand(): string | null {
+    const cmd = this.pendingCommand;
+    this.pendingCommand = null;
+    return cmd;
+  }
+
   // Signals for picker visibility
   readonly showStudyPicker = signal(false);
   readonly showSchedulePicker = signal(false);
   readonly pickerMode = signal<'invite' | 'progress'>('invite');
+  readonly schedulePickerStudyId = signal<string | null>(null);
+  readonly schedulePickerCount = signal<number | null>(null);
+  readonly studyPickerStudyId = signal<string | null>(null);
+  readonly studyPickerCount = signal<number | null>(null);
 
   // Guard against the opening click also triggering outside-click close
   justOpened = false;
@@ -59,13 +85,24 @@ export class ChatEngineService implements OnDestroy {
       this.sendingService.onComplete$.subscribe(result => {
         if (result.completed) {
           this.showCompletionMessage(result.studyId, result.sent, result.total, result.durationStr);
-          this.toastService.show('success', `All ${result.total} invites sent successfully for Study ${result.studyId}`);
+          if (this.isInSendingConv()) {
+            this.toastService.show('success', `All ${result.total} invites sent successfully for Study ${result.studyId}`);
+          }
         } else {
           let msg = `<strong style="color:var(--amber);"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> Send stopped.</strong> ${result.sent}/${result.total} emails were sent. Already-sent emails will NOT be recalled.<br><span class="msg-hint">Parent case notes updated for ${result.sent} sent emails.</span>`;
           if (result.queuePosition && result.queuePosition > 0) {
             msg += `<br><span style="font-size:12px;color:var(--text-muted);">${result.queuePosition} remaining ${result.queuePosition === 1 ? 'study' : 'studies'} in queue were cancelled.</span>`;
           }
-          this.addBotMessage(msg);
+          if (this.isInSendingConv()) {
+            this.addBotMessage(msg);
+          } else {
+            const sendConvId = this.appState.sendingConversationId();
+            if (sendConvId) {
+              this.history.appendToConversation(sendConvId, [{
+                id: this.generateId(), sender: 'bot', html: msg, timestamp: new Date()
+              } as ChatMessage]);
+            }
+          }
           this.toastService.show('warning', `Send stopped at ${result.sent}/${result.total} emails`);
         }
       })
@@ -79,6 +116,8 @@ export class ChatEngineService implements OnDestroy {
   // ── INIT ──
 
   initChat(): void {
+    this.inputDraft.set({ text: '', n: ++this.suggestCount });
+
     // If there's a restored conversation with messages, load it without emitting a fresh welcome.
     const active = this.history.activeConversation();
     if (active && active.messages.length > 0) {
@@ -88,23 +127,11 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
-    // Otherwise, start a fresh conversation and show the welcome card.
+    // Otherwise, start a fresh conversation — hero screen is shown when messages are empty.
     if (!active) {
       this.history.startNewConversation();
     }
     this.messages.set([]);
-    this.addBotMessage(
-      'Hello! I can help you send invites, track participant responses, check ICF status, and more.',
-      [
-        { label: 'Send invites now', type: 'primary', action: 'open_study_picker' },
-        { label: 'Schedule invites', type: 'primary', action: 'open_schedule_picker' },
-        { label: 'Study progress', type: 'primary', action: 'open_study_progress_picker' },
-        { label: 'Invites remaining', type: 'secondary', action: 'suggest', payload: 'How many invites are left?' },
-        { label: "Today's summary", type: 'secondary', action: 'suggest', payload: "Show today's summary" },
-        { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }
-      ],
-      0
-    );
   }
 
   newConversation(): void {
@@ -112,6 +139,12 @@ export class ChatEngineService implements OnDestroy {
     const activeMessages = this.history.activeConversation()?.messages ?? this.messages();
     const hasUserMessage = activeMessages.some(m => m.sender === 'user');
     if (!hasUserMessage) return;
+
+    // Flush any unsaved messages to the current chat before switching. The Angular effect
+    // batches signal writes and may not have run yet, so we synchronously persist here to
+    // avoid losing messages that were added (e.g. send-completion callbacks) just before
+    // the user clicked "New Chat".
+    this.history.updateActiveMessages(this.messages().filter(m => !m.isTyping));
 
     this.history.startNewConversation();
     this.suppressPersist = true;
@@ -121,6 +154,9 @@ export class ChatEngineService implements OnDestroy {
   }
 
   selectConversation(id: string): void {
+    // Flush the current chat's messages before switching away, for the same reason as above.
+    this.history.updateActiveMessages(this.messages().filter(m => !m.isTyping));
+
     const conv = this.history.selectConversation(id);
     if (!conv) return;
     this.suppressPersist = true;
@@ -206,7 +242,15 @@ export class ChatEngineService implements OnDestroy {
       return;
     }
 
-    // Scheduler flow
+    // Scheduler flow — ISO format from schedule picker (UTC)
+    const isoScheduleRe = /send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+at\s+(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/i;
+    const isoMatch = text.match(isoScheduleRe);
+    if (isoMatch) {
+      this.handleScheduleFlow(isoMatch[2], parseInt(isoMatch[1], 10), isoMatch[3]);
+      return;
+    }
+
+    // Scheduler flow — natural language format
     const scheduleRe = /send\s+(\d+)\s+invite[s]?\s+(?:for\s+)?(?:case|study)?\s*(\d{7})\s+(?:(?:tomorrow|today)|(?:on\s+.+?)|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2},\s+\d{4}|(?:\d{4}-\d{2}-\d{2}))\s+(?:at\s+)?(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)/i;
     const scheduleMatch = lower.match(scheduleRe);
     if (scheduleMatch) {
@@ -561,6 +605,27 @@ export class ChatEngineService implements OnDestroy {
   // ── INVITE FLOW ──
 
   handleInviteFlow(studyId: string, count: number): void {
+    // Block if a send is already in progress
+    if (this.appState.chatState() === 'sending') {
+      if (this.appState.currentStudyId() === studyId) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `Invites for Study <strong>${studyId}</strong> are currently being sent. Please wait for the batch to finish before sending more.`,
+          undefined, 0
+        );
+        return;
+      }
+      if (!this.isInSendingConv()) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `A batch send for Study <strong>${this.appState.currentStudyId()}</strong> is in progress in another chat. ` +
+          `Switch to that chat to monitor it, or wait for it to complete before starting a new batch.`,
+          undefined, 0
+        );
+        return;
+      }
+    }
+
     this.appState.lastMentionedStudyId.set(studyId);
     const study = this.studyService.getStudy(studyId);
     if (!study) {
@@ -615,6 +680,26 @@ export class ChatEngineService implements OnDestroy {
   // ── FILTERED INVITE FLOW ──
 
   handleFilteredInviteFlow(studyId: string, count: number, filters: FilterSet): void {
+    if (this.appState.chatState() === 'sending') {
+      if (this.appState.currentStudyId() === studyId) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `Invites for Study <strong>${studyId}</strong> are currently being sent. Please wait for the batch to finish.`,
+          undefined, 0
+        );
+        return;
+      }
+      if (!this.isInSendingConv()) {
+        this.addBotMessage(
+          `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+          `A batch send for Study <strong>${this.appState.currentStudyId()}</strong> is in progress in another chat. ` +
+          `Switch to that chat to monitor it, or wait for it to complete.`,
+          undefined, 0
+        );
+        return;
+      }
+    }
+
     const study = this.studyService.getStudy(studyId);
     if (!study) {
       if (this.studyService.isOwnedByOther(studyId)) {
@@ -709,10 +794,27 @@ export class ChatEngineService implements OnDestroy {
   // ── MULTI-STUDY ──
 
   handleMultiStudyCommand(segments: SendQueueItem[]): void {
+    // Block entirely if a send is running in a different chat
+    if (this.appState.chatState() === 'sending' && !this.isInSendingConv()) {
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+        `A batch send for Study <strong>${this.appState.currentStudyId()}</strong> is in progress in another chat. ` +
+        `Switch to that chat to monitor it, or wait for it to complete before starting a new batch.`,
+        undefined, 0
+      );
+      return;
+    }
+
+    const sendingStudyId = this.appState.chatState() === 'sending' ? this.appState.currentStudyId() : null;
     const queue: SendQueueItem[] = [];
     const unknown: string[] = [];
+    const skippedInProgress: string[] = [];
 
     segments.forEach(seg => {
+      if (sendingStudyId && seg.studyId === sendingStudyId) {
+        skippedInProgress.push(seg.studyId);
+        return;
+      }
       const study = this.studyService.getStudy(seg.studyId);
       if (!study) { unknown.push(seg.studyId); return; }
       const remaining = study.totalRequired - study.alreadySent;
@@ -720,6 +822,13 @@ export class ChatEngineService implements OnDestroy {
       if (actualCount > 0) queue.push({ studyId: seg.studyId, count: actualCount, studyName: study.name });
     });
 
+    if (skippedInProgress.length > 0) {
+      this.addBotMessage(
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">hourglass_empty</span> ` +
+        `Study <strong>${skippedInProgress.join(', ')}</strong> is already being sent — skipping it from this batch.`,
+        undefined, 0
+      );
+    }
     if (unknown.length > 0 && queue.length === 0) {
       this.addBotMessage(`<span style="color:var(--rose);">None of the specified studies were found.</span> Please verify the study IDs and try again.`, undefined, 0);
       return;
@@ -791,11 +900,19 @@ export class ChatEngineService implements OnDestroy {
     this.appState.chatState.set('sending');
 
     if (queue.length > 1 && idx > 0) {
-      this.addBotMessage(
+      const nextHtml =
         `<span style="font-size:12px;color:var(--text-muted);">Study ${idx + 1} of ${queue.length}</span><br>` +
-        `Starting: <strong>${item.studyName}</strong> — ${item.count} invites`,
-        undefined, 0
-      );
+        `Starting: <strong>${item.studyName}</strong> — ${item.count} invites`;
+      if (this.isInSendingConv()) {
+        this.addBotMessage(nextHtml, undefined, 0);
+      } else {
+        const sendConvId = this.appState.sendingConversationId();
+        if (sendConvId) {
+          this.history.appendToConversation(sendConvId, [{
+            id: this.generateId(), sender: 'bot', html: nextHtml, timestamp: new Date()
+          } as ChatMessage]);
+        }
+      }
       setTimeout(() => this.startSendingProgress(), 600);
     } else {
       this.startSendingProgress();
@@ -826,7 +943,7 @@ export class ChatEngineService implements OnDestroy {
       salesforce: 'Salesforce',
       shortlisting_app: 'Shortlisting App',
       cloud_sql: 'Cloud SQL',
-      gemini: 'Gemini'
+      vertex_ai: 'Vertex AI'
     };
     this.api.getDependencies().subscribe({
       next: (healthData) => {
@@ -836,12 +953,18 @@ export class ChatEngineService implements OnDestroy {
           .map(([key]) => DEP_LABELS[key] ?? key);
         if (downDeps.length > 0) {
           const names = downDeps.join(', ');
-          this.addBotMessage(
+          const depHtml =
             `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">warning</span> ` +
             `<strong>Dependency alert:</strong> ${names} ${downDeps.length === 1 ? 'is' : 'are'} currently unavailable. ` +
-            `The invite send may not complete successfully.`,
-            undefined, 0
-          );
+            `The invite send may not complete successfully.`;
+          if (this.isInSendingConv()) {
+            this.addBotMessage(depHtml, undefined, 0);
+          } else {
+            const sendConvId = this.appState.sendingConversationId();
+            if (sendConvId) {
+              this.history.appendToConversation(sendConvId, [{ id: this.generateId(), sender: 'bot', html: depHtml, timestamp: new Date() } as ChatMessage]);
+            }
+          }
           this.toastService.show('warning', `Dependency alert: ${names} unavailable`);
         }
       }
@@ -866,7 +989,21 @@ export class ChatEngineService implements OnDestroy {
         queueTotal: queue.length > 1 ? queue.length : undefined
       }
     };
-    this.messages.update(list => [...list, msg]);
+    if (this.isInSendingConv()) {
+      // User is still in the original chat — show progress inline.
+      this.messages.update(list => [...list, msg]);
+    } else {
+      // User switched away — append progress to the original sending conversation.
+      const sendConvId = this.appState.sendingConversationId()!;
+      this.history.appendToConversation(sendConvId, [msg]);
+    }
+
+    // Only set the sending conversation on the FIRST study in a batch.
+    // For queue items 2+ the user may have already switched chats; keep the original ID
+    // so all completion callbacks continue routing to the right conversation.
+    if (!this.appState.sendingConversationId()) {
+      this.appState.sendingConversationId.set(this.history.activeId());
+    }
 
     this.sendingService.startSending(studyId, count);
   }
@@ -887,7 +1024,13 @@ export class ChatEngineService implements OnDestroy {
     }, 800);
   }
 
+  private isInSendingConv(): boolean {
+    const sendConvId = this.appState.sendingConversationId();
+    return !sendConvId || sendConvId === this.history.activeId();
+  }
+
   private updateSendingProgress(sent: number, total: number): void {
+    if (!this.isInSendingConv()) return; // user switched away — don't touch this chat
     const elapsed = this.appState.elapsedSeconds();
     this.messages.update(list => {
       const updated = [...list];
@@ -912,6 +1055,8 @@ export class ChatEngineService implements OnDestroy {
   }
 
   private showCompletionMessage(studyId: string, sent: number, total: number, durationStr: string): void {
+    const sendConvId = this.appState.sendingConversationId();
+    const inSendingConv = this.isInSendingConv();
     const study = this.studyService.getStudy(studyId);
     const totalSent = study ? study.alreadySent : sent;
     const totalRequired = study ? study.totalRequired : total;
@@ -919,26 +1064,6 @@ export class ChatEngineService implements OnDestroy {
     const queue = this.appState.sendQueue();
     const queueIdx = this.appState.sendQueueIndex();
     const hasMore = queue.length > 0 && (queueIdx + 1 < queue.length);
-
-    // Mark progress message as complete
-    this.messages.update(list => {
-      const updated = [...list];
-      for (let i = updated.length - 1; i >= 0; i--) {
-        if (updated[i].sendingProgress) {
-          updated[i] = {
-            ...updated[i],
-            actions: [],
-            sendingProgress: {
-              ...updated[i].sendingProgress!,
-              isComplete: true,
-              durationStr
-            }
-          };
-          break;
-        }
-      }
-      return updated;
-    });
 
     let html = `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ${sent}/${total} sent — ${durationStr}`;
     if (queue.length > 1) {
@@ -958,39 +1083,86 @@ export class ChatEngineService implements OnDestroy {
     }
 
     this.appState.currentFilters.set(null);
-    this.addBotMessage(html, undefined, 0, 'invite');
 
-    if (queue.length <= 1) {
-      // Single study — show summary
-      setTimeout(() => {
-        this.addTyping();
+    if (inSendingConv) {
+      // Mark progress message as complete in the active view
+      this.messages.update(list => {
+        const updated = [...list];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].sendingProgress) {
+            updated[i] = {
+              ...updated[i],
+              actions: [],
+              sendingProgress: { ...updated[i].sendingProgress!, isComplete: true, durationStr }
+            };
+            break;
+          }
+        }
+        return updated;
+      });
+
+      this.addBotMessage(html, undefined, 0, 'invite');
+
+      if (queue.length <= 1) {
         setTimeout(() => {
-          this.removeTyping();
-          this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
-        }, 600);
-      }, 800);
-    } else {
-      // Multi-study queue
-      this.appState.sendQueueIndex.update(i => i + 1);
-      if (this.appState.sendQueueIndex() < queue.length) {
-        setTimeout(() => {
-          this.addTyping();
+          // Re-check: user may have switched chats in the ~800 ms since completion fired.
+          if (this.isInSendingConv()) this.addTyping();
           setTimeout(() => {
-            this.removeTyping();
-            this.processNextInQueue();
-          }, 700);
-        }, 1200);
+            if (this.isInSendingConv()) this.removeTyping();
+            this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
+          }, 600);
+        }, 800);
       } else {
+        this.appState.sendQueueIndex.update(i => i + 1);
+        if (this.appState.sendQueueIndex() < queue.length) {
+          setTimeout(() => {
+            // Re-check: user may have switched chats during the inter-study delay.
+            if (this.isInSendingConv()) this.addTyping();
+            setTimeout(() => {
+              if (this.isInSendingConv()) this.removeTyping();
+              this.processNextInQueue();
+            }, 700);
+          }, 1200);
+        } else {
+          setTimeout(() => {
+            const completedQueue = [...queue];
+            this.appState.resetQueue();
+            this.showSendSummary(completedQueue);
+          }, 1000);
+        }
+      }
+    } else {
+      // User switched to a different chat — route results to the original conversation
+      if (sendConvId) {
+        this.history.markProgressComplete(sendConvId, durationStr);
+        const completionMsg: ChatMessage = {
+          id: this.generateId(), sender: 'bot', html, timestamp: new Date(), agent: 'invite'
+        };
+        this.history.appendToConversation(sendConvId, [completionMsg]);
+      }
+      this.toastService.show('success', `${sent}/${total} invites sent! Switch back to the original chat to see the summary.`);
+
+      if (queue.length <= 1) {
         setTimeout(() => {
-          const completedQueue = [...queue];
-          this.appState.resetQueue();
-          this.showSendSummary(completedQueue);
-        }, 1000);
+          this.showSendSummary([{ studyName: study?.name ?? '', studyId, count: total }]);
+        }, 800);
+      } else {
+        this.appState.sendQueueIndex.update(i => i + 1);
+        if (this.appState.sendQueueIndex() < queue.length) {
+          setTimeout(() => { this.processNextInQueue(); }, 1200);
+        } else {
+          setTimeout(() => {
+            const completedQueue = [...queue];
+            this.appState.resetQueue();
+            this.showSendSummary(completedQueue);
+          }, 1000);
+        }
       }
     }
   }
 
   private showSendSummary(items: SendQueueItem[]): void {
+    const sendConvId = this.appState.sendingConversationId();
     const totalSent = items.reduce((s, i) => s + i.count, 0);
     let html = '<strong><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">celebration</span> All done! Here\'s your send summary:</strong><br><br>';
     html += '<table class="msg-table">';
@@ -1001,9 +1173,19 @@ export class ChatEngineService implements OnDestroy {
     if (items.length > 1) {
       html += `<br><strong>${totalSent}</strong> invites sent across <strong>${items.length}</strong> studies.`;
     }
-    this.addBotMessage(html, [
-      { label: 'Send more invites', type: 'primary', action: 'open_study_picker' }
-    ], 0, 'invite');
+    const actions: MessageAction[] = [{ label: 'Send more invites', type: 'primary', action: 'open_study_picker' }];
+
+    if (this.isInSendingConv()) {
+      this.addBotMessage(html, actions, 0, 'invite');
+    } else {
+      // User is in a different chat — silently append summary to the original conversation
+      if (sendConvId) {
+        const summaryMsg: ChatMessage = {
+          id: this.generateId(), sender: 'bot', html, timestamp: new Date(), actions, agent: 'invite'
+        };
+        this.history.appendToConversation(sendConvId, [summaryMsg]);
+      }
+    }
   }
 
   // ── SEND MORE ──
@@ -1038,6 +1220,18 @@ export class ChatEngineService implements OnDestroy {
 
   // ── SCHEDULE FLOW ──
 
+  private formatAsIST(isoStr: string): string {
+    try {
+      return new Date(isoStr).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      }) + ' IST';
+    } catch {
+      return isoStr;
+    }
+  }
+
   handleScheduleFlow(studyId: string, count: number, dateTimeStr: string): void {
     const study = this.studyService.getStudy(studyId);
     if (!study) {
@@ -1059,8 +1253,9 @@ export class ChatEngineService implements OnDestroy {
       this.schedulerService.addJob(studyId, study.name, count, dateTimeStr);
       const jobIndex = this.schedulerService.jobs().length - 1;
 
+      const displayTime = this.formatAsIST(dateTimeStr);
       const html =
-        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> <strong>Scheduled:</strong> ${count} invites for Study ${studyId} - ${study.name} on ${dateTimeStr}.<br>` +
+        `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> <strong>Scheduled:</strong> ${count} invites for Study ${studyId} - ${study.name} on ${displayTime}.<br>` +
         `<span class="msg-hint">I'll notify you when it's done.</span>`;
 
       this.addBotMessage(html, [
@@ -1125,42 +1320,7 @@ export class ChatEngineService implements OnDestroy {
   }
 
   handleDailySummary(): void {
-    this.addTyping();
-    setTimeout(() => {
-      this.removeTyping();
-      const today = new Date().toISOString().split('T')[0];
-      const todayRuns = this.auditService.runs().filter(r => r.date === today);
-
-      let html: string;
-      if (todayRuns.length === 0) {
-        const allRuns = this.auditService.runs();
-        const latestDate = allRuns.length > 0 ? allRuns[0].date : null;
-        if (latestDate) {
-          const latestRuns = allRuns.filter(r => r.date === latestDate);
-          const dateDisplay = new Date(latestDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-          html = `<strong>Latest activity — ${dateDisplay}</strong><br>`;
-          let totalSent = 0;
-          latestRuns.forEach(r => {
-            html += `&#x2022; Study ${r.studyId}: ${r.sent} sent, ${r.failed} failed<br>`;
-            totalSent += r.sent;
-          });
-          html += `Total: ${totalSent} sent`;
-        } else {
-          html = 'No runs recorded yet.';
-        }
-      } else {
-        const dateDisplay = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        html = `<strong>Today — ${dateDisplay}</strong><br>`;
-        let totalSent = 0;
-        todayRuns.forEach(r => {
-          html += `&#x2022; Study ${r.studyId}: ${r.sent} sent, ${r.failed} failed<br>`;
-          totalSent += r.sent;
-        });
-        html += `Total: ${totalSent} sent today`;
-      }
-
-      this.addBotMessage(html, undefined, 0);
-    }, 1500);
+    this.handleEodUpdate();
   }
 
   handlePendingStudies(): void {
@@ -1304,10 +1464,10 @@ export class ChatEngineService implements OnDestroy {
         const remaining = s.totalRequired - s.alreadySent;
         const pct = Math.round((s.alreadySent / s.totalRequired) * 100);
         const icon = remaining === 0
-          ? '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span>'
+          ? '<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;" fill="none"><circle cx="7" cy="7" r="6.5" fill="var(--green)" stroke="var(--green)"/><path d="M4 7l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
           : (s.alreadySent === 0
-            ? '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--text-muted);">radio_button_unchecked</span>'
-            : '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--amber);">fiber_manual_record</span>');
+            ? '<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;" fill="none"><circle cx="7" cy="7" r="6.5" stroke="var(--text-muted)" stroke-width="1.2"/></svg>'
+            : '<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;" fill="none"><circle cx="7" cy="7" r="6.5" stroke="var(--amber)" stroke-width="1.2"/><circle cx="7" cy="7" r="3.5" fill="var(--amber)"/></svg>');
         studyLines += `<tr><td>${icon} Study ${id}<br><span style="font-size:11px;color:var(--text-faint);">${s.researcher}</span></td><td>${s.name}</td><td>${s.alreadySent}/${s.totalRequired} (${pct}%)</td><td>${remaining > 0 ? '<strong>' + remaining + '</strong> left' : '<span style="color:var(--green);">Done</span>'}</td></tr>`;
         if (remaining > 0) {
           const sendCount = Math.min(remaining, 10);
@@ -1430,7 +1590,7 @@ export class ChatEngineService implements OnDestroy {
           }
         }
         this.addBotMessage(
-          '<span style="color:var(--rose);">Could not reach the server.</span> Please check the backend is running on localhost:8000.',
+          '<span style="color:var(--rose);">Could not reach the server.</span> Please check the backend is running on localhost:8080.',
           [{ label: 'Retry', type: 'secondary', action: 'suggest', payload: queryText }],
           0, 'query'
         );
@@ -1532,33 +1692,55 @@ export class ChatEngineService implements OnDestroy {
       const userName = this.appState.userName();
       const myStudies = Object.entries(allStudies).filter(([, s]) => s.ownerRC === userName);
 
-      let html = '<strong>EOD Update — ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</strong><br>';
-      html += '<span style="font-size:12px;color:var(--text-muted);">Here\'s a draft of your end-of-day update:</span><br><br>';
-      html += '<table class="msg-table">';
-      html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Sent</td><td style="font-weight:600;">Remaining</td></tr>';
+      const studyNotes: StudyNote[] = myStudies.map(([id, s]) => this.buildStudyNote(id, s));
 
-      let totalSent = 0;
-      let totalRemaining = 0;
+      const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const html =
+        `<strong>EOD Update — ${dateStr}</strong><br>` +
+        `<span style="font-size:12px;color:var(--text-muted);">` +
+        `Here are the draft notes for each of your studies. Review and edit if needed, then post to Salesforce.` +
+        `</span>`;
 
-      myStudies.forEach(([id, s]) => {
-        const remaining = s.totalRequired - s.alreadySent;
-        totalSent += s.alreadySent;
-        totalRemaining += remaining;
-        const statusIcon = remaining === 0
-          ? '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span>'
-          : '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">hourglass_empty</span>';
-        html += `<tr><td>${statusIcon} Study ${id}<br><span style="font-size:11px;color:var(--text-faint);">${s.name}</span></td><td>${s.alreadySent}/${s.totalRequired}</td><td>${remaining > 0 ? '<strong>' + remaining + '</strong>' : '<span style="color:var(--green);">Done</span>'}</td></tr>`;
-      });
-
-      html += `<tr style="border-top:1px solid var(--card-border);"><td><strong>Total</strong></td><td><strong>${totalSent}</strong> sent</td><td><strong>${totalRemaining}</strong> remaining</td></tr>`;
-      html += '</table>';
-      html += '<br><span style="font-size:12px;color:var(--text-muted);">This update would be posted to your Salesforce cases and shared with the UXR leads and Pod leads. (POC: not sending)</span>';
-
-      this.addBotMessage(html, [
-        { label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' },
-        { label: 'Pending studies', type: 'secondary', action: 'suggest', payload: 'Pending studies' }
-      ], 0);
+      this.pushBotMessageWithStudyNotes(html, studyNotes);
     }, 1200);
+  }
+
+  private buildStudyNote(studyId: string, study: { name: string; p0Ready: number; p0NewlyMarked: number; newResponses: number }): StudyNote {
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const p0Total = study.p0Ready;
+    const invitesSent = study.p0NewlyMarked;
+    const booked = Math.min(study.newResponses, Math.max(1, Math.floor(invitesSent * 0.4)));
+    const cancelled = p0Total > 5 ? 1 : 0;
+    const rescheduled = p0Total > 8 ? 1 : 0;
+    const psCompleted = Math.floor(p0Total * 0.7);
+    const psInvited = invitesSent > 0 ? Math.min(2, invitesSent) : 0;
+    const psCancelled = psCompleted > 4 ? 1 : 0;
+    const psRescheduled = psCompleted > 5 ? 1 : 0;
+
+    const content = [
+      `${p0Total} P0s shortlisted so far`,
+      `${invitesSent} Invite emails sent today`,
+      `${booked} Participants booked appointments`,
+      `${cancelled} appointment${cancelled !== 1 ? 's' : ''} cancelled`,
+      `${rescheduled} appointment${rescheduled !== 1 ? 's' : ''} rescheduled`,
+      `${psCompleted} Pre-screening interviews completed`,
+      `${psInvited} Participants invited for Pre-screening`,
+      `${psCancelled} Pre-screening appointment${psCancelled !== 1 ? 's' : ''} cancelled`,
+      `${psRescheduled} Pre-screening appointment${psRescheduled !== 1 ? 's' : ''} rescheduled`,
+    ].join('\n');
+
+    return { studyId, studyName: study.name, title: dateStr, content, posted: false };
+  }
+
+  private pushBotMessageWithStudyNotes(html: string, studyNotes: StudyNote[]): void {
+    const msg: ChatMessage = {
+      id: this.generateId(),
+      sender: 'bot',
+      html,
+      timestamp: new Date(),
+      studyNotes
+    };
+    this.messages.update(list => [...list, msg]);
   }
 
   handleCandidateReplyDraft(text: string): void {
@@ -1673,8 +1855,10 @@ export class ChatEngineService implements OnDestroy {
 
   // ── PICKER CONTROL ──
 
-  openStudyPicker(): void {
+  openStudyPicker(studyId?: string, count?: number): void {
     if (this.appState.chatState() !== 'idle') return;
+    this.studyPickerStudyId.set(studyId ?? null);
+    this.studyPickerCount.set(count ?? null);
     this.pickerMode.set('invite');
     this.appState.chatState.set('study_picker_open');
     this.showStudyPicker.set(true);
@@ -1691,6 +1875,8 @@ export class ChatEngineService implements OnDestroy {
 
   cancelStudyPicker(): void {
     this.showStudyPicker.set(false);
+    this.studyPickerStudyId.set(null);
+    this.studyPickerCount.set(null);
     this.pickerMode.set('invite');
     if (this.appState.chatState() === 'study_picker_open') {
       this.appState.chatState.set('idle');
@@ -1702,8 +1888,10 @@ export class ChatEngineService implements OnDestroy {
     setTimeout(() => { this.justOpened = false; }, 0);
   }
 
-  openSchedulePicker(): void {
+  openSchedulePicker(studyId?: string, count?: number): void {
     if (this.appState.chatState() !== 'idle') return;
+    this.schedulePickerStudyId.set(studyId ?? null);
+    this.schedulePickerCount.set(count ?? null);
     this.appState.chatState.set('schedule_picker_open');
     this.showSchedulePicker.set(true);
     this.flagJustOpened();
@@ -1711,6 +1899,8 @@ export class ChatEngineService implements OnDestroy {
 
   cancelSchedulePicker(): void {
     this.showSchedulePicker.set(false);
+    this.schedulePickerStudyId.set(null);
+    this.schedulePickerCount.set(null);
     if (this.appState.chatState() === 'schedule_picker_open') {
       this.appState.chatState.set('idle');
     }
@@ -1791,6 +1981,50 @@ export class ChatEngineService implements OnDestroy {
         this.toastService.show('success', 'Schedule confirmed!');
         this.disableActionsOnLastBotMessage();
         break;
+
+      case 'post_eod_one':
+        if (payload && payload.studyId) {
+          this.api.postStudyNote(payload.studyId, payload.content ?? '', payload.title ?? '').subscribe({
+            next: () => {
+              this.toastService.show('success', `Note saved to Salesforce for ${payload.studyName ?? payload.studyId}`);
+              this.addBotMessage(
+                `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
+                `Note saved to Salesforce for <strong>${payload.studyName ?? 'Study ' + payload.studyId}</strong>.`,
+                undefined, 0
+              );
+            },
+            error: () => {
+              this.toastService.show('error', `Failed to save note for ${payload.studyName ?? payload.studyId}`);
+            }
+          });
+        }
+        break;
+
+      case 'post_eod_all': {
+        const notes = Array.isArray(payload) ? payload : [];
+        const count = notes.length;
+        let saved = 0;
+        notes.forEach((note: any) => {
+          if (note?.studyId) {
+            this.api.postStudyNote(note.studyId, note.content ?? '', note.title ?? '').subscribe({
+              next: () => {
+                saved++;
+                if (saved === count) {
+                  this.toastService.show('success', `All ${count} notes saved to Salesforce`);
+                  this.addBotMessage(
+                    `<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> ` +
+                    `All <strong>${count}</strong> notes saved to Salesforce. UXRs and Pod Leads have been notified.`,
+                    [{ label: 'My studies', type: 'secondary', action: 'suggest', payload: 'My studies' }],
+                    0
+                  );
+                }
+              },
+              error: () => this.toastService.show('error', `Failed to save note for ${note.studyName ?? note.studyId}`)
+            });
+          }
+        });
+        break;
+      }
 
       default:
         if (actionId.startsWith('select_study_')) {

@@ -35,6 +35,10 @@ export class AppStateService {
   // Last successful Query Agent response per (studyId + intent), for offline fallback.
   readonly queryCache = signal<Record<string, CachedQueryResponse>>({});
 
+  // Tracks which conversation started the current send so callbacks
+  // don't bleed into a different chat if the user switches away.
+  readonly sendingConversationId = signal<string | null>(null);
+
   // Multi-study queue
   readonly sendQueue = signal<SendQueueItem[]>([]);
   readonly sendQueueIndex = signal(0);
@@ -58,6 +62,7 @@ export class AppStateService {
     this.emailsSent.set(0);
     this.elapsedSeconds.set(0);
     this.currentFilters.set(null);
+    this.sendingConversationId.set(null);
   }
 
   resetQueue(): void {

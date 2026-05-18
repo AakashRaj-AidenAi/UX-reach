@@ -562,35 +562,108 @@ def _build_send_all_p0s_html(study_id: str | None, rc_name: str) -> tuple[str, l
 
 def _build_eod_update_html(rc_name: str) -> tuple[str, list[dict] | None]:
     from datetime import date
-    rc_studies = study_service.get_studies_for_rc(rc_name)
-    today = date.today().strftime("%b %d, %Y")
+    from app.services.mock_data import UXR_SHORTLISTING_EVENTS
+    from app.services import study_service
 
-    html = f"<strong>EOD Update — {today}</strong><br>"
-    html += "<span style='font-size:12px;color:var(--text-muted);'>Draft end-of-day update for your studies:</span><br><br>"
-    html += '<table class="msg-table">'
-    html += '<tr><td style="font-weight:600;">Study</td><td style="font-weight:600;">Sent</td><td style="font-weight:600;">Remaining</td></tr>'
+    today_iso = date.today().isoformat()
+    title_date = date.today().strftime("%B %d")
+    da = study_service.get_eod_activity(rc_name)
 
-    total_sent = 0
-    total_remaining = 0
-    for s in rc_studies:
-        remaining = s.total_required - s.already_sent
-        total_sent += s.already_sent
-        total_remaining += remaining
-        icon = (
-            '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--green);">check_circle</span>'
-            if remaining == 0
-            else '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;color:var(--amber);">hourglass_empty</span>'
-        )
-        rem_text = f'<strong>{remaining}</strong>' if remaining > 0 else '<span style="color:var(--green);">Done</span>'
-        html += f'<tr><td>{icon} Study {s.id}<br><span style="font-size:11px;color:var(--text-faint);">{s.name}</span></td><td>{s.already_sent}/{s.total_required}</td><td>{rem_text}</td></tr>'
+    # UXR shortlisting context for this RC
+    my_events = [
+        e for e in UXR_SHORTLISTING_EVENTS
+        if e["date"] == today_iso and e["sent_to_rc"] == rc_name
+    ]
 
-    html += f'<tr style="border-top:1px solid var(--card-border);"><td><strong>Total</strong></td><td><strong>{total_sent}</strong> sent</td><td><strong>{total_remaining}</strong> remaining</td></tr>'
-    html += '</table>'
-    html += '<br><span style="font-size:12px;color:var(--text-muted);">In production: this would be posted to Salesforce cases and shared with UXRs and Pod leads. (POC)</span>'
+    html = "<strong>EOD Update Draft</strong><br>"
+
+    if my_events:
+        html += "<span style='font-size:12px;color:var(--text-muted);'>UXR shortlisted P0s and notified you today:</span><br>"
+        for e in my_events:
+            html += (
+                f"<span style='font-size:12px;color:var(--text-muted);'>"
+                f"&#x2022; {e['uxr_name']} shortlisted <strong>{e['p0_newly_shortlisted']}</strong> new P0s "
+                f"for Study {e['study_id']} at {e['notified_at']}"
+                f"</span><br>"
+            )
+        html += "<br>"
+
+    # Salesforce note preview (matches the format in the screenshot)
+    html += "<strong>Salesforce Note Preview:</strong><br>"
+    html += (
+        '<div style="background:rgba(37,99,235,0.04);border:1px solid rgba(37,99,235,0.18);'
+        'border-radius:8px;padding:12px 16px;margin-top:6px;font-size:13px;line-height:1.9;">'
+    )
+    html += f"<strong>{title_date}</strong><br>"
+    html += f"{da['p0_shortlisted_total']} P0s shortlisted so far<br>"
+    html += f"{da['invites_sent_today']} Invite emails sent today<br>"
+    html += f"{da['appointments_booked']} Participants booked appointments<br>"
+    html += f"{da['appointments_cancelled']} appointment{'s' if da['appointments_cancelled'] != 1 else ''} cancelled<br>"
+    html += f"{da['appointments_rescheduled']} appointment{'s' if da['appointments_rescheduled'] != 1 else ''} rescheduled<br>"
+    html += f"{da['prescreening_interviews_completed']} Pre-screening interviews completed<br>"
+    html += f"{da['prescreening_invited']} Participants invited for Pre-screening<br>"
+    html += f"{da['prescreening_cancelled']} Pre-screening appointment{'s' if da['prescreening_cancelled'] != 1 else ''} cancelled<br>"
+    html += f"{da['prescreening_rescheduled']} Pre-screening appointment{'s' if da['prescreening_rescheduled'] != 1 else ''} rescheduled<br>"
+    html += "</div>"
+    html += "<br><span style='font-size:12px;color:var(--text-muted);'>Would you like to edit this before posting to Salesforce?</span>"
 
     actions = [
-        {"label": "Pending studies", "type": "secondary", "action": "suggest", "payload": "pending studies"},
+        {"label": "Looks good, post it", "type": "primary", "action": "suggest", "payload": "Post EOD to Salesforce"},
+        {"label": "Edit this draft", "type": "secondary", "action": "suggest", "payload": "Edit EOD draft"},
+    ]
+    return html, actions
+
+
+def _build_post_eod_html() -> tuple[str, list[dict] | None]:
+    from datetime import date
+
+    title_date = date.today().strftime("%B %d")
+    html = (
+        '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--green);">check_circle</span> '
+        f"<strong>EOD note posted to Salesforce</strong> — <em>{title_date}</em><br><br>"
+        "<span style='font-size:12px;color:var(--text-muted);'>"
+        "In production: this note would be attached to the Salesforce case and the UXR and Pod Lead would be notified. (POC)"
+        "</span>"
+    )
+    actions = [
         {"label": "My studies", "type": "secondary", "action": "suggest", "payload": "my studies"},
+        {"label": "Today's summary", "type": "secondary", "action": "suggest", "payload": "today's summary"},
+    ]
+    return html, actions
+
+
+def _build_edit_eod_html(rc_name: str = "") -> tuple[str, list[dict] | None]:
+    from datetime import date
+    from app.services import study_service
+
+    title_date = date.today().strftime("%B %d")
+    da = study_service.get_eod_activity(rc_name)
+
+    lines = [
+        f"{title_date}",
+        f"{da['p0_shortlisted_total']} P0s shortlisted so far",
+        f"{da['invites_sent_today']} Invite emails sent today",
+        f"{da['appointments_booked']} Participants booked appointments",
+        f"{da['appointments_cancelled']} appointment{'s' if da['appointments_cancelled'] != 1 else ''} cancelled",
+        f"{da['appointments_rescheduled']} appointment{'s' if da['appointments_rescheduled'] != 1 else ''} rescheduled",
+        f"{da['prescreening_interviews_completed']} Pre-screening interviews completed",
+        f"{da['prescreening_invited']} Participants invited for Pre-screening",
+        f"{da['prescreening_cancelled']} Pre-screening appointment{'s' if da['prescreening_cancelled'] != 1 else ''} cancelled",
+        f"{da['prescreening_rescheduled']} Pre-screening appointment{'s' if da['prescreening_rescheduled'] != 1 else ''} rescheduled",
+    ]
+    plain_text = "\n".join(lines)
+
+    html = "<strong>Edit EOD Draft</strong><br>"
+    html += "<span style='font-size:12px;color:var(--text-muted);'>Here is the current draft. Tell me what to change:</span><br><br>"
+    html += (
+        f'<pre style="background:rgba(0,0,0,0.04);border:1px solid var(--card-border);'
+        f'border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;">'
+        f"{plain_text}</pre>"
+    )
+    html += "<br><span style='font-size:12px;color:var(--text-muted);'>Type your change — e.g. <em>\"change invites sent to 12\"</em> — and I'll update the draft.</span>"
+
+    actions = [
+        {"label": "Looks good, post it", "type": "primary", "action": "suggest", "payload": "Post EOD to Salesforce"},
     ]
     return html, actions
 
@@ -699,7 +772,7 @@ def process_message(req: ChatRequest):
         html, actions = _build_status_html(parsed.study_id)
 
     elif intent == "daily_summary":
-        html = _build_daily_summary_html()
+        html, actions = _build_eod_update_html(req.user_name)
 
     elif intent == "pending_studies":
         html, actions = _build_pending_html(req.user_name)
@@ -751,6 +824,12 @@ def process_message(req: ChatRequest):
 
     elif intent == "eod_update":
         html, actions = _build_eod_update_html(req.user_name)
+
+    elif intent == "post_eod_note":
+        html, actions = _build_post_eod_html()
+
+    elif intent == "edit_eod_note":
+        html, actions = _build_edit_eod_html(req.user_name)
 
     elif intent == "candidate_reply":
         html, actions = _build_candidate_reply_html(req.message)

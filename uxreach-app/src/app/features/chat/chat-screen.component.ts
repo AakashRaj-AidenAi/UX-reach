@@ -5,14 +5,16 @@ import {
   ViewChild,
   ElementRef,
   AfterViewChecked,
-  ChangeDetectionStrategy,
   HostListener,
-  signal
+  signal,
+  computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ChatEngineService } from '../../services/chat-engine.service';
 import { AppStateService } from '../../services/app-state.service';
+import { AuthService } from '../../services/auth.service';
 import { ChatHealthStripComponent } from './components/chat-health-strip.component';
 import { ChatMessageComponent } from './components/chat-message.component';
 import { ChatInputBarComponent } from './components/chat-input-bar.component';
@@ -33,17 +35,25 @@ import { ChatSwitcherComponent } from './components/chat-switcher.component';
     SchedulePickerComponent,
     ChatSwitcherComponent
   ],
-  changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: './chat-screen.component.html',
   styleUrl: './chat-screen.component.scss'
 })
 export class ChatScreenComponent implements OnInit, AfterViewChecked {
   protected readonly chatEngine = inject(ChatEngineService);
   protected readonly appState = inject(AppStateService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   readonly messages = this.chatEngine.messages;
 
   protected searchQuery = '';
   protected switcherRequestOpen = signal(false);
+  protected profileMenuOpen = signal(false);
+  protected readonly hasMessages = computed(() => this.messages().length > 0);
+  protected readonly searchMatchCount = computed(() => {
+    const q = this.searchQuery.trim();
+    if (!q) return 0;
+    return this.messages().filter(m => !m.isTyping && this.messageMatchesSearch(m.html)).length;
+  });
 
   @ViewChild('messageContainer') private messageContainer!: ElementRef<HTMLDivElement>;
 
@@ -61,18 +71,9 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
     setTimeout(() => {
       if (pending.action === 'send_invite') {
-        if (pending.studyId && pending.count != null) {
-          this.chatEngine.handleInviteFlow(pending.studyId, pending.count);
-        } else {
-          this.chatEngine.openStudyPicker();
-        }
+        this.chatEngine.openStudyPicker(pending.studyId, pending.count ?? undefined);
       } else if (pending.action === 'schedule_invite') {
-        if (pending.studyId && pending.count != null) {
-          this.chatEngine.addUserMessage(`Schedule ${pending.count} invites for study ${pending.studyId}`);
-          this.chatEngine.openSchedulePicker();
-        } else {
-          this.chatEngine.openSchedulePicker();
-        }
+        this.chatEngine.openSchedulePicker(pending.studyId, pending.count ?? undefined);
       }
     }, 300);
   }
@@ -100,9 +101,10 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   messageMatchesSearch(html: string): boolean {
     const q = this.searchQuery.trim().toLowerCase();
     if (!q) return true;
+    if (!html) return false;
     const div = document.createElement('div');
     div.innerHTML = html;
-    const text = (div.textContent ?? '').toLowerCase();
+    const text = (div.textContent ?? html).toLowerCase();
     return text.includes(q);
   }
 
@@ -129,13 +131,15 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
   ngAfterViewChecked(): void {
     if (this.shouldScroll) {
       this.scrollToBottom();
+      this.shouldScroll = false;
     }
   }
 
   onSend(text: string): void {
     this.shouldScroll = true;
+    const command = this.chatEngine.consumePendingCommand() ?? text;
     this.chatEngine.addUserMessage(text);
-    this.chatEngine.processCommand(text);
+    this.chatEngine.processCommand(command);
   }
 
   onAction(event: { action: string; payload?: any }): void {
@@ -143,26 +147,43 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
     this.chatEngine.handleAction(event.action, event.payload);
   }
 
+  onSuggestionChip(action: string, payload?: string): void {
+    if (action === 'open_study_picker') {
+      this.chatEngine.openStudyPicker();
+    } else if (action === 'open_schedule_picker') {
+      this.chatEngine.openSchedulePicker();
+    } else if (action === 'suggest' && payload) {
+      this.chatEngine.suggestInput(payload);
+    }
+  }
+
   onStudyPickerSubmit(commandText: string): void {
     this.chatEngine.cancelStudyPicker();
-    this.shouldScroll = true;
-    this.chatEngine.addUserMessage(commandText);
-    this.chatEngine.processCommand(commandText);
+    this.chatEngine.suggestInput(commandText);
   }
 
   onStudyPickerCancel(): void {
     this.chatEngine.cancelStudyPicker();
   }
 
-  onSchedulePickerSubmit(commandText: string): void {
+  onSchedulePickerSubmit(event: { displayText: string; command: string }): void {
     this.chatEngine.cancelSchedulePicker();
-    this.shouldScroll = true;
-    this.chatEngine.addUserMessage(commandText);
-    this.chatEngine.processCommand(commandText);
+    this.chatEngine.suggestInputWithCommand(event.displayText, event.command);
   }
 
   onSchedulePickerCancel(): void {
     this.chatEngine.cancelSchedulePicker();
+  }
+
+  toggleProfileMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.profileMenuOpen.update(v => !v);
+  }
+
+  signOut(): void {
+    this.profileMenuOpen.set(false);
+    this.authService.logout();
+    this.router.navigate(['/']);
   }
 
   @HostListener('document:click', ['$event'])
@@ -171,6 +192,10 @@ export class ChatScreenComponent implements OnInit, AfterViewChecked {
 
     const target = event.target as HTMLElement;
     if (!target) return;
+
+    if (this.profileMenuOpen() && !target.closest('.user-menu-wrapper')) {
+      this.profileMenuOpen.set(false);
+    }
 
     if (
       this.chatEngine.showStudyPicker() &&

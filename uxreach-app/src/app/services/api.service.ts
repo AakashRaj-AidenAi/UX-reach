@@ -31,7 +31,7 @@ export interface Participant {
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private baseUrl = 'http://localhost:8000/api';
+  private baseUrl = '/api';
 
   constructor(private http: HttpClient) {}
 
@@ -61,6 +61,10 @@ export class ApiService {
 
   getStudyProgress(studyId: string): Observable<StudyProgress> {
     return this.http.get<StudyProgress>(`${this.baseUrl}/studies/${studyId}/progress`);
+  }
+
+  postStudyNote(studyId: string, content: string, title: string = ''): Observable<any> {
+    return this.http.post(`${this.baseUrl}/studies/${studyId}/note`, { content, title });
   }
 
   getParticipantsNeedingReminder(studyId: string): Observable<Participant[]> {
@@ -140,6 +144,14 @@ export class ApiService {
     return this.http.put(`${this.baseUrl}/settings/preferences`, prefs);
   }
 
+  getWelcomeConfig(): Observable<{ message: string; buttons: any[] }> {
+    return this.http.get<{ message: string; buttons: any[] }>(`${this.baseUrl}/settings/welcome`);
+  }
+
+  updateWelcomeConfig(config: { message?: string; buttons?: any[] }): Observable<any> {
+    return this.http.put(`${this.baseUrl}/settings/welcome`, config);
+  }
+
   // ── Auth ──
 
   getAuthConfig(): Observable<{ googleClientId: string }> {
@@ -172,7 +184,7 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/health/dependencies`).pipe(
       catchError(() => of({
         salesforce: { status: 'unknown', label: 'SF' },
-        gemini: { status: 'unknown', label: 'Gemini' },
+        vertex_ai: { status: 'unknown', label: 'Vertex AI' },
         shortlisting: { status: 'unknown', label: 'Shortlisting' }
       }))
     );

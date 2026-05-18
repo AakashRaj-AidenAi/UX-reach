@@ -6,8 +6,6 @@
 
 .settings-screen {
   padding: 24px 32px;
-  max-width: 960px;
-  margin: 0 auto;
 }
 
 .screen-header {
@@ -179,6 +177,10 @@
 }
 
 /* ====== Tables ====== */
+
+.table-wrapper {
+  overflow-x: auto;
+}
 
 .settings-table {
   width: 100%;

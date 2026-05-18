@@ -4,7 +4,6 @@ import {
   EventEmitter,
   Input,
   Output,
-  ElementRef,
   HostListener,
   inject,
   signal
@@ -19,171 +18,291 @@ import { ConversationBucket } from '../../../models/conversation';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.Default,
   template: `
-    <div class="switcher-wrap">
-      <button
-        class="switcher-trigger"
-        [class.open]="open()"
-        (click)="toggle($event)"
-        [title]="activeTitle() + ' — click to switch chat (Ctrl+Shift+O)'">
-        <span class="material-symbols-outlined icon-sm">forum</span>
-        <span class="switcher-title">{{ activeTitle() }}</span>
-        <span class="material-symbols-outlined icon-sm switcher-caret">{{ open() ? 'expand_less' : 'expand_more' }}</span>
-      </button>
+    <!-- Hamburger trigger -->
+    <button
+      class="hamburger-btn"
+      (click)="toggle($event)"
+      title="Chat history (Ctrl+Shift+O)">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
 
-      @if (open()) {
-        <div class="switcher-popover" (click)="$event.stopPropagation()">
-          <button class="switcher-new" (click)="onNewChat()">
-            <span class="material-symbols-outlined icon-sm">edit_square</span> New chat
-          </button>
+    <!-- Backdrop -->
+    @if (open()) {
+      <div class="drawer-backdrop" (click)="closeDrawer()"></div>
+    }
 
-          @if (history.conversations().length === 0) {
-            <div class="switcher-empty">No past chats yet.</div>
-          } @else {
-            <div class="switcher-list">
-              @for (group of history.bucketed(); track group.bucket) {
-                <div class="switcher-bucket">{{ bucketLabel(group.bucket) }}</div>
-                @for (conv of group.conversations; track conv.id) {
-                  <div
-                    class="switcher-row"
-                    [class.active]="history.activeId() === conv.id"
-                    (click)="onSelect(conv.id)">
-                    <div class="switcher-row-body">
-                      <div class="switcher-row-title">{{ conv.title }}</div>
-                      <div class="switcher-row-meta">{{ relativeTime(conv.updatedAt) }} &middot; {{ conv.messages.length }} msg</div>
+    <!-- Left drawer -->
+    <div class="chat-history-drawer" [class.open]="open()">
+      <div class="drawer-header">
+        <span class="drawer-title">Chat History</span>
+        <button class="drawer-close-btn" (click)="closeDrawer()" title="Close">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="drawer-body">
+        <button class="switcher-new" (click)="onNewChat()">
+          <span class="material-symbols-outlined icon-sm">edit_square</span>
+          New chat
+        </button>
+
+        @if (history.conversations().length === 0) {
+          <div class="switcher-empty">No past chats yet.</div>
+        } @else {
+          <div class="switcher-list">
+            @for (group of history.bucketed(); track group.bucket) {
+              <div class="switcher-bucket">{{ bucketLabel(group.bucket) }}</div>
+              @for (conv of group.conversations; track conv.id) {
+                <div
+                  class="switcher-row"
+                  [class.active]="history.activeId() === conv.id"
+                  (click)="onSelect(conv.id)">
+                  <div class="switcher-row-body">
+                    <div class="switcher-row-title">{{ conv.title }}</div>
+                    <div class="switcher-row-meta">
+                      {{ relativeTime(conv.updatedAt) }} &middot; {{ conv.messages.length }} msg
                     </div>
-                    <button
-                      class="switcher-row-delete"
-                      (click)="onDelete($event, conv.id)"
-                      title="Delete conversation">
-                      <span class="material-symbols-outlined icon-sm">delete</span>
-                    </button>
                   </div>
-                }
+                  <button
+                    class="switcher-row-delete"
+                    (click)="onDelete($event, conv.id)"
+                    title="Delete conversation">
+                    <span class="material-symbols-outlined icon-sm">delete</span>
+                  </button>
+                </div>
               }
-            </div>
+            }
+          </div>
+        }
+      </div>
 
-            <div class="switcher-footer">
-              <button class="switcher-clear" (click)="onClearAll()">
-                <span class="material-symbols-outlined icon-sm">delete_sweep</span> Clear all
-              </button>
-            </div>
-          }
-        </div>
-      }
+      <div class="drawer-footer">
+        <button class="switcher-clear" (click)="onClearAll()">
+          <span class="material-symbols-outlined icon-sm">delete_sweep</span>
+          Clear all
+        </button>
+      </div>
     </div>
   `,
   styles: [`
-    :host { display: inline-block; }
+    :host { display: inline-flex; align-items: center; }
 
-    .switcher-wrap { position: relative; }
-
-    .switcher-trigger {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px;
+    /* ── Hamburger trigger ───────────────────────────── */
+    .hamburger-btn {
+      width: 36px;
+      height: 36px;
       background: transparent;
-      border: 1px solid transparent;
+      border: none;
       border-radius: 8px;
-      color: var(--text-dim);
-      font-size: 13px; font-family: inherit; font-weight: 500;
-      max-width: 260px;
+      color: var(--text-muted);
       cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, color 0.15s ease;
+      flex-shrink: 0;
     }
-    .switcher-trigger:hover { background: var(--card-alt); color: var(--text); }
-    .switcher-trigger.open { background: var(--card-alt); border-color: var(--card-border); }
-    .switcher-title {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      max-width: 180px;
+    .hamburger-btn:hover {
+      background: var(--card-alt);
+      color: var(--text);
     }
-    .switcher-caret { color: var(--text-muted); }
+    .hamburger-btn .material-symbols-outlined {
+      font-size: 22px;
+    }
 
-    .switcher-popover {
-      position: absolute; top: calc(100% + 6px); left: 0;
-      width: 320px;
-      max-height: 440px;
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(60,64,67,0.18), 0 2px 6px rgba(60,64,67,0.08);
-      overflow: hidden;
-      display: flex; flex-direction: column;
-      z-index: 4000;
-      animation: switcherIn 0.12s ease;
+    /* ── Backdrop ────────────────────────────────────── */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(32, 33, 36, 0.42);
+      z-index: 3999;
+      animation: backdropIn 0.2s ease;
     }
-    @keyframes switcherIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
+    @keyframes backdropIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ── Drawer panel ────────────────────────────────── */
+    .chat-history-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 300px;
+      height: 100vh;
+      background: var(--card);
+      border-right: 1px solid var(--card-border);
+      z-index: 4000;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(60, 64, 67, 0.18);
+      transform: translateX(-100%);
+      transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    .chat-history-drawer.open {
+      transform: translateX(0);
+    }
+
+    /* ── Drawer header ───────────────────────────────── */
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--card-border);
+      flex-shrink: 0;
+    }
+    .drawer-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .drawer-close-btn {
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .drawer-close-btn:hover {
+      background: var(--card-alt);
+      color: var(--text);
+    }
+    .drawer-close-btn .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    /* ── Drawer body ─────────────────────────────────── */
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 8px;
     }
 
     .switcher-new {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin: 10px 10px 4px;
-      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 12px 6px;
+      padding: 9px 12px;
       border: 1px dashed var(--card-border);
       border-radius: 8px;
       background: transparent;
       color: var(--blue);
-      font-weight: 500; font-size: 13px;
-      cursor: pointer; text-align: left;
+      font-weight: 500;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
-    .switcher-new:hover { background: rgba(26,115,232,0.06); border-color: var(--blue); }
+    .switcher-new:hover {
+      background: rgba(26, 115, 232, 0.06);
+      border-color: var(--blue);
+    }
 
-    .switcher-list { overflow-y: auto; padding: 4px 0 6px; flex: 1; }
+    .switcher-list {
+      flex: 1;
+      padding: 4px 0 6px;
+    }
 
     .switcher-bucket {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
-      color: var(--text-muted); text-transform: uppercase;
-      padding: 10px 14px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 10px 16px 4px;
     }
 
     .switcher-row {
-      display: flex; align-items: center; gap: 4px;
-      padding: 6px 10px; margin: 0 6px;
-      border-radius: 6px; cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 12px;
+      margin: 1px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.12s ease;
     }
     .switcher-row:hover { background: var(--card-alt); }
-    .switcher-row.active { background: rgba(26,115,232,0.08); }
+    .switcher-row.active { background: rgba(26, 115, 232, 0.08); }
     .switcher-row.active .switcher-row-title { color: var(--blue); }
+
     .switcher-row-body { flex: 1; min-width: 0; }
     .switcher-row-title {
-      font-size: 13px; color: var(--text); font-weight: 500;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .switcher-row-meta {
-      font-size: 11px; color: var(--text-muted); margin-top: 1px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
     }
+
     .switcher-row-delete {
-      background: transparent; border: none;
-      color: var(--text-faint); cursor: pointer;
-      padding: 4px; border-radius: 4px;
-      opacity: 0; transition: opacity 0.15s ease, color 0.15s ease;
-      display: inline-flex; align-items: center;
+      background: transparent;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.15s ease, color 0.15s ease;
+      display: inline-flex;
+      align-items: center;
     }
     .switcher-row:hover .switcher-row-delete { opacity: 1; }
-    .switcher-row-delete:hover { color: var(--rose); background: rgba(217,48,37,0.08); }
+    .switcher-row-delete:hover { color: var(--rose); background: rgba(217, 48, 37, 0.08); }
 
     .switcher-empty {
-      padding: 20px 14px; text-align: center;
-      color: var(--text-muted); font-size: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
     }
 
-    .switcher-footer {
+    /* ── Drawer footer ───────────────────────────────── */
+    .drawer-footer {
       border-top: 1px solid var(--card-border);
-      padding: 6px 10px;
-      display: flex; justify-content: flex-end;
+      padding: 8px 12px;
+      flex-shrink: 0;
     }
     .switcher-clear {
-      background: transparent; border: none;
-      color: var(--text-muted); font-size: 12px;
-      padding: 4px 8px; border-radius: 4px;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: inherit;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s ease, background 0.15s ease;
     }
-    .switcher-clear:hover { color: var(--rose); background: rgba(217,48,37,0.06); }
+    .switcher-clear:hover {
+      color: var(--rose);
+      background: rgba(217, 48, 37, 0.06);
+    }
   `]
 })
 export class ChatSwitcherComponent {
   protected readonly history = inject(ChatHistoryService);
-  private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly open = signal(false);
 
@@ -195,11 +314,6 @@ export class ChatSwitcherComponent {
   @Output() selectConversation = new EventEmitter<string>();
   @Output() deleteConversation = new EventEmitter<string>();
   @Output() clearAll = new EventEmitter<void>();
-
-  activeTitle(): string {
-    const active = this.history.activeConversation();
-    return active?.title || 'New chat';
-  }
 
   bucketLabel(b: ConversationBucket): string {
     return b === 'today' ? 'Today' : b === 'yesterday' ? 'Yesterday' : 'Earlier';
@@ -223,11 +337,10 @@ export class ChatSwitcherComponent {
     this.open.update(v => !v);
   }
 
-  openPopover(): void { this.open.set(true); }
-  closePopover(): void { this.open.set(false); }
+  closeDrawer(): void { this.open.set(false); }
 
-  onNewChat(): void { this.newChat.emit(); this.closePopover(); }
-  onSelect(id: string): void { this.selectConversation.emit(id); this.closePopover(); }
+  onNewChat(): void { this.newChat.emit(); this.closeDrawer(); }
+  onSelect(id: string): void { this.selectConversation.emit(id); this.closeDrawer(); }
 
   onDelete(ev: Event, id: string): void {
     ev.stopPropagation();
@@ -239,20 +352,12 @@ export class ChatSwitcherComponent {
   onClearAll(): void {
     if (confirm('Delete all conversations? This cannot be undone.')) {
       this.clearAll.emit();
-      this.closePopover();
-    }
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocClick(ev: MouseEvent): void {
-    if (!this.open()) return;
-    if (!this.host.nativeElement.contains(ev.target as Node)) {
-      this.closePopover();
+      this.closeDrawer();
     }
   }
 
   @HostListener('document:keydown.escape')
   onEsc(): void {
-    if (this.open()) this.closePopover();
+    if (this.open()) this.closeDrawer();
   }
 }

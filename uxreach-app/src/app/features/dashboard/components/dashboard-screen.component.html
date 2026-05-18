@@ -43,7 +43,7 @@
     <div class="dash-stat-card">
       <div class="dash-stat-icon green"><span class="material-symbols-outlined">check_circle</span></div>
       <div class="dash-stat-body">
-        <div class="dash-stat-label">P0s Ready to Schedule</div>
+        <div class="dash-stat-label">P0's Ready to Schedule</div>
         <div class="dash-stat-value">{{ totalP0Ready }}</div>
         <div class="dash-stat-sub">newly marked by UXR</div>
       </div>
@@ -65,7 +65,7 @@
           <th>Study</th>
           <th>Invites needed</th>
           <th>Last run</th>
-          <th style="text-align:center;"></th>
+          <th style="width:10%;white-space:nowrap;text-align:center;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -102,7 +102,7 @@
                 <span style="color:var(--text-faint)">Never sent</span>
               }
             </td>
-            <td>
+            <td style="text-align:center;">
               <div class="dash-action-btns">
                 <button class="dash-send-btn" (click)="openSendModal(study)">Send invites</button>
                 <button class="dash-schedule-btn" (click)="openScheduleModal(study)">Schedule</button>
@@ -156,94 +156,3 @@
     </table>
   }
 </div>
-
-<!-- ── Inline modal overlay ── -->
-@if (modalMode && modalStudy) {
-  <div class="dash-modal-backdrop" (click)="closeModal()"></div>
-  <div class="dash-modal">
-    <div class="dash-modal-header">
-      <div>
-        <div class="dash-modal-title">{{ modalMode === 'schedule' ? 'Schedule invites' : modalSendComplete ? 'Done!' : modalMode === 'sending' ? 'Sending...' : 'Send invites' }}</div>
-        <div class="dash-modal-sub">{{ modalStudy.name }} &middot; #{{ modalStudy.id }}</div>
-      </div>
-      @if (modalMode !== 'sending') {
-        <button class="dash-modal-close" (click)="closeModal()"><span class="material-symbols-outlined">close</span></button>
-      }
-    </div>
-
-    <!-- Send form -->
-    @if (modalMode === 'send') {
-      <div class="dash-modal-body">
-        <div class="dash-modal-info-row">
-          <span>Already sent</span><strong>{{ modalStudy.sent }} of {{ modalStudy.required }}</strong>
-        </div>
-        <div class="dash-modal-info-row">
-          <span>Remaining</span><strong>{{ modalStudy.remaining }}</strong>
-        </div>
-        <div class="dash-modal-label">How many invites?</div>
-        <div class="dash-quick-counts">
-          @for (n of [5, 10, 20]; track n) {
-            @if (n <= modalStudy.remaining) {
-              <button class="dash-count-chip" [class.active]="modalCount === n" (click)="setQuickCount(n)">{{ n }}</button>
-            }
-          }
-          <button class="dash-count-chip" [class.active]="modalCount === modalStudy.remaining" (click)="setQuickCount(modalStudy.remaining)">All {{ modalStudy.remaining }}</button>
-        </div>
-        <input class="dash-count-input" type="number" [(ngModel)]="modalCount" [min]="1" [max]="modalStudy.remaining" />
-      </div>
-      <div class="dash-modal-footer">
-        <button class="dash-modal-cancel" (click)="closeModal()">Cancel</button>
-        <button class="dash-modal-confirm" (click)="confirmSend()">
-          <span class="material-symbols-outlined icon-sm">send</span> Send {{ modalCount }} invites
-        </button>
-      </div>
-    }
-
-    <!-- Sending progress -->
-    @if (modalMode === 'sending') {
-      <div class="dash-modal-body">
-        @if (modalSendComplete) {
-          <div class="dash-modal-success">
-            <span class="material-symbols-outlined" style="font-size:40px;color:var(--green);">check_circle</span>
-            <div>{{ modalCount }} invites sent successfully!</div>
-          </div>
-        } @else {
-          <div class="dash-modal-sending-label">Sending {{ modalCount }} invites to {{ modalStudy.name }}...</div>
-          <div class="dash-send-progress-bar">
-            <div class="dash-send-progress-fill" [style.width.%]="modalSendPercent"></div>
-          </div>
-          <div class="dash-send-progress-pct">{{ modalSendPercent }}%</div>
-        }
-      </div>
-    }
-
-    <!-- Schedule form -->
-    @if (modalMode === 'schedule') {
-      <div class="dash-modal-body">
-        <div class="dash-modal-info-row">
-          <span>Remaining</span><strong>{{ modalStudy.remaining }}</strong>
-        </div>
-        <div class="dash-modal-label">How many invites?</div>
-        <div class="dash-quick-counts">
-          @for (n of [5, 10, 20]; track n) {
-            @if (n <= modalStudy.remaining) {
-              <button class="dash-count-chip" [class.active]="modalCount === n" (click)="setQuickCount(n)">{{ n }}</button>
-            }
-          }
-          <button class="dash-count-chip" [class.active]="modalCount === modalStudy.remaining" (click)="setQuickCount(modalStudy.remaining)">All {{ modalStudy.remaining }}</button>
-        </div>
-        <input class="dash-count-input" type="number" [(ngModel)]="modalCount" [min]="1" [max]="modalStudy.remaining" />
-        <div class="dash-modal-label" style="margin-top:14px;">Date</div>
-        <input class="dash-count-input" type="date" [(ngModel)]="modalScheduleDate" />
-        <div class="dash-modal-label" style="margin-top:10px;">Time</div>
-        <input class="dash-count-input" type="time" [(ngModel)]="modalScheduleTime" />
-      </div>
-      <div class="dash-modal-footer">
-        <button class="dash-modal-cancel" (click)="closeModal()">Cancel</button>
-        <button class="dash-modal-confirm" (click)="confirmSchedule()">
-          <span class="material-symbols-outlined icon-sm">calendar_today</span> Schedule
-        </button>
-      </div>
-    }
-  </div>
-}

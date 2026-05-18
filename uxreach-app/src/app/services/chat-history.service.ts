@@ -154,6 +154,28 @@ export class ChatHistoryService {
     this.schedulePersist();
   }
 
+  appendToConversation(id: string, messages: ChatMessage[]): void {
+    this.conversations.update(list => list.map(c => {
+      if (c.id !== id) return c;
+      return { ...c, messages: [...c.messages, ...messages], updatedAt: new Date().toISOString() };
+    }));
+    this.schedulePersist();
+  }
+
+  markProgressComplete(id: string, durationStr: string): void {
+    this.conversations.update(list => list.map(c => {
+      if (c.id !== id) return c;
+      const messages = c.messages.map(m => {
+        if (m.sendingProgress && !m.sendingProgress.isComplete) {
+          return { ...m, actions: [], sendingProgress: { ...m.sendingProgress, isComplete: true, durationStr } };
+        }
+        return m;
+      });
+      return { ...c, messages };
+    }));
+    this.schedulePersist();
+  }
+
   deleteConversation(id: string): void {
     this.conversations.update(list => list.filter(c => c.id !== id));
     if (this.activeId() === id) {

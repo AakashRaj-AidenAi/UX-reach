@@ -10,6 +10,16 @@ export interface StudyProgress {
   declined: number;
   pendingIcf: number;
   needsAttention: string[];
+  // EOD activity fields — populated from backend or synthesizeProgress
+  p0Ready?: number;
+  invitesSentToday?: number;
+  appointmentsBookedToday?: number;
+  appointmentsCancelled?: number;
+  appointmentsRescheduled?: number;
+  psCompleted?: number;
+  psInvited?: number;
+  psCancelled?: number;
+  psRescheduled?: number;
 }
 
 export interface FunnelStage {

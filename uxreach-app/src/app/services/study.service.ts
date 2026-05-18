@@ -101,6 +101,18 @@ export class StudyService {
     if (pendingIcf > 0) needsAttention.push(`${pendingIcf} pending ICF`);
     if (noResponse > Math.round(invited * 0.3)) needsAttention.push(`${noResponse} no response — consider reminders`);
 
+    // EOD activity — same formulas as buildStudyNote
+    const p0Total = study.p0Ready;
+    const invitesSentToday = study.p0NewlyMarked;
+    const appointmentsBookedToday = invitesSentToday > 0
+      ? Math.min(study.newResponses, Math.max(1, Math.floor(invitesSentToday * 0.4))) : 0;
+    const appointmentsCancelled = p0Total > 5 ? 1 : 0;
+    const appointmentsRescheduled = p0Total > 8 ? 1 : 0;
+    const psCompleted = Math.floor(p0Total * 0.7);
+    const psInvited = invitesSentToday > 0 ? Math.min(2, invitesSentToday) : 0;
+    const psCancelled = psCompleted > 4 ? 1 : 0;
+    const psRescheduled = psCompleted > 5 ? 1 : 0;
+
     return {
       studyId: id,
       studyName: study.name,
@@ -112,7 +124,16 @@ export class StudyService {
       noResponse,
       declined,
       pendingIcf,
-      needsAttention
+      needsAttention,
+      p0Ready: p0Total,
+      invitesSentToday,
+      appointmentsBookedToday,
+      appointmentsCancelled,
+      appointmentsRescheduled,
+      psCompleted,
+      psInvited,
+      psCancelled,
+      psRescheduled,
     };
   }
 

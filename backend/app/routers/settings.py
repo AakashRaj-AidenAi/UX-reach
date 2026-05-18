@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException
 
 from app.models.chat import Delegation, DelegationRequest, Preferences
-from app.services.mock_data import DELEGATIONS, PREFERENCES, STUDIES
+from app.services.mock_data import DELEGATIONS, PREFERENCES, STUDIES, WELCOME_CONFIG
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -50,3 +50,19 @@ def update_preferences(prefs: Preferences):
     PREFERENCES["default_batch_size"] = prefs.default_batch_size
     PREFERENCES["notification_email"] = prefs.notification_email
     return Preferences(**PREFERENCES)
+
+
+# ── Welcome config ──
+
+@router.get("/welcome")
+def get_welcome_config():
+    return WELCOME_CONFIG
+
+
+@router.put("/welcome")
+def update_welcome_config(body: dict):
+    if "message" in body:
+        WELCOME_CONFIG["message"] = body["message"]
+    if "buttons" in body:
+        WELCOME_CONFIG["buttons"] = body["buttons"]
+    return WELCOME_CONFIG

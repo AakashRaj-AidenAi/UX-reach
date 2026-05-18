@@ -32,7 +32,7 @@ export class AuthService {
       },
       error: () => {
         this.appState.loginError.set(
-          'Could not reach the backend. Make sure it is running on localhost:8000.'
+          'Could not reach the backend. Make sure it is running on localhost:8080.'
         );
       },
     });

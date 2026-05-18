@@ -1,0 +1,118 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - V1.0
+
+env:
+  PROJECT_ID: tough-zoo-475011-s6
+  REGION: us-central1
+
+jobs:
+  deploy-backend:
+    name: Build & Deploy Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -t gcr.io/${{ env.PROJECT_ID }}/uxreach-backend:${{ github.sha }} \
+            -t gcr.io/${{ env.PROJECT_ID }}/uxreach-backend:latest \
+            ./backend
+
+      - name: Push backend image
+        run: |
+          docker push gcr.io/${{ env.PROJECT_ID }}/uxreach-backend:${{ github.sha }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/uxreach-backend:latest
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy uxreach-backend \
+            --image gcr.io/${{ env.PROJECT_ID }}/uxreach-backend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --set-env-vars="VERTEX_PROJECT=${{ env.PROJECT_ID }},VERTEX_LOCATION=${{ env.REGION }},VERTEX_MODEL=gemini-2.5-flash" \
+            --set-secrets="SF_USERNAME=SF_USERNAME:latest,SF_PASSWORD=SF_PASSWORD:latest,SF_SECURITY_TOKEN=SF_SECURITY_TOKEN:latest,SF_CONSUMER_KEY=SF_CONSUMER_KEY:latest,SF_CONSUMER_SECRET=SF_CONSUMER_SECRET:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest"
+
+      - name: Get backend URL
+        id: backend-url
+        run: |
+          URL=$(gcloud run services describe uxreach-backend \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Backend deployed at: $URL"
+
+    outputs:
+      backend_url: ${{ steps.backend-url.outputs.url }}
+
+  deploy-frontend:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Inject backend URL into nginx.conf
+        run: |
+          sed -i "s|BACKEND_CLOUD_RUN_URL|${{ needs.deploy-backend.outputs.backend_url }}|g" \
+            uxreach-app/nginx.conf
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -t gcr.io/${{ env.PROJECT_ID }}/uxreach-frontend:${{ github.sha }} \
+            -t gcr.io/${{ env.PROJECT_ID }}/uxreach-frontend:latest \
+            ./uxreach-app
+
+      - name: Push frontend image
+        run: |
+          docker push gcr.io/${{ env.PROJECT_ID }}/uxreach-frontend:${{ github.sha }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/uxreach-frontend:latest
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          gcloud run deploy uxreach-frontend \
+            --image gcr.io/${{ env.PROJECT_ID }}/uxreach-frontend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 8080
+
+      - name: Get frontend URL
+        run: |
+          URL=$(gcloud run services describe uxreach-frontend \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "Frontend deployed at: $URL"

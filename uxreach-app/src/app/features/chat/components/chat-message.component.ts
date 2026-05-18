@@ -1,13 +1,14 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { ChatMessage } from '../../../models/chat.model';
+import { ChatMessage, StudyNote } from '../../../models/chat.model';
 import { StudyProgressComponent } from './study-progress.component';
+import { StudyNotesEditorComponent } from './study-notes-editor.component';
 import { ToastService } from '../../../services/toast.service';
 
 @Component({
   selector: 'app-chat-message',
   standalone: true,
-  imports: [NgClass, StudyProgressComponent],
+  imports: [NgClass, StudyProgressComponent, StudyNotesEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="chat-msg-wrapper" [ngClass]="{ 'user-msg': message.sender === 'user' }">
@@ -60,6 +61,9 @@ import { ToastService } from '../../../services/toast.service';
                   [style.width.%]="progressPercent">
                 </div>
               </div>
+              @if (!message.sendingProgress.isComplete) {
+                <p class="free-to-close-hint">You're free to close this window — the batch will keep running in the background.</p>
+              }
             </div>
           }
 
@@ -73,20 +77,21 @@ import { ToastService } from '../../../services/toast.service';
             <div class="content" [innerHTML]="highlightedHtml"></div>
           }
 
-          <!-- Message footer: timestamp + actions -->
-          @if (message.sender === 'bot' && !message.isTyping) {
-            <div class="msg-footer">
-              <span class="msg-timestamp" [attr.title]="absoluteTime">{{ relativeTime }}</span>
-              @if (message.html) {
-                <button class="msg-copy-btn" (click)="onCopy()" title="Copy to clipboard">
-                  <span class="material-symbols-outlined icon-sm">content_copy</span>
-                </button>
-              }
-            </div>
+          <!-- Study notes editor (EOD / daily summary) -->
+          @if (message.studyNotes && message.studyNotes.length > 0) {
+            <app-study-notes-editor
+              [notes]="message.studyNotes"
+              (postOneNote)="onPostOneNote($event)"
+              (postAllNotes)="onPostAllNotes($event)"
+            />
           }
-          @if (message.sender === 'user') {
-            <div class="msg-footer msg-footer-user">
-              <span class="msg-timestamp" [attr.title]="absoluteTime">{{ relativeTime }}</span>
+
+          <!-- Message footer: copy button (bot only, no timestamp) -->
+          @if (message.sender === 'bot' && !message.isTyping && message.html) {
+            <div class="msg-footer">
+              <button class="msg-copy-btn" (click)="onCopy()" title="Copy to clipboard">
+                <span class="material-symbols-outlined icon-sm">content_copy</span>
+              </button>
             </div>
           }
 
@@ -241,6 +246,13 @@ import { ToastService } from '../../../services/toast.service';
       &.complete {
         background: var(--green);
       }
+    }
+
+    .free-to-close-hint {
+      margin: 8px 0 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Action buttons */
@@ -417,6 +429,13 @@ export class ChatMessageComponent {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
+  get exactTime(): string {
+    const d = this.message.timestamp instanceof Date
+      ? this.message.timestamp
+      : new Date(this.message.timestamp);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
   get absoluteTime(): string {
     const d = this.message.timestamp instanceof Date
       ? this.message.timestamp
@@ -428,14 +447,28 @@ export class ChatMessageComponent {
     const html = this.message.html ?? '';
     const q = this.searchQuery.trim();
     if (!q) return html;
-    // Only wrap matches that lie in text nodes, not inside tag attributes.
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('(>[^<]*)(' + escaped + ')', 'gi');
-    return html.replace(re, (_m, before, match) => `${before}<mark class="search-hit">${match}</mark>`);
+    if (/<[^>]+>/.test(html)) {
+      // HTML content — only replace inside text nodes (between > and <)
+      const re = new RegExp('(>[^<]*)(' + escaped + ')', 'gi');
+      return html.replace(re, (_m, before, match) => `${before}<mark class="search-hit">${match}</mark>`);
+    } else {
+      // Plain text — wrap all occurrences directly
+      const re = new RegExp('(' + escaped + ')', 'gi');
+      return html.replace(re, '<mark class="search-hit">$1</mark>');
+    }
   }
 
   onActionClick(action: string, payload?: any): void {
     this.actionClicked.emit({ action, payload });
+  }
+
+  onPostOneNote(note: StudyNote): void {
+    this.actionClicked.emit({ action: 'post_eod_one', payload: note });
+  }
+
+  onPostAllNotes(notes: StudyNote[]): void {
+    this.actionClicked.emit({ action: 'post_eod_all', payload: notes });
   }
 
   onCopy(): void {

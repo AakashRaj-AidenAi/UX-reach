@@ -38,6 +38,54 @@ import { StudyProgress, FunnelStage, buildFunnel } from '../../../models/study-p
           }
         </div>
       }
+
+      @if (hasActivityData) {
+        <div class="activity-section">
+          <div class="activity-title">
+            <span class="material-symbols-outlined icon-sm" style="vertical-align:middle;color:var(--text-muted);">today</span>
+            Today's Activity
+          </div>
+          <div class="activity-grid">
+            <div class="activity-row">
+              <span class="activity-label">P0s shortlisted</span>
+              <span class="activity-value">{{ progress.p0Ready }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Invites sent today</span>
+              <span class="activity-value">{{ progress.invitesSentToday }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Appointments booked</span>
+              <span class="activity-value">{{ progress.appointmentsBookedToday }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Appointments cancelled</span>
+              <span class="activity-value">{{ progress.appointmentsCancelled }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Appointments rescheduled</span>
+              <span class="activity-value">{{ progress.appointmentsRescheduled }}</span>
+            </div>
+            <div class="activity-divider"></div>
+            <div class="activity-row">
+              <span class="activity-label">Pre-screening completed</span>
+              <span class="activity-value">{{ progress.psCompleted }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Invited for pre-screening</span>
+              <span class="activity-value">{{ progress.psInvited }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Pre-screening cancelled</span>
+              <span class="activity-value">{{ progress.psCancelled }}</span>
+            </div>
+            <div class="activity-row">
+              <span class="activity-label">Pre-screening rescheduled</span>
+              <span class="activity-value">{{ progress.psRescheduled }}</span>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -84,6 +132,24 @@ import { StudyProgress, FunnelStage, buildFunnel } from '../../../models/study-p
       border-top: 1px dashed var(--card-border);
       font-size: 12px; color: var(--text-dim);
     }
+
+    .activity-section {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid var(--card-border);
+    }
+    .activity-title {
+      font-size: 12px; font-weight: 500;
+      color: var(--text-muted); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .activity-grid { display: flex; flex-direction: column; gap: 4px; }
+    .activity-row {
+      display: flex; justify-content: space-between;
+      font-size: 12px;
+    }
+    .activity-label { color: var(--text-dim); }
+    .activity-value { font-weight: 500; color: var(--text); }
+    .activity-divider { height: 1px; background: var(--card-border); margin: 4px 0; }
   `]
 })
 export class StudyProgressComponent {
@@ -91,5 +157,9 @@ export class StudyProgressComponent {
 
   get stages(): FunnelStage[] {
     return buildFunnel(this.progress);
+  }
+
+  get hasActivityData(): boolean {
+    return this.progress.p0Ready != null;
   }
 }

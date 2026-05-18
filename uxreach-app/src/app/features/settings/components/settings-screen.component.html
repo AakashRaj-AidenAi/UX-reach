@@ -5,6 +5,7 @@
   </header>
 
   <section class="settings-section card">
+    <div class="table-wrapper">
     <table class="settings-table">
       <thead>
         <tr>
@@ -27,7 +28,7 @@
               <td>{{ job.studyName }}</td>
               <td class="mono">#{{ job.studyId }}</td>
               <td>{{ job.count }}</td>
-              <td>{{ job.scheduledTime }}</td>
+              <td>{{ job.scheduledTime | date:'d MMM y, h:mm a':'+0530' }} IST</td>
               <td>
                 <app-status-badge [status]="job.status" />
               </td>
@@ -45,5 +46,6 @@
         }
       </tbody>
     </table>
+    </div>
   </section>
 </div>

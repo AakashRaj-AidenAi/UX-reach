@@ -1,4 +1,4 @@
-import { Component, inject, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StudyService } from '../../../services/study.service';
@@ -23,7 +23,7 @@ interface PickerStudy {
       <div class="study-picker-dropdown-header">
         <div>
           <div class="study-picker-dropdown-title"><span class="material-symbols-outlined icon-blue" style="vertical-align:middle;">calendar_today</span> Schedule invites</div>
-          <div class="study-picker-dropdown-sub">Select studies, set invite count, and choose when to send.</div>
+          <div class="study-picker-dropdown-sub">{{ preselectedStudyId ? 'Set invite count and choose when to send.' : 'Select studies, set invite count, and choose when to send.' }}</div>
         </div>
         <button class="study-picker-close-btn" (click)="onCancel()" title="Close"><span class="material-symbols-outlined icon-sm">close</span></button>
       </div>
@@ -31,7 +31,7 @@ interface PickerStudy {
       @for (item of studies; track item.id) {
         <div class="study-picker-item" [class.selected]="item.selected">
           <label class="study-picker-label" (click)="$event.stopPropagation()">
-            <input type="checkbox" [(ngModel)]="item.selected" (ngModelChange)="onToggle()">
+            <input type="checkbox" [(ngModel)]="item.selected" (ngModelChange)="onToggle()" [style.display]="preselectedStudyId ? 'none' : ''">
             <div class="study-picker-info">
               <div class="study-picker-name">{{ item.study.name }}</div>
               <div class="study-picker-meta">#{{ item.id }} &middot; {{ item.remaining }} remaining &middot; Last: {{ item.study.lastRun || 'Never' }}</div>
@@ -42,7 +42,7 @@ interface PickerStudy {
                 <span>{{ item.study.alreadySent }}/{{ item.study.totalRequired }} sent</span>
               </div>
             </div>
-            <div class="study-picker-count-wrap" [style.display]="item.selected ? 'flex' : 'none'">
+            <div class="study-picker-count-wrap" [style.display]="item.selected || preselectedStudyId ? 'flex' : 'none'">
               <input
                 type="number"
                 class="study-picker-count-input"
@@ -95,7 +95,10 @@ export class SchedulePickerComponent implements OnInit {
   private readonly studyService = inject(StudyService);
   private readonly appState = inject(AppStateService);
 
-  @Output() submit = new EventEmitter<string>();
+  @Input() preselectedStudyId: string | null = null;
+  @Input() preselectedCount: number | null = null;
+
+  @Output() submit = new EventEmitter<{ displayText: string; command: string }>();
   @Output() cancel = new EventEmitter<void>();
 
   studies: PickerStudy[] = [];
@@ -118,18 +121,25 @@ export class SchedulePickerComponent implements OnInit {
     this.todayStr = now.toISOString().split('T')[0];
     this.schedDate = tomorrow.toISOString().split('T')[0];
 
-    this.studies = Object.keys(active).map(id => {
+    const allStudies = Object.keys(active).map(id => {
       const s = active[id];
-      const remaining = s.totalRequired - s.alreadySent;
+      const remaining = Math.max(0, s.p0Ready || 0);
+      const isPreselected = this.preselectedStudyId === id;
       return {
         id,
         study: s,
         remaining,
         percent: Math.round((s.alreadySent / s.totalRequired) * 100),
-        selected: false,
-        count: Math.min(remaining, 10)
+        selected: isPreselected,
+        count: isPreselected && this.preselectedCount != null
+          ? Math.min(this.preselectedCount, remaining)
+          : Math.min(remaining, 10)
       };
     });
+
+    this.studies = this.preselectedStudyId
+      ? allStudies.filter(s => s.id === this.preselectedStudyId)
+      : allStudies;
   }
 
   onToggle(): void {
@@ -157,16 +167,19 @@ export class SchedulePickerComponent implements OnInit {
     }
 
     const dateObj = new Date(this.schedDate + 'T' + this.schedTime);
-    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const dateTimeStr = `${dateStr} at ${timeStr}`;
+    const isoStr = dateObj.toISOString();
 
-    // Build command for first selected, provide hints for more
-    const cmds = selected.map(item =>
-      `Send ${item.count} invites for study ${item.id} on ${dateTimeStr}`
-    );
+    const displayTime = dateObj.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    }) + ' IST';
 
-    this.submit.emit(cmds[0]);
+    const item = selected[0];
+    this.submit.emit({
+      displayText: `Schedule ${item.count} invite${item.count > 1 ? 's' : ''} for study ${item.id} on ${displayTime}`,
+      command: `Send ${item.count} invites for study ${item.id} at ${isoStr}`,
+    });
   }
 
   onCancel(): void {
