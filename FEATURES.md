@@ -4,6 +4,9 @@ UXReach is an AI-powered invite email agent for Google UX Research. Research Coo
 
 ---
 
+> **Implementation status key**
+> Items marked *(not yet implemented)* are planned/aligned features from the product use-case backlog that are not yet built.
+
 ## Table of Contents
 
 1. [Authentication](#1-authentication)
@@ -15,8 +18,10 @@ UXReach is an AI-powered invite email agent for Google UX Research. Research Coo
 7. [Audit Screen](#7-audit-screen)
 8. [Scheduled Jobs](#8-scheduled-jobs)
 9. [Admin Panel](#9-admin-panel)
-10. [Guardrails (Blocked Actions)](#10-guardrails-blocked-actions)
-11. [Key User Workflows](#11-key-user-workflows)
+10. [Automated Background Tasks](#10-automated-background-tasks)
+11. [Reliability & Fallback Management](#11-reliability--fallback-management)
+12. [Guardrails (Blocked Actions)](#12-guardrails-blocked-actions)
+13. [Key User Workflows](#13-key-user-workflows)
 
 ---
 
@@ -57,6 +62,13 @@ All commands can be entered as natural language. The backend's AI parser maps th
 |---|---|---|
 | `send_invite` | "send 10 invites for study XYZ" | Opens study picker, shows summary, confirms then sends |
 | `send_all_p0s` | "send to all P0 candidates" | Bulk-sends to all shortlisted/priority participants |
+| `send_invite` (region filter) | "send 5 invites for study XYZ for participants in Canada" *(not yet implemented)* | Applies region/type filter before selecting P0s; shows available-vs-invited breakdown; aborts with a message if the filter returns 0 candidates |
+| `send_invite` (multi-region) | "send 5 invites: 2 from Canada, 2 from USA, 1 from India" *(not yet implemented)* | Applies multiple region quotas in a single command |
+| `send_invite` (segment) | "send 5 invites for study XYZ to Media Agency" *(not yet implemented)* | Filters by customer segment before selecting candidates |
+| `send_invite` (multi-study) | "send 5 invites for study XYZ and 3 for study ABC" | Queues studies; processes sequentially; shows "Study 1 of 2" progress; skips invalid studies and continues; combined summary at end |
+| `send_invite` (per-study bulk) | "send 5 invites for each of my studies" *(not yet implemented)* | Iterates all RC's active studies, sending the specified count each |
+| `send_all_p0s` (single study) | "send invites for all P0s ready to schedule for study XYZ" *(not yet implemented)* | Sends to every "Ready to Schedule" P0 on that study |
+| `send_all_p0s` (all studies) | "send invites for all P0s ready to schedule for all my studies" *(not yet implemented)* | Sends to every "Ready to Schedule" P0 across all RC's studies |
 | `invites_remaining` | "how many invites left for XYZ?" | Shows `total_required − already_sent` |
 
 ### Scheduling
@@ -74,7 +86,7 @@ All commands can be entered as natural language. The backend's AI parser maps th
 | `pending_studies` | "what studies are pending?" | Lists RC's studies with P0-ready counts |
 | `my_studies` | "show my studies" | All studies assigned to the RC with sent/required/remaining |
 | `study_progress` | "progress for study XYZ" | Full participant funnel with "Needs Attention" alerts |
-| `failure_report` | "any failed sends today?" | Lists failed send attempts with counts |
+| `failure_report` | "any failed sends today?" | Detailed failure list: study, participant, error reason, retry count, resolution status; one-click "Retry failed" action |
 
 ### Participant Tracking
 
@@ -85,7 +97,7 @@ All commands can be entered as natural language. The backend's AI parser maps th
 | `icf_status` | "ICF status for study XYZ" | Signed vs. unsigned ICF counts and participant list |
 | `reminders_needed` | "who needs a reminder?" | Invited >24h with no response; booked with unsigned ICF |
 | `confirmed_count` | "how many are confirmed?" | Count of participants in Completed status |
-| `candidate_reply` | "draft a reply to [name]" | Generates email template for individual participant |
+| `candidate_reply` | "draft a reply to [name]" | Generates a draft email for an individual participant; supported topics: resending ICF or calendar links, appointment rescheduling or requesting more calendar slots, incentive questions, in-person study location/logistics, study conduct and expectations, product-related study questions |
 
 ### Reporting
 
@@ -94,13 +106,17 @@ All commands can be entered as natural language. The backend's AI parser maps th
 | `daily_summary` | "daily summary" | Today's sends, responses, and appointments aggregated |
 | `eod_update` | "EOD update" | Drafts a formatted end-of-day summary for Salesforce |
 | `edit_eod_note` | "edit EOD" | Opens the EOD draft in an editable form |
-| `post_eod_note` | "post EOD" | Posts the confirmed EOD summary to Salesforce case notes |
+| `post_eod_note` | "post EOD" | Posts the confirmed EOD summary to Salesforce case notes; *(not yet implemented)* also pings UXRs and pod leads in Google Chat and emails them with the summary |
+| `multi_study_progress` | "progress for all my studies" *(not yet implemented)* | Fetches all active RC studies; returns a summary table sorted by urgency (fewest confirmed first); click any row to drill into full study progress |
+| `weekly_metrics` | "weekly metrics" *(not yet implemented)* | Week-over-week rollup: studies processed, total invites, send success rate, confirmation rate — suitable for QBR; exportable as PDF/CSV |
+| `compliance_export` | "export audit log from July 1 to July 31" *(not yet implemented)* | Queries audit log for date range; generates a PII-free CSV (Study IDs, anonymized RC identifier, action types, counts, outcomes); presents download link in chat; logs retained up to 45 days |
 
 ### Utility
 
 | Intent | Example Phrase | What It Does |
 |---|---|---|
-| `help` | "help" or "what can you do?" | Lists available commands and usage |
+| `help` | "help" or "what can you do?" | Lists available commands and usage; context-aware — uses RC's actual study IDs in examples |
+| `smart_id_suggestion` | "send 10 invites for study 9999999" (invalid ID) | Returns "I couldn't find a study with that ID" + lists RC's active studies as clickable buttons; does NOT auto-suggest a specific study to prevent typo mistakes |
 
 ---
 
@@ -186,25 +202,51 @@ Route: `/admin` — visible to users with role `admin` only.
 
 ---
 
-## 10. Guardrails (Blocked Actions)
+## 10. Automated Background Tasks *(not yet implemented)*
 
-The `GuardrailsService` enforces 20 policy rules client-side before any message reaches the backend. The following are **not supported**:
+These tasks run on a schedule without any RC prompt.
 
-- Email template customisation
-- Study ownership or assignment changes
+| Task | Trigger | What It Does |
+|---|---|---|
+| Hourly P0 shortlisting ping | Every hour | Monitors SF/Shortlisting App for newly marked "Ready to Schedule" P0s; sends a Google Chat ping to the RC with a per-study breakdown; RC can reply to trigger an immediate send for one or all studies |
+| Booking confirmation email | On new calendar booking detected | Scans RC's appointment calendar; sends a confirmation email to the participant with join link and interview details; count reflected in the daily update and dashboard |
+| 24h before-interview reminder | Daily scan | Identifies upcoming interviews ≤24h away; sends reminder email with join link and details; also sends an ICF reminder if ICF is not yet signed; does NOT re-remind participants who already received a reminder |
+| ICF reminder | Daily scan | Finds participants with status "Scheduling In Progress" but `ICF_Signed = false`; sends reminder email; escalates to RC after 3 ignored reminders; blocks interview confirmation if ICF unsigned on the day |
+| SLA breach alert | During active send run | Warns at 10 min and alerts at 15 min if a send run exceeds the SLA window; notifies pod lead automatically; logs the incident; only active during a running send — not triggered by participant response delays |
+| ICF status sync via macro *(not yet implemented)* | Scheduled | Leverages the Google Sheets macro script to pull signed ICF counts for scheduled participants and surfaces the count in the dashboard alongside booking data |
+
+---
+
+## 11. Reliability & Fallback Management *(not yet implemented)*
+
+| Mechanism | When It Triggers | Behavior |
+|---|---|---|
+| Pre-send health check | Before every send run | Pings Salesforce, Gemini, and the Shortlisting App; if any are unreachable, blocks the workflow and notifies the RC and pod lead with a specific alert message; send does not proceed until all systems are healthy |
+| AI service fallback | Gemini unavailable | Notifies RC and pod lead; offers a static email template as fallback so sends can continue without generative content |
+| Per-email retry with backoff | Individual email send failure | Retries each failed email 3× with exponential backoff (1 s → 2 s → 4 s); after 3 failures, moves the email to a Dead Letter Queue and notifies the RC; successful sends are not rolled back — partial success is acceptable and logged |
+
+---
+
+## 12. Guardrails (Blocked Actions)
+
+The `GuardrailsService` enforces policy rules client-side before any message reaches the backend. The following are **not supported**:
+
+- Email template customization
+- Study ownership or assignment changes (e.g., changing the UXR on a study, assigning a case to yourself)
+- Sending invites for a study not assigned to the RC — agent refuses and directs RC to their team lead
 - Deleting candidates
 - Creating new studies
-- Exporting PII or CSV data
+- Exporting PII or CSV data containing candidate details
 - Changing incentive amounts
-- Sending emails to anyone outside the research team
-- Rescheduling interviews
-- Any destructive data operations
+- Sending emails to anyone outside the Google UX Ads research team (e.g., personal Gmail)
+- Rescheduling a candidate's interview slot
+- Any other destructive data operations
 
 Blocked messages receive an immediate refusal response without calling the backend.
 
 ---
 
-## 11. Key User Workflows
+## 13. Key User Workflows
 
 ### Send Invites
 1. Type "send 10 invites for [study]" or click **Send Now** on the Dashboard.
