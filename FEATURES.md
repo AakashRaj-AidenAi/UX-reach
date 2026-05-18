@@ -4,9 +4,6 @@ UXReach is an AI-powered invite email agent for Google UX Research. Research Coo
 
 ---
 
-> **Implementation status key**
-> Items marked *(not yet implemented)* are planned/aligned features from the product use-case backlog that are not yet built.
-
 ## Table of Contents
 
 1. [Authentication](#1-authentication)
@@ -202,8 +199,7 @@ Route: `/admin` — visible to users with role `admin` only.
 
 ---
 
-## 10. Automated Background Tasks *(not yet implemented)*
-
+## 10. Automated Background Tasks
 These tasks run on a schedule without any RC prompt.
 
 | Task | Trigger | What It Does |
@@ -217,8 +213,7 @@ These tasks run on a schedule without any RC prompt.
 
 ---
 
-## 11. Reliability & Fallback Management *(not yet implemented)*
-
+## 11. Reliability & Fallback Management
 | Mechanism | When It Triggers | Behavior |
 |---|---|---|
 | Pre-send health check | Before every send run | Pings Salesforce, Gemini, and the Shortlisting App; if any are unreachable, blocks the workflow and notifies the RC and pod lead with a specific alert message; send does not proceed until all systems are healthy |
